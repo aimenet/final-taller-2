@@ -147,7 +147,8 @@ public class ConsultorH implements Consultor{
 		// destino que le impidiera encolar la descarga
 		intentos = 0;
 		while(intentos < INTENTOS_TX_IMG){
-			respuesta = (Mensaje) conexionTmp.enviarConRta(new Mensaje(0,22,img.getNombre()));
+			//respuesta = (Mensaje) conexionTmp.enviarConRta(new Mensaje(0,22,img.getNombre()));
+			respuesta = (Mensaje) conexionTmp.enviarConRta(new Mensaje(0,22,img));
 			descargada = (Integer) respuesta.getCarga();
 			
 			if(descargada==0){

@@ -23,7 +23,7 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class standalone {
 
-	public void splitTest() {
+	public static void splitTest() {
 		System.out.println("Hasta acá vamos bien");
 		
 		String nombre = "palabra-1.palabra-2";
@@ -46,10 +46,8 @@ public class standalone {
 		
 	}
 	
-	public static void main(String[] args) {
-		BufferedImage imagen = null;
-		BufferedImage reconstruida = null;
-		File archivo;
+	public static void byteArray2Bufferedimage() throws IOException {
+		File archivo = null;
 		
 
 		JFileChooser fileChooser = new JFileChooser();
@@ -61,41 +59,63 @@ public class standalone {
 	    int result = fileChooser.showOpenDialog(null);
 		if (result == JFileChooser.APPROVE_OPTION) {
 		    archivo = fileChooser.getSelectedFile();
-	    	try { imagen = ImageIO.read(archivo); }
-	    	catch (IOException e) { e.printStackTrace(); }
 		} else {
 			System.out.println("Oops, algo salió mal");
 		}
 		
-		System.out.println("Si llegué acá es porque cargué la imagen");
+		/* Método 1 para obtener BufferedImage a partir de un byte array */
+		/* ------------------------------------------------------------- */
+		// Esto no anda, creo que porque no se obtiene así el bytearray de una buffered image
+		/*BufferedImage bimg = ImageIO.read(archivo);
+		byte[] barray = ((DataBufferByte) bimg.getData().getDataBuffer()).getData();
+		ByteArrayInputStream bis = new ByteArrayInputStream(barray);
+		BufferedImage rimg = ImageIO.read(bis);
 		
-		byte[] imageBytes = ((DataBufferByte) imagen.getData().getDataBuffer()).getData();
-		
-		System.out.println("Si llegué acá es porque obtuve el byte array");
-		
-	    JFrame frame = new JFrame();
+		JFrame frame = new JFrame();
 		frame.getContentPane().setLayout(new FlowLayout());
-		frame.getContentPane().add(new JLabel(new ImageIcon(imagen)));
+		frame.getContentPane().add(new JLabel(new ImageIcon(bimg)));
+		frame.pack();
+		frame.setVisible(true);
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);*/
+
+		/* Método 2 */
+		/* -------- */
+		// Esto sí funciona
+		BufferedImage bimg = ImageIO.read(archivo);
+		ByteArrayOutputStream bos = new ByteArrayOutputStream();
+		ImageIO.write(bimg, "jpg", bos );
+		byte[] barray = bos.toByteArray();
+		ByteArrayInputStream bis = new ByteArrayInputStream(barray);
+		BufferedImage rimg = ImageIO.read(bis);
+		
+		JFrame frame = new JFrame();
+		frame.getContentPane().setLayout(new FlowLayout());
+		frame.getContentPane().add(new JLabel(new ImageIcon(rimg)));
 		frame.pack();
 		frame.setVisible(true);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		
-		BufferedImage bImage;
-	    ByteArrayOutputStream bos = new ByteArrayOutputStream();
-	    try { ImageIO.write(imagen, "jpg", bos ); } 
-	    catch (IOException e1) { e1.printStackTrace(); }
-	    byte [] data = bos.toByteArray();
-	    ByteArrayInputStream bis = new ByteArrayInputStream(data);
-		try { reconstruida = ImageIO.read(bis); } 
-		catch (IOException e) { e.printStackTrace(); }
-		
-		frame = new JFrame();
-		frame.getContentPane().setLayout(new FlowLayout());
-		frame.getContentPane().add(new JLabel(new ImageIcon(reconstruida)));
-		frame.pack();
-		frame.setVisible(true);
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		
-		System.out.println("Si llegué acá es porque reconstruí la imagen desde el byte array");
 	}
+	
+	public static void main(String[] args) throws IOException {
+		File archivo = null;
+		Imagen img = null;
+		
+
+		JFileChooser fileChooser = new JFileChooser();
+		FileNameExtensionFilter filter = new FileNameExtensionFilter("bmp","jpg","jpeg","png");
+	    fileChooser.setFileFilter(filter);
+	    fileChooser.setAcceptAllFileFilterUsed(false);
+	    fileChooser.setMultiSelectionEnabled(false);
+	    
+	    int result = fileChooser.showOpenDialog(null);
+		if (result == JFileChooser.APPROVE_OPTION) {
+		    archivo = fileChooser.getSelectedFile();
+		} else {
+			System.out.println("Oops, algo salió mal");
+		}
+		
+		img = new Imagen(archivo);
+		System.out.println("Hasta acá vamos bien");
+	}
+	
 }

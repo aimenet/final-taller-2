@@ -54,15 +54,23 @@ public class Imagen implements Serializable {
 			int newW = 128;
 			int newH = 128;
 			Image tmp = tmpImagen.getScaledInstance(newW, newH, Image.SCALE_SMOOTH);
-		    BufferedImage dimg = new BufferedImage(newW, newH, BufferedImage.TYPE_INT_ARGB);
-		    Graphics2D g2d = dimg.createGraphics();
-		    tmpVistaPrevia = dimg;
+		    //BufferedImage dimg = new BufferedImage(newW, newH, BufferedImage.TYPE_INT_ARGB);
+		    //Graphics2D g2d = dimg.createGraphics();
+			tmpVistaPrevia = new BufferedImage(newW, newH, BufferedImage.TYPE_3BYTE_BGR);
+		    Graphics2D g2d = tmpVistaPrevia.createGraphics();
 		    g2d.drawImage(tmp, 0, 0, null);
 		    g2d.dispose();
 		    
 		    // Pasaje a byte arrray
-		    imagen = ((DataBufferByte) tmpImagen.getData().getDataBuffer()).getData();
-		    vistaPrevia = ((DataBufferByte) tmpVistaPrevia.getData().getDataBuffer()).getData();
+		    //imagen = ((DataBufferByte) tmpImagen.getData().getDataBuffer()).getData();
+		    //vistaPrevia = ((DataBufferByte) tmpVistaPrevia.getData().getDataBuffer()).getData();
+		    
+			ByteArrayOutputStream bos = new ByteArrayOutputStream();
+			ImageIO.write(tmpImagen, "jpg", bos);
+			imagen = bos.toByteArray();
+			bos = new ByteArrayOutputStream();
+			ImageIO.write(tmpVistaPrevia, "jpg", bos);
+			vistaPrevia = bos.toByteArray();
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.exit(1);
@@ -202,14 +210,9 @@ public class Imagen implements Serializable {
 	//Getters
 	private BufferedImage getBufferedImage() {
 		BufferedImage imagen = null;
+		ByteArrayInputStream bis;
 		
-	    ByteArrayOutputStream bos = new ByteArrayOutputStream();
-	    
-	    try { ImageIO.write(imagen, "jpg", bos ); } 
-	    catch (IOException e1) { e1.printStackTrace(); }
-	    
-	    byte [] data = bos.toByteArray();
-	    ByteArrayInputStream bis = new ByteArrayInputStream(data);
+		bis = new ByteArrayInputStream(this.imagen);
 		
 	    try { imagen = ImageIO.read(bis); } 
 		catch (IOException e) { e.printStackTrace(); }
@@ -217,17 +220,20 @@ public class Imagen implements Serializable {
 	    return imagen;
 	}
 	
-
-	public BufferedImage getImagen() { return this.getBufferedImage(); }
-	public BufferedImage getVistaPrevia() {return this.vistaPrevia;}
+	// TODO: definir si los necesito
+	//public BufferedImage getImagen() { return this.getBufferedImage(true); }
+	//public BufferedImage getVistaPrevia() { return this.getBufferedImage(false); }
+	public byte[] getImagen() { return this.imagen; }
+	public byte[] getVistaPrevia() { return this.vistaPrevia; }
+	
 	public int[] getVectorCaracteristico() {return this.vectorCaracteristico;}
 	public int[] getVecCarComprimido() {return this.vecCarComprimido;}
 	public String getNombre() {return this.nombre;}
 	public String getUbicacion() {return this.ubicacion;}
 
 	//Setters
-	public void setImagen(BufferedImage imagen) {this.imagen = imagen;}
-	public void setVistaPrevia(BufferedImage vistaPrevia) {this.vistaPrevia = vistaPrevia;}
+	//public void setImagen(BufferedImage imagen) {this.imagen = imagen;}
+	//public void setVistaPrevia(BufferedImage vistaPrevia) {this.vistaPrevia = vistaPrevia;}
 	public void setVectorCaracteristico(int[] vectorCaracteristico){
 		this.vectorCaracteristico = vectorCaracteristico;
 	}

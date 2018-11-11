@@ -208,7 +208,7 @@ public class HojaCliente {
 	} 
 	
 
-	public ArrayList<HashMap<String,String[]>> getColaRespuestas(){
+	public HashMap<String, HashMap<String, CredImagen[]>> getColaRespuestas(){
 		return atributos.getColaRtas();
 	}
 	

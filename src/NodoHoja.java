@@ -99,6 +99,9 @@ public class NodoHoja {
 		//System.out.println("El código sigue después de poner al hilo en marcha");
 		//System.out.println("Estado del hilo: " + hiloCliente.getState());
 		
+		System.out.println("Si me ves, preparate a ver que hacer con el hilo consumidor");
+		System.out.println("DBG");
+		
 		/*while(true) {
 			//Pause for 30 seconds
             try {

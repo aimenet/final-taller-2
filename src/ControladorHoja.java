@@ -321,7 +321,7 @@ public class ControladorHoja implements Runnable {
 	}*/
 	
 	
-	//Lista en pantalla todas las imágenes cargadas en el nodo. 
+	//Lista en pantalla todas las imágenes descargadas en el nodo. 
 	private void menuListarDescargas(Scanner teclado){
 		String[] imagenesDescargadas;
 		

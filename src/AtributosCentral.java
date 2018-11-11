@@ -3,8 +3,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Set;
 
-import sun.org.mozilla.javascript.internal.Synchronizer;
-
 /**
  * Clase que engloba todos los atributos de un Nodo Central e implementa los métodos necesarios para
  * manipular los mismos.

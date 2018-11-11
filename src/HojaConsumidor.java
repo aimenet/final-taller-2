@@ -141,11 +141,13 @@ public class HojaConsumidor implements Runnable {
 				
 				String direccionRecepcionRta = this.atributos.getIpServidor() + ":" + this.atributos.getPuertoServidor().toString();
 				Mensaje solicitud = new Mensaje(null,direccionRecepcionRta,21,solicitudDescarga.getSegundo());
-				Mensaje respuesta = (Mensaje) conexionTmp.enviarConRta(solicitud);
+				/*Mensaje respuesta = (Mensaje) conexionTmp.enviarConRta(solicitud);
 				Imagen descargada = (Imagen) respuesta.getCarga();
 				
 				atributos.almacenarDescarga(descargada);
-				System.out.println("Consumidor "+idConsumidor+" : descargada " + descargada.getNombre());
+				System.out.println("Consumidor "+idConsumidor+" : descargada " + descargada.getNombre());*/
+				
+				conexionTmp.enviarSinRta(solicitud);
 				break;
 				
 			case "ANUNCIO": //Anuncio a NC de imágenes compartidas
@@ -153,7 +155,7 @@ public class HojaConsumidor implements Runnable {
 				// Mensaje indicando la cantidad de imágenes a enviar
 				conexionConNodoCentral.enviarSinRta(new Mensaje(this.idAsignadoNC,3,muchas.size()));
 				// Envío de imágenes
-				respuesta = (Mensaje) conexionConNodoCentral.enviarConRta(new Mensaje(this.idAsignadoNC,3,muchas));
+				Mensaje respuesta = (Mensaje) conexionConNodoCentral.enviarConRta(new Mensaje(this.idAsignadoNC,3,muchas));
 				// Si carga del mensaje = 0 -> recibió todo OK, si = 1 -> algo salió mal.
 				if ((Integer) respuesta.getCarga() != 0){
 					System.out.println("Consumidor " + idConsumidor + " falló anuncio de imágenes compartidas");

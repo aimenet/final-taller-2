@@ -96,7 +96,7 @@ public class standalone {
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 	}
 	
-	public static void main(String[] args) throws IOException {
+	public static void pruebaConClaseImagen() throws IOException {
 		File archivo = null;
 		Imagen img = null;
 		
@@ -115,7 +115,36 @@ public class standalone {
 		}
 		
 		img = new Imagen(archivo);
-		System.out.println("Hasta acá vamos bien");
+		
+		ByteArrayInputStream bis = new ByteArrayInputStream(img.getVistaPrevia());
+		BufferedImage rimg = ImageIO.read(bis);
+		
+		JFrame frame = new JFrame();
+		frame.getContentPane().setLayout(new FlowLayout());
+		frame.getContentPane().add(new JLabel(new ImageIcon(rimg)));
+		frame.pack();
+		frame.setVisible(true);
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+	}
+	
+	public static void main(String[] args) throws IOException {
+		Integer elObjeto = null;
+		Object[] elArrayDeObjetos = new Object[3];
+		
+		for (int i=0; i<3; i++) {
+			elObjeto = i;
+			elArrayDeObjetos[i] = elObjeto;
+		}
+		
+		for (int j=0; j<elArrayDeObjetos.length; j++) {
+			System.out.println(elArrayDeObjetos[j].toString());
+		}
+		
+		elArrayDeObjetos = new Object[3];
+		elArrayDeObjetos[0] = 1;
+		elArrayDeObjetos[1] = "Hola";
+		elArrayDeObjetos[2] = 35;
+		
 	}
 	
 }

@@ -1,7 +1,21 @@
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Reader;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Set;
+
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 /**
  * Clase que engloba todos los atributos de un Nodo Central e implementa los métodos necesarios para
@@ -21,7 +35,7 @@ public class AtributosCentral {
 	private static Integer puertoServidorCentrales;
 	private static Integer puertoServidorHojas;
 	private static String ip;
-
+	
 	private static Integer idHoja = 1;
 	private static final Object lockIDHoja = new Object();
 	private static final Object lockIndiceHojas = new Object();
@@ -31,6 +45,9 @@ public class AtributosCentral {
 
 	private static final Object lockIndiceCentrales = new Object();
 	private static volatile ArrayList<String> indiceCentrales = new ArrayList<String>();
+	
+	private static final Object lockArchivoHojas = new Object();
+	private static final String pathArchivoHojas = Paths.get(System.getProperty("user.dir"),"config", "hojas_conectadas.json").toString();
 	
 	// Últimas consultas recibidas para evitar duplicar respuestas. En la primer fila de la matriz se guardan
 	// las consultas (Mensaje) y en la segunda la hora en que fue recibida
@@ -195,4 +212,90 @@ public class AtributosCentral {
 		return ultimasConsultas;
 	}
 	
+	/** Verifica si alguna vez la H consultada estuvo conectada al NC, con el id indicado 
+	 * @throws ParseException 
+	 * @throws IOException */
+	public boolean verificarConexionHistoricaHoja(Integer idHoja, String token, String direccionesHoja) throws IOException, ParseException {
+		boolean existio = false;
+		
+		synchronized (lockArchivoHojas) {
+			JSONParser parser = new JSONParser();
+			Reader reader = new FileReader(this.pathArchivoHojas);
+
+			JSONObject jsonObject = (JSONObject) parser.parse(reader);
+
+			if ( jsonObject.keySet().contains(idHoja.toString()) ) {
+				JSONObject hoja = (JSONObject) jsonObject.get(idHoja.toString());
+				existio = ((String) hoja.get("direcciones")).equals(direccionesHoja) && ((String) hoja.get("token")).equals(token);
+			}
+			
+			reader.close();
+		}
+		
+		return existio;
+	}
+	
+	/** Registra una HOJA en el archivo correspondiente (para llevar un registro "histórico" en caso de reconexión 
+	 * @throws ParseException 
+	 * @throws IOException */
+	private boolean guardarConexionHistoricaHoja(Integer idHoja, String token, String direccionesHoja) {
+		boolean guardado = false;
+		JSONObject hoja = new JSONObject();
+		
+		hoja.put("token", token);
+		hoja.put("direcciones", direccionesHoja);
+		
+		synchronized (lockArchivoHojas) {
+			try {
+				// Si no existe el archivo donde se registran las H lo abre sino lo crea
+				File file = new File(this.pathArchivoHojas);
+				if (!file.exists()) {
+					file.getParentFile().mkdirs();
+					file.createNewFile();
+					FileWriter writer = new FileWriter(file);
+					writer.write("{}");
+					writer.flush();
+					writer.close();
+				}
+				
+				// Lee el contenido del archivo -> no es lo más eficiente en cuanto a uso de memoria pero es
+				// el problema de usar JSON
+				JSONParser parser = new JSONParser();
+				Reader reader = new FileReader(file);
+				JSONObject hojas;
+				hojas = (JSONObject) parser.parse(reader);
+				reader.close();
+				
+				hojas.put(idHoja.toString(), hoja);
+				
+				// Sobreescribe el archivo con el actualizado -> de nuevo, no es lo más eficiente ni seguro
+				FileWriter writer = new FileWriter(file);
+				writer.write(hojas.toJSONString());
+				writer.flush();
+				writer.close();
+				
+				guardado = true;
+			} catch (IOException e) {
+				e.printStackTrace();
+				guardado = false;
+			} catch (ParseException e) {
+				e.printStackTrace();
+				guardado = false;
+			}
+		}
+		
+		return guardado;
+	}
+	
+	
+	
 } //Fin clase
+
+
+/**
+ * Notas
+ * -----
+ * 	"archivoHojas" es el archivo donde registro las H que estuvieron conectadas al nodo
+ * para recuperar una conexión en caso de caída
+ *  
+ *  */

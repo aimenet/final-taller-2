@@ -148,7 +148,7 @@ public class ConsultorH implements Consultor{
 		intentos = 0;
 		while(intentos < INTENTOS_TX_IMG){
 			//respuesta = (Mensaje) conexionTmp.enviarConRta(new Mensaje(0,22,img.getNombre()));
-			respuesta = (Mensaje) conexionTmp.enviarConRta(new Mensaje(0,22,img));
+			respuesta = (Mensaje) conexionTmp.enviarConRta(new Mensaje("0",22,img));
 			descargada = (Integer) respuesta.getCarga();
 			
 			if(descargada==0){

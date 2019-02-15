@@ -10,8 +10,9 @@ public class Mensaje implements Serializable {
 	/*-----------*/
 	/* Atributos */
 	/*-----------*/
-	private Integer codigo, emisor, ttl;
+	private Integer codigo, ttl;
 	private Object carga;
+	private String emisor;
 	
 	// Usados por mensajes que se envían entre NCs
 	private String origen, ncEmisor, recepcionRta;
@@ -21,7 +22,7 @@ public class Mensaje implements Serializable {
 	/* Métodos */
 	/*---------*/
 //  Constructor básico: enviado desde Hoja a NC con consulta ¿y desde H a H para descarga?
-	public Mensaje(Integer idEmisor, String direccionRta, Integer codigo, Object carga){
+	public Mensaje(String idEmisor, String direccionRta, Integer codigo, Object carga){
 		this.emisor = idEmisor;
 		this.recepcionRta = direccionRta;
 		this.codigo = codigo;
@@ -33,7 +34,7 @@ public class Mensaje implements Serializable {
 	}
 	
 	// Constructor básico (deprecated): enviado desde Hoja a NC
-	public Mensaje(Integer emisor, Integer codigo, Object carga){
+	public Mensaje(String emisor, Integer codigo, Object carga){
 		this.emisor = emisor;
 		this.codigo = codigo;
 		this.carga = carga;
@@ -44,7 +45,7 @@ public class Mensaje implements Serializable {
 	}
 	
 	// Constructor usado por NC
-	public Mensaje(Integer emisor, Integer codigo, Integer ttl, Object carga){
+	public Mensaje(String emisor, Integer codigo, Integer ttl, Object carga){
 		this.emisor = emisor;
 		this.codigo = codigo;
 		this.ttl = ttl;
@@ -55,7 +56,7 @@ public class Mensaje implements Serializable {
 	}
 	
 	// Otro constructor usado por NC
-	public Mensaje(Integer emisor, String origen, String ncEmisor, Integer codigo, Integer ttl, Object carga){
+	public Mensaje(String emisor, String origen, String ncEmisor, Integer codigo, Integer ttl, Object carga){
 		this.emisor = emisor;
 		this.origen = origen;
 		this.codigo = codigo;
@@ -65,7 +66,7 @@ public class Mensaje implements Serializable {
 	}
 	
 	// Constructor usado por NC para retransmitir consulta a otro NC
-	public Mensaje(Integer emisor, String origen, String ncEmisor, Integer codigo, Integer ttl, Object carga, String direccionRta){
+	public Mensaje(String emisor, String origen, String ncEmisor, Integer codigo, Integer ttl, Object carga, String direccionRta){
 		this.emisor = emisor;
 		this.origen = origen;
 		this.codigo = codigo;
@@ -80,7 +81,7 @@ public class Mensaje implements Serializable {
 	}
 	
 	//Getters.
-	public Integer getEmisor(){
+	public String getEmisor(){
 		return emisor;
 	}
 	
@@ -109,7 +110,7 @@ public class Mensaje implements Serializable {
 	}
 	
 	//Setters.
-	private void setEmisor(Integer emisor){
+	private void setEmisor(String emisor){
 		this.emisor = emisor;
 	}
 	

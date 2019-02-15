@@ -20,8 +20,8 @@ public class HojaConsumidor implements Runnable {
 	private AtributosHoja atributos;
 	private ConexionTcp conexionConNodoCentral;
 	private boolean conexionEstablecida, sesionIniciada;
-	private Integer idAsignadoNC, idConsumidor, puertoNC;
-	private String ipNC;
+	private Integer idConsumidor, puertoNC;
+	private String idAsignadoNC, ipNC;
 
 
 
@@ -206,7 +206,7 @@ public class HojaConsumidor implements Runnable {
 		respuesta = (Mensaje) conexionConNodoCentral.enviarConRta(new Mensaje(null,1, hojaServer));
 		if (respuesta.getCodigo().equals(1) && respuesta.getCarga() != null){
 			//La respuesta contiene el ID con el que se identificará al Cliente.
-			idAsignadoNC = Integer.valueOf(respuesta.getCarga().toString());
+			idAsignadoNC = respuesta.getCarga().toString();
 			sesionIniciada = true;
 			return true;
 		} else {

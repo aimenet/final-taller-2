@@ -18,6 +18,9 @@ import java.io.IOException;
 import java.io.Reader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.SecureRandom;
+import java.util.Base64;
+import java.util.Base64.Encoder;
 import java.util.Iterator;
 
 import javax.imageio.ImageIO;
@@ -218,7 +221,7 @@ public class standalone {
 		System.out.print(jsonObject.toJSONString());
 	}
 	
-	public static void main(String[] args) throws IOException, ParseException {
+	public static void pruebaIoJson(String[] args) throws IOException, ParseException {
 		File file = new File("/home/rdg/eclipse-workspace/final-taller-2/new/new2/blablabla2.json");
 		if (!file.exists()) {
 			System.out.println("Creando");
@@ -245,5 +248,16 @@ public class standalone {
 		
 		System.out.println(jsonObject);
 	}
+
 	
+	public static void main(String[] args) throws IOException, ParseException {
+		SecureRandom random = new SecureRandom();
+		byte bytes[] = new byte[16];
+		for (int i=0; i<10; i++) {
+			random.nextBytes(bytes);
+			Encoder encoder = Base64.getUrlEncoder().withoutPadding();
+			String token = encoder.encodeToString(bytes);
+			System.out.println(token);
+		}
+	}
 }

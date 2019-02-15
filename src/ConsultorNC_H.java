@@ -75,8 +75,8 @@ public class ConsultorNC_H implements Consultor {
 		
 		// Segunda versión (se puede hacer más eficiente o al menos más prolijo buscando las hojas finales
 		// para no estar decrementando el latch y demás)
-		Integer[] hojasConImagenes =  atributos.getClavesIndiceImagenes();
-		for(Integer clave : hojasConImagenes) {
+		String[] hojasConImagenes =  atributos.getClavesIndiceImagenes();
+		for(String clave : hojasConImagenes) {
 			if(clave != msj.getEmisor()) {
 				String destino = atributos.getHoja(clave).split(";")[1];
 				Worker trabajador = new Worker(clave, similares, modelo, atributos.getImagenes(clave),
@@ -103,7 +103,7 @@ public class ConsultorNC_H implements Consultor {
 			String destino = atributos.getCentral(i);
 			
 			if (destino != null){
-				Worker trabajador = new Worker(i, similares, modelo, new ArrayList<CredImagen>(),
+				Worker trabajador = new Worker(Integer.toString(i), similares, modelo, new ArrayList<CredImagen>(),
 						latchCentrales, destino.split(":")[0], destino.split(":")[1], 3, "Central",
 						direccionNodoActual, direccionNodoActual, direccionRta);
 			
@@ -195,7 +195,7 @@ public class ConsultorNC_H implements Consultor {
 			e.printStackTrace();
 		}
 		
-		for (Integer clave:atributos.getClavesIndiceImagenes() ){
+		for (String clave:atributos.getClavesIndiceImagenes() ){
 			System.out.println(clave + ": " + atributos.getImagenes(clave));
 		}
 		return true;
@@ -211,19 +211,30 @@ public class ConsultorNC_H implements Consultor {
 	 * @return
 	 */
 	private boolean saludo(ObjectInputStream entrada, ObjectOutputStream salida, String direccionesServer){
-		Integer idAsignado;
+		String idAsignado;
 		Mensaje mensaje;
 		String direccionesHoja;
 		
 		try {
+			// direccionesServer puede ser en realidad un TOKEN que identifica a la HOJA pues ya estuvo conectada al nodo
+			// En ese caso se recuperará e informará el ID que le fue asignado anteriormente
+			// El token es un string alfanumérico de 16 dígitos, que en este contexto se identifica de la siguiente manera
+			// ##DDDDDDDDDDDDDDDD##
+			if (direccionesServer.length()==20 && direccionesServer.startsWith("##") && direccionesServer.endsWith("##")) {
+				// se recibió un token
+				
+				// IGNORO ESTO POR AHORA
+				
+			}
+			
 			// El ID de Hoja es compartido por todas las instancias por lo que debe sincronizarse su acceso.
-			idAsignado = atributos.getIncrementarIdHoja();
+			idAsignado = atributos.generarToken();
 			
 			//¿El servidor debería tener un ID, un Mensaje propio sin campo emisor o pongo null como ahora?
 			salida.writeObject(new Mensaje(null,1, idAsignado.toString()));
 			System.out.println("-> Asignado ID " +  idAsignado + " a cliente " + sockToString());
 			
-			// La Hoja envía en el saludo la la dirección y puerto de su servidor de consultas. Junto a los de
+			// La Hoja envía en el saludo la dirección y puerto de su servidor de consultas. Junto a los de
 			// su faceta cliente se confecciona el arreglo de direcciones que será indexado
 			direccionesHoja = sock.getInetAddress().getHostAddress() + ":" + sock.getPort();
 			direccionesHoja += ";" + direccionesServer;
@@ -231,12 +242,6 @@ public class ConsultorNC_H implements Consultor {
 			//Guardado del par ID<->Nodo Hoja (atributo de clase, debe sincronizarse)
 			atributos.indexarHoja(idAsignado, direccionesHoja);
 						
-			// Borrar
-//			System.out.println("");
-//			for(Integer clave : atributos.getClavesIndiceHojas()){
-//				System.out.println(clave + ":" + atributos.getHoja(clave));
-//			}
-			
 			return true;
 		} catch (IOException e){
 			//IOException -> por escritura en buffer salida.
@@ -272,6 +277,7 @@ public class ConsultorNC_H implements Consultor {
 				case 1:
 					if (!saludo(buffEntrada, buffSalida, (String) mensaje.getCarga())) {terminar=true;}
 					break;
+				// case 2 podría ser saludo para reconexion
 				case 3:
 					if(!recibirListado(buffEntrada,buffSalida,mensaje)) {
 						terminar=true;
@@ -393,8 +399,8 @@ class HashConcurrente{
 class Worker implements Runnable {
 	private ArrayList<CredImagen> indexadas;
 	private HashConcurrente respuesta;
-	private int id, puerto, ttl;
-	private String emisor, ip, modo, origen, direccionRta;
+	private int puerto, ttl;
+	private String emisor, id, ip, modo, origen, direccionRta;
 	private String[] candidatas;
 	private final CredImagen referencia;
 	private final CountDownLatch doneSignal;
@@ -403,7 +409,7 @@ class Worker implements Runnable {
 	// originalmente y al que la retransmite respectivamente
 	
 	
-	Worker(int id, HashConcurrente respuestas, CredImagen referencia, ArrayList<CredImagen> indexadas,
+	Worker(String id, HashConcurrente respuestas, CredImagen referencia, ArrayList<CredImagen> indexadas,
 			CountDownLatch doneSignal, String ip, String puerto, int ttl, String modo) {
 		this.id = id;
 		this.respuesta = respuestas;
@@ -427,10 +433,10 @@ class Worker implements Runnable {
 
 	// Constructor usado para las instancias que interacturán con NC (se agrega la dirección del NC
 	// que origina la consulta y la dirección a donde debe enviarse la rta)
-	Worker(int id, HashConcurrente respuestas, CredImagen referencia, ArrayList<CredImagen> indexadas,
+	Worker(String i, HashConcurrente respuestas, CredImagen referencia, ArrayList<CredImagen> indexadas,
 			CountDownLatch doneSignal, String ip, String puerto, int ttl, String modo,
 			String direccionOrigen, String direccionEmisor, String direccionRta) {
-		this.id = id;
+		this.id = i;
 		this.respuesta = respuestas;
 		this.referencia = referencia;
 		this.indexadas = indexadas;
@@ -507,15 +513,16 @@ class Worker implements Runnable {
 		if(candidatas.isEmpty())
 			return false;
 		
+		// TODO: acá forzé el "00" porque da igual pero debería usar el ID
 		// Paso 3: envío de consulta, imagen de referencia y recepción de respuestas
-		conexion.enviarSinRta(new Mensaje(00,10,referencia));
-		rta = (Mensaje) conexion.enviarConRta(new Mensaje(00,10,candidatas)); //rta: imgs similares
+		conexion.enviarSinRta(new Mensaje("00",10,referencia));
+		rta = (Mensaje) conexion.enviarConRta(new Mensaje("00",10,candidatas)); //rta: imgs similares
 		rta2 = (Mensaje) conexion.recibir(); //rta2: ip+puerto del nodo que las posee.
 		
 		if(rta == null){
 			System.out.println("<ConsultorNC.java> Entró en fix provisorio");
 			//rta = new Mensaje(00,10,new ArrayList<String>());
-			rta = new Mensaje(00,10,new ArrayList<CredImagen>());
+			rta = new Mensaje("00",10,new ArrayList<CredImagen>());
 		}
 		
 		// Paso 4: almacenamiento del listado de imágenes de la Hoja similares a la de referencia
@@ -555,11 +562,11 @@ class Worker implements Runnable {
 		// Paso 2: envío de consulta, imagen de referencia y recepción de respuestas
 		destinoRta = direccionRta;
 		
-		rta = (Mensaje) conexion.enviarConRta(new Mensaje(00,origen,emisor,30,ttl,referencia, destinoRta)); //rta: imgs similares
+		rta = (Mensaje) conexion.enviarConRta(new Mensaje("00",origen,emisor,30,ttl,referencia, destinoRta)); //rta: imgs similares
 		
 		if(rta == null){
 			System.out.println("<ConsultorNC_H-Worker.java> Entró en fix provisorio");
-			rta = new Mensaje(00,30,new ArrayList<CredImagen>());
+			rta = new Mensaje("00",30,new ArrayList<CredImagen>());
 		}
 		
 		// Paso 3: almacenamiento del listado recibido

@@ -6,11 +6,14 @@ import java.io.IOException;
 import java.io.Reader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.SecureRandom;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.Base64.Encoder;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -40,8 +43,8 @@ public class AtributosCentral {
 	private static final Object lockIDHoja = new Object();
 	private static final Object lockIndiceHojas = new Object();
 	private static final Object lockIndiceImagenes = new Object();
-	private static volatile HashMap<Integer,String> indiceHojas = new HashMap<Integer,String>();
-	private static volatile HashMap<Integer,ArrayList<CredImagen>> indiceImagenes = new HashMap<Integer,ArrayList<CredImagen>>();
+	private static volatile HashMap<String,String> indiceHojas = new HashMap<String,String>();
+	private static volatile HashMap<String,ArrayList<CredImagen>> indiceImagenes = new HashMap<String,ArrayList<CredImagen>>();
 
 	private static final Object lockIndiceCentrales = new Object();
 	private static volatile ArrayList<String> indiceCentrales = new ArrayList<String>();
@@ -54,12 +57,17 @@ public class AtributosCentral {
 	private static final Object lockUltimasConsultas = new Object();
 	private static volatile Object[][] ultimasConsultas = new Object[2][10];
 	private static volatile Integer indiceActualConsultas = 0;
-
+	
+	// Algunas constantes
+	private static final int TOKEN_MAX_LENGTH = 16;
+	// -> esto hace que el largo del token sea 22 caracteres. Tengo que terminar de entender por qué 16bytes = 22 caracteres
+	// -> debe tener mucho que ver el
+	
 
 	// Métodos
 	// =======
-	public String getHoja(Integer idHoja){
-		return indiceHojas.get(idHoja);
+	public String getHoja(String clave){
+		return indiceHojas.get(clave);
 	}
 	
 	public String getCentral(Integer index){
@@ -70,16 +78,16 @@ public class AtributosCentral {
 		return indiceCentrales;
 	}
 	
-	public ArrayList<CredImagen> getImagenes(Integer idHoja){
-		return indiceImagenes.get(idHoja);
+	public ArrayList<CredImagen> getImagenes(String clave){
+		return indiceImagenes.get(clave);
 	}
 	
-	public void indexarImagenes(Integer idHoja, ArrayList<CredImagen> imagenes){
+	public void indexarImagenes(String idHoja, ArrayList<CredImagen> imagenes){
 		synchronized(lockIndiceImagenes){ indiceImagenes.put(idHoja, imagenes); }
 	}
 	
-	public Integer[] getClavesIndiceImagenes(){
-		return indiceImagenes.keySet().toArray(new Integer[0]);
+	public String[] getClavesIndiceImagenes(){
+		return indiceImagenes.keySet().toArray(new String[0]);
 	}
 	
 	public Integer getIncrementarIdHoja(){
@@ -93,15 +101,32 @@ public class AtributosCentral {
 		return asignado;
 	}
 	
+	public String generarToken() {
+		// Los tokens son case sensitive por lo que puede considerarse que en el mejor de los casos
+		// tengo la mitad de probabilidad de repetición que si no lo fueran (ver nota B al final)
+		
+		// Con un largo de 16 (case sensitive) tengo 47672401706823533450263330816 combinaciones distintas
+		
+		// TODO: sería muy bueno hacer que el largo de los tokens vaya aumentando a medida que crece la cantidad de
+		//       Hojas conectadas al Nodo
+		
+		// TODO: deberia tener algún tipo de sincronización esta función? nextBytes() es thread safe
+		SecureRandom random = new SecureRandom();
+		byte bytes[] = new byte[this.TOKEN_MAX_LENGTH];
+		random.nextBytes(bytes);
+		Encoder encoder = Base64.getUrlEncoder().withoutPadding();
+		return encoder.encodeToString(bytes); // el token
+	}
+	
 	public Integer getTamanioIndiceImagenes(){
 		return indiceImagenes.size();
 	}
 	
-	public void indexarHoja(Integer idHoja, String direcciones){
+	public void indexarHoja(String idHoja, String direcciones){
 		synchronized(lockIndiceHojas){ indiceHojas.put(idHoja, direcciones); }
 	}
 	
-	public Set<Integer> getClavesIndiceHojas(){
+	public Set<String> getClavesIndiceHojas(){
 		return indiceHojas.keySet();
 	}
 	
@@ -215,7 +240,7 @@ public class AtributosCentral {
 	/** Verifica si alguna vez la H consultada estuvo conectada al NC, con el id indicado 
 	 * @throws ParseException 
 	 * @throws IOException */
-	public boolean verificarConexionHistoricaHoja(Integer idHoja, String token, String direccionesHoja) throws IOException, ParseException {
+	public boolean verificarConexionHistoricaHoja(Integer idHoja, String direccionesHoja) throws IOException, ParseException {
 		boolean existio = false;
 		
 		synchronized (lockArchivoHojas) {
@@ -226,7 +251,7 @@ public class AtributosCentral {
 
 			if ( jsonObject.keySet().contains(idHoja.toString()) ) {
 				JSONObject hoja = (JSONObject) jsonObject.get(idHoja.toString());
-				existio = ((String) hoja.get("direcciones")).equals(direccionesHoja) && ((String) hoja.get("token")).equals(token);
+				existio = ((String) hoja.get("direcciones")).equals(direccionesHoja);
 			}
 			
 			reader.close();
@@ -235,14 +260,15 @@ public class AtributosCentral {
 		return existio;
 	}
 	
+	
+	
 	/** Registra una HOJA en el archivo correspondiente (para llevar un registro "histórico" en caso de reconexión 
 	 * @throws ParseException 
 	 * @throws IOException */
-	private boolean guardarConexionHistoricaHoja(Integer idHoja, String token, String direccionesHoja) {
+	private boolean guardarConexionHistoricaHoja(Integer idHoja, String direccionesHoja) {
 		boolean guardado = false;
 		JSONObject hoja = new JSONObject();
 		
-		hoja.put("token", token);
 		hoja.put("direcciones", direccionesHoja);
 		
 		synchronized (lockArchivoHojas) {
@@ -295,7 +321,18 @@ public class AtributosCentral {
 /**
  * Notas
  * -----
- * 	"archivoHojas" es el archivo donde registro las H que estuvieron conectadas al nodo
- * para recuperar una conexión en caso de caída
+ * 	A) "archivoHojas" es el archivo donde registro las H que estuvieron conectadas al nodo
+ *     para recuperar una conexión en caso de caída
+ * 
+ * B) Combinaciones posibles de tokens
+ *          - letras: 26 -> al ser case sensitive -> 26 * 2 = 52
+ *          - números: 10
+ *          - especiales: ?? 
+ *          - largo token: N
+ *          
+ *          - combinaciones: (letras + números + especiales) ^ largo token
+ *                           => (52+10+??)^N = 62 ^ N  // ignorando especiales que no me acuerdo cuántos son
+ *                            
+ *          
  *  
  *  */

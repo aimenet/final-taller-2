@@ -19,7 +19,7 @@ public class HojaCliente {
 	private AtributosHoja atributos;
 	private ConexionTcp conexionConNodoCentral;
 	private boolean conexionEstablecida, sesionIniciada;
-	private int id;
+	private String id;
 	
 	
 	
@@ -82,7 +82,8 @@ public class HojaCliente {
 			return descargada;
 		}
 		
-		respuesta = (Mensaje) conexionTmp.enviarConRta(new Mensaje(0,21,nombre));
+		// Acá el ID es anecdótico pues las H no registran los IDs de las demás -> vulnerabilidad 
+		respuesta = (Mensaje) conexionTmp.enviarConRta(new Mensaje(this.id,21,nombre));
 		descargada = (String) respuesta.getCarga();
 		
 		return descargada;
@@ -193,9 +194,9 @@ public class HojaCliente {
 		respuesta = (Mensaje) conexionConNodoCentral.enviarConRta(new Mensaje(null,1, hojaServer));
 		if (respuesta.getCodigo().equals(1) && respuesta.getCarga() != null){
 			//La respuesta contiene el ID con el que se identificará al Cliente.
-			id = Integer.valueOf(respuesta.getCarga().toString());
-			System.out.println("ID asignado: " + id);
-			sesionIniciada = true;
+			this.id = respuesta.getCarga().toString();
+			System.out.println("ID asignado: " + this.id);
+			this.sesionIniciada = true;
 			return true;
 		} else {
 			return false;

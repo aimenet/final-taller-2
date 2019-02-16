@@ -102,19 +102,55 @@ public class NodoHoja {
 		System.out.println("Si me ves, preparate a ver que hacer con el hilo consumidor");
 		System.out.println("DBG");
 		
-		/*while(true) {
-			//Pause for 30 seconds
+		// Hago esto por hora nada más
+		int counter = 0;
+		while(true) {
+			//Pause for 10 seconds
             try {
 				Thread.sleep(10000);
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			System.out.println("\n\t-> Estado del hilo: " + hiloCliente.getState());
-		}*/
+            
+            /*for(int i=0; i<hilosConsumidores.length; i++){
+    			System.out.print("Consumer thread #" + Integer.toString(i) + " state: ");
+    			System.out.println(hilosConsumidores[i].getState().toString());
+    		}*/
+            
+            counter += 1;
+            
+            if(counter == 3) {
+	        	System.out.println("\nThread state before interrupt: " + hilosConsumidores[0].getState().toString());
+	        	hilosConsumidores[0].interrupt();
+	        	// Agrego un delay para que efectivamente se interrumpa el threadl
+	        	try {Thread.sleep(1000);} catch (InterruptedException e) {e.printStackTrace();}
+	        	System.out.println("Thread state after interrupt:  " + hilosConsumidores[0].getState().toString());
+	        	
+	        	System.out.println("\nThread alive:       " + hilosConsumidores[0].isAlive());
+	        	System.out.println("Thread interrupted: " + hilosConsumidores[0].isInterrupted());
+	        	
+	        	System.out.print("\nSetting up thread: ");
+	        	hilosConsumidores[0] = new Thread( new HojaConsumidor(1,
+	        			atributos.getDireccionesNCs()[0].split(":")[0],
+						Integer.parseInt(atributos.getDireccionesNCs()[0].split(":")[1])) );
+	        	System.out.println("DONE");
+	        	
+	        	System.out.println("\nThread state before start: " + hilosConsumidores[0].getState().toString());
+	        	hilosConsumidores[0].start();
+	        	System.out.println("Thread state after start:  " + hilosConsumidores[0].getState().toString());
+            } else {
+            	for(int i=0; i<hilosConsumidores.length; i++){
+	    			System.out.print("Consumer thread #" + Integer.toString(i) + " state: ");
+	    			System.out.println(hilosConsumidores[i].getState().toString());
+	    		}
+            }
+            
+		}
 		
 		
-		try {
+		// Creo que si va esto no puede ir el while true de arriba
+		/*try {
 			hiloProductor.join();
 			hiloServidor.interrupt();
 			for(int i=0; i<hilosConsumidores.length; i++){ hilosConsumidores[i].interrupt(); }
@@ -122,7 +158,7 @@ public class NodoHoja {
 			e.printStackTrace();
 		}
 
-		System.exit(0);
+		System.exit(0);*/
 	}
 
 }// Fin clase

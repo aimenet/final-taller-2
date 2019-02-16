@@ -47,19 +47,30 @@ public class HojaConsumidor implements Runnable {
 	public void run() {
 		// TODO: ¿loop infinito? Pensarlo bien
 		
-		if(establecerConexionNodoCentral()){
+		
+		// TODO: <2019-02-16> Comento mientras pruebo como parar y restartear un thread
+		/*if(establecerConexionNodoCentral()){
 			System.out.println("Consumidor " + idConsumidor +": iniciada sesión en NC");
 			sesionIniciada = true;
 		} else {
 			System.out.println("Consumidor " + idConsumidor +": imposible iniciar sesión en NC");
 			// TODO: ver como capturar el error y parar el consumidor sin detener el Nodo (this.wait() no sirve)
+			//       Creo que va por el lado de matar este hilo (dejar que muera, interrumpirlo, algo de eso)
+			//		 y revivirlo en un bucle en NodoHoja.java
 		}
 		
 		while (true) {
 			//try{consumir();}
 			try{consumir2();}
 			catch (InterruptedException ex){ex.printStackTrace();}
-		}
+			
+		}*/
+		
+		//
+		try {Thread.sleep(60000);}
+		catch (InterruptedException e) {e.printStackTrace(); /*Acá debería estar terminado si no entiendo mal*/}
+		
+		
 	}
 
 	// Deprecated en cuanto termine consultar2()

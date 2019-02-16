@@ -151,6 +151,14 @@ public class AtributosHoja {
 	
 	// Getters
 	// -------
+	public ArrayList<Object>[] getColasTx(){
+		return this.colasTx;
+	}
+	
+	public String[] getDireccionesNCs(){ 
+		return this.direccionesNCs;
+	}
+	
 	public Imagen getDescarga(Integer indice){
 		synchronized (lockDescargas) {
 			return colaDescargas.get(indice);
@@ -172,12 +180,7 @@ public class AtributosHoja {
 	public Integer getPuertoServidor(){ return puertoServidor; }
 
 	public String getIpServidor(){ return ipServidor; }
-	
-	// Deprecated
-	/*public ArrayList<HashMap<String,CredImagen[]>> getColaRtas(){
-		return this.colaRespuestas;
-	}*/
-	
+		
 	public HashMap<String, HashMap<String, CredImagen[]>> getColaRtas(){
 		return this.nuevaColaRespuestas;
 	}
@@ -186,9 +189,6 @@ public class AtributosHoja {
 		return nuevaColaRespuestas.get(query.getNombre());
 	}
 	
-	public ArrayList<Object>[] getColasTx(){
-		return this.colasTx;
-	}
 	
 	
 	// Setters

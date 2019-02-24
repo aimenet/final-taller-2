@@ -59,9 +59,11 @@ public class AtributosCentral {
 	private static volatile Integer indiceActualConsultas = 0;
 	
 	// Algunas constantes
+	private static final int TOKEN_MAX_BYTES = 12;
 	private static final int TOKEN_MAX_LENGTH = 16;
-	// -> esto hace que el largo del token sea 22 caracteres. Tengo que terminar de entender por qué 16bytes = 22 caracteres
-	// -> debe tener mucho que ver el
+	// -> TOKEN_MAX_BYTES = 16 hace que el largo del token sea 22 caracteres. 
+	// -> TOKEN_MAX_BYTES = 12 hace que el largo del token sea 16 caracteres.
+	// -> TODO: entender por qué pasa esto y renombrar la CTE en consecuencia pues no es claro
 	
 
 	// Métodos
@@ -112,7 +114,7 @@ public class AtributosCentral {
 		
 		// TODO: deberia tener algún tipo de sincronización esta función? nextBytes() es thread safe
 		SecureRandom random = new SecureRandom();
-		byte bytes[] = new byte[this.TOKEN_MAX_LENGTH];
+		byte bytes[] = new byte[this.TOKEN_MAX_BYTES];
 		random.nextBytes(bytes);
 		Encoder encoder = Base64.getUrlEncoder().withoutPadding();
 		return encoder.encodeToString(bytes); // el token

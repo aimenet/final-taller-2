@@ -252,7 +252,7 @@ public class standalone {
 	
 	public static void main(String[] args) throws IOException, ParseException {
 		SecureRandom random = new SecureRandom();
-		byte bytes[] = new byte[16];
+		byte bytes[] = new byte[12];
 		for (int i=0; i<10; i++) {
 			random.nextBytes(bytes);
 			Encoder encoder = Base64.getUrlEncoder().withoutPadding();

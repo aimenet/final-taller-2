@@ -211,24 +211,35 @@ public class ConsultorNC_H implements Consultor {
 	 * @return
 	 */
 	private boolean saludo(ObjectInputStream entrada, ObjectOutputStream salida, String direccionesServer){
-		String idAsignado;
+		String idAsignado = null;
 		Mensaje mensaje;
 		String direccionesHoja;
+		String token = null;
 		
 		try {
-			// direccionesServer puede ser en realidad un TOKEN que identifica a la HOJA pues ya estuvo conectada al nodo
-			// En ese caso se recuperará e informará el ID que le fue asignado anteriormente
-			// El token es un string alfanumérico de 16 dígitos, que en este contexto se identifica de la siguiente manera
-			// ##DDDDDDDDDDDDDDDD##
-			if (direccionesServer.length()==20 && direccionesServer.startsWith("##") && direccionesServer.endsWith("##")) {
-				// se recibió un token
-				
-				// IGNORO ESTO POR AHORA
-				
-			}
+			// direccionesServer puede ser en realidad un TOKEN (el ID propiamente dicho) 
+			// que identifica a la HOJA pues ya estuvo conectada al nodo
+			// En ese caso se responde con el ID que le fue asignado anteriormente a modo de validación
+			// TODO: marcar H como activa nuevamente
 			
-			// El ID de Hoja es compartido por todas las instancias por lo que debe sincronizarse su acceso.
-			idAsignado = atributos.generarToken();
+			// El token es un string alfanumérico de 16 dígitos, que en este contexto se identifica
+			// de la siguiente manera: ##DDDDDDDDDDDDDDDD##
+			if (direccionesServer.length()==20 && direccionesServer.startsWith("##") && direccionesServer.endsWith("##")) {
+				// se recibió un token -> saludo de reconexión
+				token = direccionesServer.replace("#","");
+				
+				// TODO: si el largo del token no es atributos.TOKEN_MAX_LENGTH hacer algo
+				
+				if (this.atributos.getHoja(token) == null || this.atributos.getHoja(token).length() == 0 ) {
+					// No es un ID válido por lo que se genera uno nuevo
+					idAsignado = atributos.generarToken();
+				} else {
+					idAsignado = token;
+				}
+				
+			} else {
+				idAsignado = atributos.generarToken();
+			}
 			
 			//¿El servidor debería tener un ID, un Mensaje propio sin campo emisor o pongo null como ahora?
 			salida.writeObject(new Mensaje(null,1, idAsignado.toString()));

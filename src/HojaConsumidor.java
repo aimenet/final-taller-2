@@ -20,8 +20,8 @@ public class HojaConsumidor implements Runnable {
 	private AtributosHoja atributos;
 	private ConexionTcp conexionConNodoCentral;
 	private boolean conexionEstablecida, sesionIniciada;
-	private Integer idConsumidor, puertoNC;
-	private String idAsignadoNC, ipNC;
+	public Integer idConsumidor, puertoNC;
+	public String idAsignadoNC, ipNC;
 
 
 
@@ -49,7 +49,7 @@ public class HojaConsumidor implements Runnable {
 		
 		
 		// TODO: <2019-02-16> Comento mientras pruebo como parar y restartear un thread
-		/*if(establecerConexionNodoCentral()){
+		if(establecerConexionNodoCentral()){
 			System.out.println("Consumidor " + idConsumidor +": iniciada sesión en NC");
 			sesionIniciada = true;
 		} else {
@@ -64,11 +64,11 @@ public class HojaConsumidor implements Runnable {
 			try{consumir2();}
 			catch (InterruptedException ex){ex.printStackTrace();}
 			
-		}*/
+		}
 		
 		//
-		try {Thread.sleep(60000);}
-		catch (InterruptedException e) {e.printStackTrace(); /*Acá debería estar terminado si no entiendo mal*/}
+		//try {Thread.sleep(60000);}
+		//catch (InterruptedException e) {e.printStackTrace(); /*Acá debería estar terminado si no entiendo mal*/}
 		
 		
 	}
@@ -209,16 +209,33 @@ public class HojaConsumidor implements Runnable {
 	
 	private boolean establecerConexionNodoCentral(){
 		boolean resultado;
-		Mensaje respuesta;
-		String hojaServer;
+		Mensaje saludo, respuesta;
+		String hojaServer, token;
 		
 		hojaServer = atributos.getIpServidor() + ":" + atributos.getPuertoServidor().toString();
 
-		respuesta = (Mensaje) conexionConNodoCentral.enviarConRta(new Mensaje(null,1, hojaServer));
+		// Si existe un ID de Hoja definido en los atributos, se envía un mensaje de reconexión.
+		// En caso contrario se envía un saludo
+		token = this.atributos.getId(this.idConsumidor);
+		if (token == null || token.length() == 0) {
+			// Saludo, 1ra conexión
+			saludo = new Mensaje(null,1, hojaServer);
+		} else {
+			// Saludo de reconexión
+			saludo = new Mensaje(null,1, "##"+token+"##");
+		}
+		
+		respuesta = (Mensaje) conexionConNodoCentral.enviarConRta(saludo);
 		if (respuesta.getCodigo().equals(1) && respuesta.getCarga() != null){
 			//La respuesta contiene el ID con el que se identificará al Cliente.
 			idAsignadoNC = respuesta.getCarga().toString();
 			sesionIniciada = true;
+			
+			// Seteo del ID que recibió la H en los atributos comartidos para ser conocido por todos los
+			// "componentes" del nodo Hoja. Si se trataba de una reconexión el ID será igual así que en realidad es
+			// redundante ese paso
+			atributos.setId(this.idConsumidor, idAsignadoNC);
+			
 			return true;
 		} else {
 			return false;

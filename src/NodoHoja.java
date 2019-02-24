@@ -99,7 +99,7 @@ public class NodoHoja {
 		//System.out.println("El código sigue después de poner al hilo en marcha");
 		//System.out.println("Estado del hilo: " + hiloCliente.getState());
 		
-		System.out.println("Si me ves, preparate a ver que hacer con el hilo consumidor");
+		System.out.println("Si me ves, preparate a ver qué hacer con el hilo consumidor");
 		System.out.println("DBG");
 		
 		// Hago esto por hora nada más
@@ -121,27 +121,33 @@ public class NodoHoja {
             counter += 1;
             
             if(counter == 3) {
-	        	System.out.println("\nThread state before interrupt: " + hilosConsumidores[0].getState().toString());
+	        	// Interrumpo el thread
+            	System.out.println("\nThread state before interrupt: " + hilosConsumidores[0].getState().toString());
 	        	hilosConsumidores[0].interrupt();
-	        	// Agrego un delay para que efectivamente se interrumpa el threadl
+	        	// Agrego un delay para que efectivamente se interrumpa el thread
 	        	try {Thread.sleep(1000);} catch (InterruptedException e) {e.printStackTrace();}
 	        	System.out.println("Thread state after interrupt:  " + hilosConsumidores[0].getState().toString());
 	        	
-	        	System.out.println("\nThread alive:       " + hilosConsumidores[0].isAlive());
+	        	// Muestro el estado del hilo que acabo de interrumpir
+	        	System.out.println("\nThread alive:       " + hilosConsumidores[0].isAlive());	     
 	        	System.out.println("Thread interrupted: " + hilosConsumidores[0].isInterrupted());
 	        	
+	        	// Instancio el nuevo hilo. Es importante usar el ID del que va a reemplazar para que utilice
+	        	// las colas de Tx/Rx del anterior
 	        	System.out.print("\nSetting up thread: ");
-	        	hilosConsumidores[0] = new Thread( new HojaConsumidor(1,
+	        	hilosConsumidores[0] = new Thread( new HojaConsumidor(0,
 	        			atributos.getDireccionesNCs()[0].split(":")[0],
 						Integer.parseInt(atributos.getDireccionesNCs()[0].split(":")[1])) );
 	        	System.out.println("DONE");
 	        	
+	        	// Inicio el nuevo hilo
 	        	System.out.println("\nThread state before start: " + hilosConsumidores[0].getState().toString());
 	        	hilosConsumidores[0].start();
 	        	System.out.println("Thread state after start:  " + hilosConsumidores[0].getState().toString());
             } else {
             	for(int i=0; i<hilosConsumidores.length; i++){
-	    			System.out.print("Consumer thread #" + Integer.toString(i) + " state: ");
+            		System.out.print(hilosConsumidores[i].getName() + " || ");
+            		System.out.print("Consumer thread #" + Integer.toString(i) + " state: ");
 	    			System.out.println(hilosConsumidores[i].getState().toString());
 	    		}
             }
@@ -162,3 +168,29 @@ public class NodoHoja {
 	}
 
 }// Fin clase
+
+/* 
+ * Los threads corren una instancia de una clase. Desde acá, o sea usando el hilosConsumidores[i]
+ * accedo al thread pero no tengo manera de llegar a a instancia que ejecuta ese hilo a menos que guarde dicha
+ * instancia en un arreglo. Por ahora para lo único que se me ocurre que podría llegar a necesitarla
+ * es para ver el ID de consumidor del que se trata, pero nada más.
+ * 
+ * En su lugar lo hago fácil y hago que coincida el índice de hilosConsumidores con el ID de consumidor y listo
+ * 
+ * Lo que digo es que lo primero no se puede hacer y lo segundo sí:
+ * 
+ * System.out.print("\nSetting up thread: ");
+ * hilosConsumidores[0] = new Thread( new HojaConsumidor(0,
+ *	        			atributos.getDireccionesNCs()[0].split(":")[0],
+ *						Integer.parseInt(atributos.getDireccionesNCs()[0].split(":")[1])) );
+ * System.out.println("DONE");
+ * System.out.println("Instancia que corre el hilo: " + Integer.toString(hilosConsumidores[i].idConsumidor));
+ *
+ *
+ * HojaConsumidor consumidor = new HojaConsumidor(0,atributos.getDireccionesNCs()[0].split(":")[0],Integer.parseInt(atributos.getDireccionesNCs()[0].split(":")[1]));
+ * hilosConsumidores[0] = new Thread( consumidor );
+ * System.out.println("DONE");
+ * System.out.println("Instancia que corre el hilo: " + Integer.toString(consumidor.idConsumidor));
+ * 
+ *  
+ * */

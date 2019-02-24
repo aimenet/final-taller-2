@@ -29,6 +29,7 @@ public class AtributosHoja {
 	private static Integer puertoServidor;
 	private static String ipServidor;
 	private static String[] direccionesNCs;
+	private static String[] idsHojas; // -> este debo instanciarlo, lo cargarán los hilos consumidores
 	
 	// que no deben inicializarse
 	private static volatile HashMap<String,Imagen> indice = new HashMap<String,Imagen>();
@@ -48,6 +49,20 @@ public class AtributosHoja {
 			indice.put(img.getNombre(), img);
 			return true;
 		}
+	}
+	
+	public Integer checkId(String token) {
+		/* Método que valida si un ID existe. Devuelve el índice del ID en el arreglo o null si no existe */
+		Integer index = null;
+		 
+		for (int i=0; i<this.idsHojas.length; i++) {
+		    if (this.idsHojas[i].equals(token)) {
+		        index = i;
+		        break;
+		    }
+		}
+		
+		return index;
 	}
 	
 	public Set<String> clavesIndice(){
@@ -165,6 +180,10 @@ public class AtributosHoja {
 		}
 	}
 	
+	public String getId(Integer index) {
+		return this.idsHojas[index];
+	}
+	
 	public Imagen getImagen(String nombre){
 		synchronized (lockIndice) {
 			return indice.get(nombre);
@@ -194,6 +213,10 @@ public class AtributosHoja {
 	// Setters
 	// -------
 	public void setPuertoServidor(Integer puerto){ this.puertoServidor = puerto; }
+	
+	public void setId(Integer index, String token){
+		this.idsHojas[index] = token;
+	}
 	
 	public void setIpServidor(String ip){ this.ipServidor = ip; }
 	

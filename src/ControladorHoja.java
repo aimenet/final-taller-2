@@ -513,6 +513,7 @@ public class ControladorHoja implements Runnable {
 			System.out.println("8) Ver cola de respuestas");
 			System.out.println("9) Ver cola de descargas");
 			System.out.println("10) Descargar imagen");
+			System.out.println("11) Simular caída HILO CONSUMIDOR #0");
 			System.out.println("0) Salir");
 			System.out.println("\nEscoja una opción: _");
 			String opcion = teclado.nextLine();
@@ -547,6 +548,11 @@ public class ControladorHoja implements Runnable {
 				break;
 			case "10":
 				this.menuDescargar(teclado);
+				break;
+			case "11":
+				// TODO: <2019-03-02> Provisorio, si queda emprolijarlo
+				System.out.println("Interrumpiendo consumidor");
+				this.variables.encolarTx(new Tupla2<Object, String>(null, "STOP"));
 				break;
 			case "0":
 				terminar = true;

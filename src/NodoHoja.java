@@ -103,7 +103,7 @@ public class NodoHoja {
 		System.out.println("DBG");
 		
 		// Hago esto por hora nada más
-		int counter = 0;
+		/*int counter = 0;
 		while(true) {
 			//Pause for 10 seconds
             try {
@@ -113,13 +113,15 @@ public class NodoHoja {
 				e.printStackTrace();
 			}
             
+            // Básico: muestra el estado de cada thread
             /*for(int i=0; i<hilosConsumidores.length; i++){
+            	System.out.print(hilosConsumidores[i].getName() + " || ");
     			System.out.print("Consumer thread #" + Integer.toString(i) + " state: ");
     			System.out.println(hilosConsumidores[i].getState().toString());
     		}*/
             
-            counter += 1;
-            
+            // Simulo caída y generación de un thread
+            /*counter += 1;
             if(counter == 3) {
 	        	// Interrumpo el thread
             	System.out.println("\nThread state before interrupt: " + hilosConsumidores[0].getState().toString());
@@ -150,21 +152,45 @@ public class NodoHoja {
             		System.out.print("Consumer thread #" + Integer.toString(i) + " state: ");
 	    			System.out.println(hilosConsumidores[i].getState().toString());
 	    		}
-            }
+            }*/
+               
+		/*}*/
+		
+		
+		while(this.hiloProductor.getState() != Thread.State.TERMINATED) {
+			//Pause for 10 seconds
+            try {Thread.sleep(10000);}
+            catch (InterruptedException e) {e.printStackTrace();}
             
+            System.out.println("[HOJA] Waiting until Producer stop...");
 		}
 		
+		// TODO: ¿debería controlar que la salida del while anterior sea porque efectivamente se salió desde
+		//       el menú?
 		
-		// Creo que si va esto no puede ir el while true de arriba
-		/*try {
-			hiloProductor.join();
+		// Detención de todos los threads en ejecución
+		for(int i=0; i<hilosConsumidores.length; i++){ hilosConsumidores[i].interrupt(); }
+		hiloProductor.interrupt();
+		hiloServidor.interrupt(); // Por alguna razón esto no para al thread servidor
+		
+		// Esto no sirver, el hilo servidor queda corriendo indefinidamente
+		/*while(hiloServidor.getState() != Thread.State.TERMINATED) {
 			hiloServidor.interrupt();
-			for(int i=0; i<hilosConsumidores.length; i++){ hilosConsumidores[i].interrupt(); }
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
+			System.out.println("\t\tX");
+		}*/
 
-		System.exit(0);*/
+		try {Thread.sleep(1000);}
+        catch (InterruptedException e) {e.printStackTrace();}
+		
+		System.out.println("[HOJA] Finalizando ejecución...");
+		for(int i=0; i<hilosConsumidores.length; i++){
+			System.out.print("\tconsumer thread #"+ Integer.toString(i) +" state: ");
+			System.out.println(hilosConsumidores[i].getState().toString());
+		}
+		System.out.println("\tproducer thread state: " + hiloProductor.getState().toString());
+		System.out.println("\tserver thread state: " + hiloServidor.getState().toString());
+		System.out.println("\n[HOJA] Terminada");
+		System.exit(0);
 	}
 
 }// Fin clase

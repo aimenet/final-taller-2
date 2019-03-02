@@ -220,9 +220,15 @@ public class AtributosHoja {
 	
 	public void setIpServidor(String ip){ this.ipServidor = ip; }
 	
-	public void setDireccionesNCs(String[] direcciones){ 
+	public void setDireccionesNCs(String[] direcciones){
+		/** Se definen los NCs a los que se conectará la H, las colas de transmisión y el arreglo de
+		 * IDs para poder llevar a cabo la operación con los mismos
+		 * 
+		 * Debo instanciarlos acá pues es necesario conocer el número de NCs previamente
+		 *  */
 		this.direccionesNCs = direcciones;
 		this.setColasTx();
+		this.idsHojas = new String[direcciones.length]; // La H poseerá un ID diferente en cada NC
 	}
 	
 	private void setColasTx(){

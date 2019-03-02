@@ -59,11 +59,21 @@ public class HojaConsumidor implements Runnable {
 			//		 y revivirlo en un bucle en NodoHoja.java
 		}
 		
-		while (true) {
-			//try{consumir();}
+		// <2019-03-01> Comento esto para implementar una interrupción del consumidor desde el menú ppal
+		/*while (true) {
 			try{consumir2();}
 			catch (InterruptedException ex){ex.printStackTrace();}
 			
+		}*/
+		boolean runFlag = true;
+		while (runFlag) {
+			try{
+				consumir2();
+			} catch (InterruptedException ex){
+				// TODO: debería usar una excepción propia? Al menos para terminar manualmente el thread
+				ex.printStackTrace();
+				runFlag = false;
+			}
 		}
 		
 		//
@@ -72,39 +82,8 @@ public class HojaConsumidor implements Runnable {
 		
 		
 	}
-
-	// Deprecated en cuanto termine consultar2()
-	private void consumir() throws InterruptedException{
-		ArrayList<CredImagen> anuncio = null;
-		ArrayList<Object> colaPropia = atributos.getColasTx()[idConsumidor];
-		CredImagen credencial = null;
-		Tupla2<CredImagen,String> tarea = null;
-		
-		synchronized (colaPropia){
-			while ( colaPropia.isEmpty() ){
-				System.out.println("Consumidor " + idConsumidor + " esperando. Tamaño cola: " + colaPropia.size());
-				colaPropia.wait();
-			}
-
-			Object carga = colaPropia.remove(0);
-			if(carga.getClass() == CredImagen.class){
-				credencial = (CredImagen) carga;
-				System.out.println("Consumidor " + idConsumidor + " desencoló: " + credencial.getNombre());
-			} else if(carga.getClass() == ArrayList.class) {
-				anuncio = (ArrayList<CredImagen>) carga;
-				System.out.println("Consumidor " + idConsumidor + " desencoló anuncio de "+anuncio.size()+" imágenes");
-			} else if(carga.getClass() == Tupla2.class){
-				tarea = (Tupla2<CredImagen,String>) carga;
-				System.out.println("Consumidor " + idConsumidor + " desencoló solicitud de descarga de " + tarea.getPrimero().getNombre());
-			}
-			colaPropia.notifyAll();
-		}
-		
-		enviarConsulta(credencial, anuncio);
-		
-		System.out.println("Consumidor " + this.idConsumidor + " arrancando de nuevo inmediatamente");
-	}
 	
+	// TODO: Renombrar a "consumir"
 	private void consumir2() throws InterruptedException{
 		/**/
 		ArrayList<CredImagen> muchas = null;
@@ -174,6 +153,11 @@ public class HojaConsumidor implements Runnable {
 					System.out.println("Consumidor "+idConsumidor+" : compartidas " +muchas.size()+ " imágenes");
 				}
 				break;
+				
+			case "STOP":
+				// Provisorio.
+				// Lanzo una excepción para capturarla en el método run()
+				throw new InterruptedException("Forzada detención del thread");
 		}
 		
 		System.out.println("\nConsumidor " + this.idConsumidor + " arrancando de nuevo inmediatamente");

@@ -163,6 +163,40 @@ public class AtributosHoja {
 		return true;
 	} 
 	
+	public boolean encolarTxEspecifica(Object carga, int indexColaTx){
+		/* Similar a encolarTxEspecifica() pero encolando en una cola específica en lugar de todas
+		 * 
+		 * Carga puede ser: CredImagen            -> consulta al/los NC
+		 *                  ArrayList<CredImagen> -> anuncio de las imágenes a compartir
+		 */
+		
+		// Cola histórica, para referencia. No hay problemas de concurrencia pues (por ahora) nadie consume de ella
+		this.colaTxHistorica.add(carga);
+		
+		/* Encolado en colas "de trabajo" (una por consumidor): para realizar cada encolado se bloque la cola
+		 * a fin de evitar problemas de concurrencia. Una vez completado se notifica al Consumidor para que se
+		 * ponga en funcionamiento, conusma de la cola y realize la consulta.
+		 */
+		
+		synchronized (colasTx[indexColaTx]) {
+			//TODO: esto hoy es anecdótico porque no puedo bloquear el hilo porque se llenó una cola. Ver qué hacer (hoy descarto la consulta)
+			//TODO: ver "Ejemplo productor - consumidor 3" (no modo manual) para saber como era originalmente
+			if (colasTx[indexColaTx].size() == MAX_COLA_TX) {
+				System.out.print("Cola " + indexColaTx + " llena: ");
+				System.out.print(Thread.currentThread().getName() + " Consulta descartada.");
+				System.out.println("Tamaño: " + colasTx[indexColaTx].size());
+				
+				// Se notifica al consumidor de la cola para que cominece a liberar espacio.
+				colasTx[indexColaTx].notifyAll(); 
+			} else {
+				colasTx[indexColaTx].add(carga);
+				colasTx[indexColaTx].notifyAll(); //Sólo hay un consumidor así que con notify() alcanza
+			}
+		}
+		
+		return true;
+	}
+	
 	
 	// Getters
 	// -------

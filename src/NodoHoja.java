@@ -49,6 +49,7 @@ public class NodoHoja {
 			System.out.println("No existe el archivo de configuración");
 			System.exit(1);
 		}
+		
 		//NCs a los que se conectará la H
 		cantCentrales = Integer.parseInt(config.getProperty("max_nc"));
 		centrales = new String[ cantCentrales ];
@@ -157,12 +158,45 @@ public class NodoHoja {
 		/*}*/
 		
 		
+		// Bucle "ppal" de la HOJA: revisión y recuperación de hilos mientras hilo PRODUCTOR esté vivo
 		while(this.hiloProductor.getState() != Thread.State.TERMINATED) {
-			//Pause for 10 seconds
+			// Check consumer threads status
+            System.out.println("\n[HOJA] check consumer threads status...");
+			for(int i=0; i<hilosConsumidores.length; i++){
+            	System.out.print("\t" + hilosConsumidores[i].getName() + " || ");
+    			System.out.print("Consumer thread #" + Integer.toString(i) + " state: ");
+    			System.out.println(hilosConsumidores[i].getState().toString());
+    			
+    			// revivir los consumidores caídos
+    			if(hilosConsumidores[i].getState() == Thread.State.TERMINATED) {
+    				// Recordar: # de NODOCENTRAL empieza en 1, pero "i" lo hace en 0 por ser índice del arreglo
+    				String centralNode = this.config.getProperty("nc_"+ (i+1));
+    				
+    				hilosConsumidores[i] = new Thread( new HojaConsumidor(i,
+    						centralNode.split(":")[0], Integer.parseInt(centralNode.split(":")[1])) );
+    				hilosConsumidores[i].start();
+    				System.out.print("\t\tConsumer thread #" + Integer.toString(i) + " revived. ");
+    				System.out.println("Actual state: " + hilosConsumidores[i].getState().toString());
+    			}
+    		}
+			
+			// Check server thread status
+			System.out.println("\n[HOJA] check server thread status...");
+			System.out.print("\t" + this.hiloServidor.getName() + " || ");
+			System.out.print("Server thread state: " + this.hiloServidor.getState().toString());
+			if(this.hiloServidor.getState() == Thread.State.TERMINATED) {
+				this.hiloServidor = new Thread(this.servidor);
+				this.hiloServidor.start();
+				
+				System.out.print("\t\tServer thread revived. ");
+				System.out.println("Actual state: " + this.hiloServidor.getState().toString());
+			}
+			
+			// Pause for 10 seconds
             try {Thread.sleep(10000);}
             catch (InterruptedException e) {e.printStackTrace();}
             
-            System.out.println("[HOJA] Waiting until Producer stop...");
+            System.out.println("\n[HOJA] Waiting until Producer stop...");
 		}
 		
 		// TODO: ¿debería controlar que la salida del while anterior sea porque efectivamente se salió desde

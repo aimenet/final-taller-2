@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
+import MyExceptions.ManualInterruptedException;
 
 /**
  * Uno de las instancias que compone la "faceta" Cliente de un Nodo Hoja. Es la encargada de 
@@ -68,11 +69,13 @@ public class HojaConsumidor implements Runnable {
 		boolean runFlag = true;
 		while (runFlag) {
 			try{
-				consumir2();
-			} catch (InterruptedException ex){
-				// TODO: debería usar una excepción propia? Al menos para terminar manualmente el thread
+				consumir();
+			} catch (ManualInterruptedException ex){
+				// Excepción para detener el hilo
 				ex.printStackTrace();
 				runFlag = false;
+			} catch (InterruptedException ex) {
+				ex.printStackTrace();
 			}
 		}
 		
@@ -83,8 +86,7 @@ public class HojaConsumidor implements Runnable {
 		
 	}
 	
-	// TODO: Renombrar a "consumir"
-	private void consumir2() throws InterruptedException{
+	private void consumir() throws InterruptedException, ManualInterruptedException {
 		/**/
 		ArrayList<CredImagen> muchas = null;
 		CredImagen una = null;
@@ -141,7 +143,7 @@ public class HojaConsumidor implements Runnable {
 				break;
 				
 			case "ANUNCIO": //Anuncio a NC de imágenes compartidas
-				muchas = (ArrayList<CredImagen>)tarea.getPrimero();
+				muchas = (ArrayList<CredImagen>) tarea.getPrimero();
 				// Mensaje indicando la cantidad de imágenes a enviar
 				conexionConNodoCentral.enviarSinRta(new Mensaje(this.idAsignadoNC,3,muchas.size()));
 				// Envío de imágenes
@@ -155,9 +157,11 @@ public class HojaConsumidor implements Runnable {
 				break;
 				
 			case "STOP":
-				// Provisorio.
-				// Lanzo una excepción para capturarla en el método run()
-				throw new InterruptedException("Forzada detención del thread");
+				// Provisorio -> naturalmente a fines académicos
+				// Lanzo una excepción para capturarla en el método run() y así detener el thread
+				//throw new InterruptedException("Forzada detención del thread");
+				//throw new ManualInterruptedException("Forzada detención del thread");
+				throw new ManualInterruptedException("Forzada detención del thread");
 		}
 		
 		System.out.println("\nConsumidor " + this.idConsumidor + " arrancando de nuevo inmediatamente");

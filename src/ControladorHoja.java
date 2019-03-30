@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 import java.util.Scanner;
 
 import javax.swing.JFileChooser;
@@ -513,6 +514,7 @@ public class ControladorHoja implements Runnable {
 			System.out.println("8) Ver cola de respuestas");
 			System.out.println("9) Ver cola de descargas");
 			System.out.println("10) Descargar imagen");
+			System.out.println("11) Simular caída HILO CONSUMIDOR (aleatorio)");
 			System.out.println("0) Salir");
 			System.out.println("\nEscoja una opción: _");
 			String opcion = teclado.nextLine();
@@ -547,6 +549,15 @@ public class ControladorHoja implements Runnable {
 				break;
 			case "10":
 				this.menuDescargar(teclado);
+				break;
+			case "11":
+				// TODO: <2019-03-02> Provisorio, si queda emprolijarlo
+				Random rand = new Random(); 
+				int consumerToInterrupt = rand.nextInt( this.variables.getColasTx().length ); 
+				
+				System.out.println("Interrumpiendo consumidor #" + consumerToInterrupt);
+				//this.variables.encolarTx(new Tupla2<Object, String>(null, "STOP"));
+				this.variables.encolarTxEspecifica(new Tupla2<Object, String>(null, "STOP"), consumerToInterrupt);
 				break;
 			case "0":
 				terminar = true;

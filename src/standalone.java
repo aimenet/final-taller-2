@@ -11,7 +11,17 @@ import java.awt.image.DataBufferByte;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Reader;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.SecureRandom;
+import java.util.Base64;
+import java.util.Base64.Encoder;
+import java.util.Iterator;
 
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
@@ -19,6 +29,11 @@ import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.filechooser.FileNameExtensionFilter;
+
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 
 public class standalone {
@@ -127,7 +142,7 @@ public class standalone {
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 	}
 	
-	public static void main(String[] args) throws IOException {
+	public static void arrayObjetos() throws IOException {
 		Integer elObjeto = null;
 		Object[] elArrayDeObjetos = new Object[3];
 		
@@ -147,4 +162,102 @@ public class standalone {
 		
 	}
 	
+	public static void lecturaEscrituraJson() throws IOException, ParseException {
+		Path path = Paths.get(System.getProperty("user.dir"),"config", "new");
+		System.out.println(path.toString());
+		
+		/* Lectura */
+		JSONParser parser = new JSONParser();
+		Reader reader = new FileReader("/home/rdg/eclipse-workspace/final-taller-2/prueba.json");
+
+		Object jsonObj = parser.parse(reader);
+
+		JSONObject jsonObject = (JSONObject) jsonObj;
+
+		System.out.println(jsonObject.keySet());
+		
+		String cadena = (String) jsonObject.get("cadena");
+		long entero = (long) jsonObject.get("entero");
+		Double decimal = (Double) jsonObject.get("decimal");
+		JSONArray lista = (JSONArray) jsonObject.get("lista");
+		
+		System.out.println("Cadena = " + cadena);
+		System.out.println("Entero = " + (entero + 43));
+		System.out.println("Decimal = " + (decimal + 0.43));
+		System.out.println("Lista = " + lista);
+		System.out.println();
+
+		
+		@SuppressWarnings("unchecked")
+		Iterator<String> it = lista.iterator();
+		while (it.hasNext()) {
+			System.out.println("Palabra = " + it.next());
+		}
+		reader.close();
+		
+		/* Escritura (en el archivo existente) */
+		jsonObject.put("nueva-key", "nuevo-value");
+		
+		lista.add("AA");
+		lista.add("BB");
+		lista.add("CC");
+
+		jsonObject.put("lista", lista);
+		
+		try {
+			// Crea el/los directorios necesarios en caso de no existir
+			File file = new File("/home/rdg/eclipse-workspace/final-taller-2/new/new2/prueba2.json");
+			file.getParentFile().mkdirs();
+			
+			FileWriter writer = new FileWriter(file);
+			writer.write(jsonObject.toJSONString());
+			writer.flush();
+			writer.close();
+
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		System.out.print(jsonObject.toJSONString());
+	}
+	
+	public static void pruebaIoJson(String[] args) throws IOException, ParseException {
+		File file = new File("/home/rdg/eclipse-workspace/final-taller-2/new/new2/blablabla2.json");
+		if (!file.exists()) {
+			System.out.println("Creando");
+			file.getParentFile().mkdirs();
+			file.createNewFile();
+			FileWriter writer = new FileWriter(file);
+			writer.write("{}");
+			writer.flush();
+			writer.close();
+		}
+		
+		JSONParser parser = new JSONParser();
+		Reader reader = new FileReader(file);
+		JSONObject jsonObject = (JSONObject) parser.parse(reader);
+		reader.close();
+
+		jsonObject.put("3", "B");
+		
+		FileWriter writer = new FileWriter(file);
+		writer.append(jsonObject.toJSONString());
+		writer.write(jsonObject.toJSONString());
+		writer.flush();
+		writer.close();
+		
+		System.out.println(jsonObject);
+	}
+
+	
+	public static void main(String[] args) throws IOException, ParseException {
+		SecureRandom random = new SecureRandom();
+		byte bytes[] = new byte[12];
+		for (int i=0; i<10; i++) {
+			random.nextBytes(bytes);
+			Encoder encoder = Base64.getUrlEncoder().withoutPadding();
+			String token = encoder.encodeToString(bytes);
+			System.out.println(token);
+		}
+	}
 }

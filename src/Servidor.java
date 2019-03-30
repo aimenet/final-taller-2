@@ -39,6 +39,7 @@ public class Servidor implements Runnable {
 	
 	/**Método principal del servidor. Acepta conexiones de los distintos clientes, generando un hilo por c/u.*/
 	protected void atender(){
+		boolean run_flag = true;
 		Socket sock;
 		
 		// TODO: guardar todos los sockests conectados al servidor.
@@ -47,7 +48,7 @@ public class Servidor implements Runnable {
 		System.out.println("-----------------------------------");
 		try {
 			// Bucle principal donde recibe conexiones.
-			while (!Thread.interrupted()) {
+			while (run_flag) {
 				sock = this.sockServidor.accept();
 				
 				System.out.println("-> Conexión con <" + sock.getInetAddress().getHostAddress() + ":" + sock.getPort() +"> aceptada.");

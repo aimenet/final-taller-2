@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
+import MyExceptions.ManualInterruptedException;
 
 /**
  * Uno de las instancias que compone la "faceta" Cliente de un Nodo Hoja. Es la encargada de 
@@ -20,8 +21,8 @@ public class HojaConsumidor implements Runnable {
 	private AtributosHoja atributos;
 	private ConexionTcp conexionConNodoCentral;
 	private boolean conexionEstablecida, sesionIniciada;
-	private Integer idAsignadoNC, idConsumidor, puertoNC;
-	private String ipNC;
+	public Integer idConsumidor, puertoNC;
+	public String idAsignadoNC, ipNC;
 
 
 
@@ -47,54 +48,45 @@ public class HojaConsumidor implements Runnable {
 	public void run() {
 		// TODO: ¿loop infinito? Pensarlo bien
 		
+		
+		// TODO: <2019-02-16> Comento mientras pruebo como parar y restartear un thread
 		if(establecerConexionNodoCentral()){
 			System.out.println("Consumidor " + idConsumidor +": iniciada sesión en NC");
 			sesionIniciada = true;
 		} else {
 			System.out.println("Consumidor " + idConsumidor +": imposible iniciar sesión en NC");
 			// TODO: ver como capturar el error y parar el consumidor sin detener el Nodo (this.wait() no sirve)
+			//       Creo que va por el lado de matar este hilo (dejar que muera, interrumpirlo, algo de eso)
+			//		 y revivirlo en un bucle en NodoHoja.java
 		}
 		
-		while (true) {
-			//try{consumir();}
+		// <2019-03-01> Comento esto para implementar una interrupción del consumidor desde el menú ppal
+		/*while (true) {
 			try{consumir2();}
 			catch (InterruptedException ex){ex.printStackTrace();}
-		}
-	}
-
-	// Deprecated en cuanto termine consultar2()
-	private void consumir() throws InterruptedException{
-		ArrayList<CredImagen> anuncio = null;
-		ArrayList<Object> colaPropia = atributos.getColasTx()[idConsumidor];
-		CredImagen credencial = null;
-		Tupla2<CredImagen,String> tarea = null;
-		
-		synchronized (colaPropia){
-			while ( colaPropia.isEmpty() ){
-				System.out.println("Consumidor " + idConsumidor + " esperando. Tamaño cola: " + colaPropia.size());
-				colaPropia.wait();
+			
+		}*/
+		boolean runFlag = true;
+		while (runFlag) {
+			try{
+				consumir();
+			} catch (ManualInterruptedException ex){
+				// Excepción para detener el hilo
+				ex.printStackTrace();
+				runFlag = false;
+			} catch (InterruptedException ex) {
+				ex.printStackTrace();
 			}
-
-			Object carga = colaPropia.remove(0);
-			if(carga.getClass() == CredImagen.class){
-				credencial = (CredImagen) carga;
-				System.out.println("Consumidor " + idConsumidor + " desencoló: " + credencial.getNombre());
-			} else if(carga.getClass() == ArrayList.class) {
-				anuncio = (ArrayList<CredImagen>) carga;
-				System.out.println("Consumidor " + idConsumidor + " desencoló anuncio de "+anuncio.size()+" imágenes");
-			} else if(carga.getClass() == Tupla2.class){
-				tarea = (Tupla2<CredImagen,String>) carga;
-				System.out.println("Consumidor " + idConsumidor + " desencoló solicitud de descarga de " + tarea.getPrimero().getNombre());
-			}
-			colaPropia.notifyAll();
 		}
 		
-		enviarConsulta(credencial, anuncio);
+		//
+		//try {Thread.sleep(60000);}
+		//catch (InterruptedException e) {e.printStackTrace(); /*Acá debería estar terminado si no entiendo mal*/}
 		
-		System.out.println("Consumidor " + this.idConsumidor + " arrancando de nuevo inmediatamente");
+		
 	}
 	
-	private void consumir2() throws InterruptedException{
+	private void consumir() throws InterruptedException, ManualInterruptedException {
 		/**/
 		ArrayList<CredImagen> muchas = null;
 		CredImagen una = null;
@@ -151,7 +143,7 @@ public class HojaConsumidor implements Runnable {
 				break;
 				
 			case "ANUNCIO": //Anuncio a NC de imágenes compartidas
-				muchas = (ArrayList<CredImagen>)tarea.getPrimero();
+				muchas = (ArrayList<CredImagen>) tarea.getPrimero();
 				// Mensaje indicando la cantidad de imágenes a enviar
 				conexionConNodoCentral.enviarSinRta(new Mensaje(this.idAsignadoNC,3,muchas.size()));
 				// Envío de imágenes
@@ -163,6 +155,13 @@ public class HojaConsumidor implements Runnable {
 					System.out.println("Consumidor "+idConsumidor+" : compartidas " +muchas.size()+ " imágenes");
 				}
 				break;
+				
+			case "STOP":
+				// Provisorio -> naturalmente a fines académicos
+				// Lanzo una excepción para capturarla en el método run() y así detener el thread
+				//throw new InterruptedException("Forzada detención del thread");
+				//throw new ManualInterruptedException("Forzada detención del thread");
+				throw new ManualInterruptedException("Forzada detención del thread");
 		}
 		
 		System.out.println("\nConsumidor " + this.idConsumidor + " arrancando de nuevo inmediatamente");
@@ -198,16 +197,33 @@ public class HojaConsumidor implements Runnable {
 	
 	private boolean establecerConexionNodoCentral(){
 		boolean resultado;
-		Mensaje respuesta;
-		String hojaServer;
+		Mensaje saludo, respuesta;
+		String hojaServer, token;
 		
 		hojaServer = atributos.getIpServidor() + ":" + atributos.getPuertoServidor().toString();
 
-		respuesta = (Mensaje) conexionConNodoCentral.enviarConRta(new Mensaje(null,1, hojaServer));
+		// Si existe un ID de Hoja definido en los atributos, se envía un mensaje de reconexión.
+		// En caso contrario se envía un saludo
+		token = this.atributos.getId(this.idConsumidor);
+		if (token == null || token.length() == 0) {
+			// Saludo, 1ra conexión
+			saludo = new Mensaje(null,1, hojaServer);
+		} else {
+			// Saludo de reconexión
+			saludo = new Mensaje(null,1, "##"+token+"##");
+		}
+		
+		respuesta = (Mensaje) conexionConNodoCentral.enviarConRta(saludo);
 		if (respuesta.getCodigo().equals(1) && respuesta.getCarga() != null){
 			//La respuesta contiene el ID con el que se identificará al Cliente.
-			idAsignadoNC = Integer.valueOf(respuesta.getCarga().toString());
+			idAsignadoNC = respuesta.getCarga().toString();
 			sesionIniciada = true;
+			
+			// Seteo del ID que recibió la H en los atributos comartidos para ser conocido por todos los
+			// "componentes" del nodo Hoja. Si se trataba de una reconexión el ID será igual así que en realidad es
+			// redundante ese paso
+			atributos.setId(this.idConsumidor, idAsignadoNC);
+			
 			return true;
 		} else {
 			return false;

@@ -7,9 +7,8 @@ import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
 
 /**
- * Consultor que corre en cada uno de los hilos generado por el Servidor de los Nodos Centrales. Es el
- * encargado de la atención propiamente dicha de los clientes (ya sean H o NC).
- * Puede considerarse como el verdadero Nodo Central ya que tiene toda su funcionalidad. 
+ * Consultor que corre en cada uno de los hilos generado por el Servidor (dedicado a atender HOJAS) 
+ * de los Nodos Centrales.
  * 
  * El <índice de Hojas> guarda por cada ID un string del tipo:
  * "ip_cliente:puerto_cliente;ip_servidor:puerto_servidor" siendo la primer parte (separada por ";"
@@ -235,6 +234,9 @@ public class ConsultorNC_H implements Consultor {
 					idAsignado = atributos.generarToken();
 				} else {
 					idAsignado = token;
+					
+					// Obtengo la dirección del servidor de la H pues al ser reconexión ya se conoce
+					direccionesServer = this.atributos.getHoja(token).split(";")[1];
 				}
 				
 			} else {
@@ -398,6 +400,7 @@ class HashConcurrente{
 }
 
 
+// TODO: mover a archivo independiente porque también lo uso en ConsultorNC_NC
 /**
  * Worker del Nodo Central. Se encarga de retransmitir una consulta recibida, ya sea a un Nodo Hoja
  * o un Nodo Central.

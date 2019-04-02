@@ -55,17 +55,9 @@ public class HojaConsumidor implements Runnable {
 			sesionIniciada = true;
 		} else {
 			System.out.println("Consumidor " + idConsumidor +": imposible iniciar sesión en NC");
-			// TODO: ver como capturar el error y parar el consumidor sin detener el Nodo (this.wait() no sirve)
-			//       Creo que va por el lado de matar este hilo (dejar que muera, interrumpirlo, algo de eso)
-			//		 y revivirlo en un bucle en NodoHoja.java
+			// TODO: <2019-04-02> capturar el error y actuar en consecuencia
 		}
 		
-		// <2019-03-01> Comento esto para implementar una interrupción del consumidor desde el menú ppal
-		/*while (true) {
-			try{consumir2();}
-			catch (InterruptedException ex){ex.printStackTrace();}
-			
-		}*/
 		boolean runFlag = true;
 		while (runFlag) {
 			try{
@@ -78,12 +70,6 @@ public class HojaConsumidor implements Runnable {
 				ex.printStackTrace();
 			}
 		}
-		
-		//
-		//try {Thread.sleep(60000);}
-		//catch (InterruptedException e) {e.printStackTrace(); /*Acá debería estar terminado si no entiendo mal*/}
-		
-		
 	}
 	
 	private void consumir() throws InterruptedException, ManualInterruptedException {

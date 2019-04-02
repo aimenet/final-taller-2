@@ -10,6 +10,9 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 
 /**
  * "Parte" Cliente de un Nodo Hoja. Es la encargada de conectarse al Nodo Central e interactuar con él.
+ * 
+ * <2019-04-02> Creo que esta clase no se usa más y fue reemplazada por HojaConsumidor
+ * 
  * @author rodrigo
  *
  */
@@ -189,6 +192,8 @@ public class HojaCliente {
 		Mensaje respuesta;
 		String hojaServer;
 		
+		// hojaServer debe ser el token asignado a la HOJA en caso de que se trate de una reconexión
+		// Caso contrario será la dirección de la faceta servidor de la H
 		hojaServer = atributos.getIpServidor() + ":" + atributos.getPuertoServidor().toString();
 
 		respuesta = (Mensaje) conexionConNodoCentral.enviarConRta(new Mensaje(null,1, hojaServer));

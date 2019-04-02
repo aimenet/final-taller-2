@@ -106,11 +106,12 @@ public class NodoCentral /*implements Runnable*/ {
 	
 	/**
 	 *	05/02/2018
-	 *		Como no existe una conexión permanente entre NC sino que las levanto sólo cuando hace falta, puedo hacer acá (no sé bien
-	 *		en que parte corresponde, hay que verlo) un bucle donde cada X tiempo se intente establecer conexión con el NC y enviar un
-	 *		mensaje keep alive. Si la conexión se cayó lo que puedo hacer es reemplazar la dirección de ese NC por otro (así el NC actual
-	 *		mantiene la misma cantidad de conexiones con otros nodos) o bien eliminarla de los parámetros accesibles, volver a probar después
-	 *		de un tiempo y si se arregló, cargalo otra vez como un nodo accesible en los parámetros.
+	 *		Como no existe una conexión permanente entre NC sino que las levanto sólo cuando hace falta, 
+	 *		puedo hacer acá (no sé bien en qué parte corresponde, hay que verlo) un bucle donde cada X tiempo 
+	 *		se intente establecer conexión con el NC y enviar un mensaje keep alive. Si la conexión se cayó lo 
+	 *		que puedo hacer es reemplazar la dirección de ese NC por otro (así el NC actual mantiene la mism
+	 *		cantidad de conexiones con otros nodos) o bien eliminarla de los parámetros accesibles, volver a probar
+	 *		después de un tiempo y si se arregló, cargalo otra vez como un nodo accesible en los parámetros.
 	 *
 	 *		La "terminal" creo que sería una buena implementación y rápida 
 	 */

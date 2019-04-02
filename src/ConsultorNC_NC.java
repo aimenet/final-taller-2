@@ -94,12 +94,13 @@ public class ConsultorNC_NC implements Consultor {
 		
 		// TODO: antes de buscar tengo que verificar que no me haya llegado la misma consulta desde otro lado
 		
-		Integer[] hojasConImagenes =  (Integer[]) atributos.getClavesIndiceImagenes();
+		String[] hojasConImagenes =  (String[]) atributos.getClavesIndiceImagenes();
 		for(int i=0; i<cantHilos; i++){
 			String destino = atributos.getHoja(hojasConImagenes[i]).split(";")[1];
-			Worker trabajador = new Worker(i, similares, modelo, atributos.getImagenes(hojasConImagenes[i]),
-					latch, destino.split(":")[0], destino.split(":")[1],1,"Hoja");
 			
+			Worker trabajador = new Worker(hojasConImagenes[i], similares, modelo,
+					atributos.getImagenes(hojasConImagenes[i]), latch,
+					destino.split(":")[0], destino.split(":")[1],1,"Hoja");
 			new Thread( trabajador ).start();
 			
 			System.out.println("<ConcultorNC_NC.java> Worker consultando a Hoja " + destino);
@@ -116,8 +117,9 @@ public class ConsultorNC_NC implements Consultor {
 				System.out.println(String.format("%s vs null vs %s vs %s", destino,msj.getNCEmisor(),msj.getOrigen()));
 				
 				if ( (destino != null) && (!destino.equals(msj.getNCEmisor())) && (!destino.equals(msj.getOrigen())) ) {
-					Worker trabajador = new Worker(i, similares, modelo, new ArrayList<CredImagen>(),
-							latchCentrales, destino.split(":")[0], destino.split(":")[1], 3, "Central",
+					Worker trabajador = new Worker(Integer.toString(i), similares, modelo,
+							new ArrayList<CredImagen>(), latchCentrales,
+							destino.split(":")[0], destino.split(":")[1], 3, "Central",
 							(String)msj.getOrigen(), direccionNodoActual, msj.recepcionRta());
 				
 					new Thread( trabajador ).start();

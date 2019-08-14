@@ -1,3 +1,4 @@
+package commons;
 import java.io.Serializable;
 
 /**Unidad de datos intercambiada entre Cliente (Nodo Hoja) y Servidor (Nodo Central).

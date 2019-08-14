@@ -1,6 +1,10 @@
+package nodes.components;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Set;
+
+import commons.CredImagen;
+import commons.Imagen;
 
 /**
  * Clase que engloba todos los atributos de un Nodo Hoja e implementa los métodos necesarios para
@@ -37,7 +41,6 @@ public class AtributosHoja {
 	private static volatile ArrayList< HashMap<String,CredImagen[]> > colaRespuestas = new ArrayList<HashMap<String,CredImagen[]>>(); // Deprecated
 	private static volatile HashMap<String,HashMap<String,CredImagen[]>> nuevaColaRespuestas = new HashMap<String,HashMap<String,CredImagen[]>>();
 	private static volatile ArrayList<Object> colaTxHistorica = new ArrayList<Object>();
-	
 	
 	
 	// Métodos

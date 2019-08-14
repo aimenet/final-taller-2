@@ -35,6 +35,8 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
+import commons.Imagen;
+
 
 public class standalone {
 
@@ -249,15 +251,20 @@ public class standalone {
 		System.out.println(jsonObject);
 	}
 
+	public static void booleans() throws IOException, ParseException {
+		String[] cadenas = {"true", "True", "false", "pepe", null};
+		
+		for (String cadena : cadenas) {
+			System.out.println("->\t" + cadena);
+			if (Boolean.valueOf(cadena))
+				System.out.println("Sape");
+			else
+				System.out.println(Boolean.getBoolean(cadena));
+		}
+	}
+	
 	
 	public static void main(String[] args) throws IOException, ParseException {
-		SecureRandom random = new SecureRandom();
-		byte bytes[] = new byte[12];
-		for (int i=0; i<10; i++) {
-			random.nextBytes(bytes);
-			Encoder encoder = Base64.getUrlEncoder().withoutPadding();
-			String token = encoder.encodeToString(bytes);
-			System.out.println(token);
-		}
+		
 	}
 }

@@ -1,3 +1,4 @@
+package nodes;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -12,6 +13,12 @@ import java.util.Random;
 import javax.imageio.ImageIO;
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileNameExtensionFilter;
+
+import nodes.components.AtributosHoja;
+import nodes.components.ConsultorH;
+import nodes.components.ControladorHoja;
+import nodes.components.HojaConsumidor;
+import nodes.components.Servidor;
 
 /**
  * Nodo Hoja del sistema distribuido. Estos poseen las imágenes a compartir, calculan sus vectores

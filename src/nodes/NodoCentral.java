@@ -1,3 +1,4 @@
+package nodes;
 /**
  * Nodo Central del sistema de recuperación de imágenes. Se enlaza con Hojas y otros Nodos Centrales. 
  * Posee un índice con todas las imágenes compartidas por las Hojas conectadas a él, donde registra
@@ -25,6 +26,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Properties;
 import java.util.Scanner;
+
+import nodes.components.AtributosCentral;
+import nodes.components.ConsultorNC_H;
+import nodes.components.ConsultorNC_NC;
+import nodes.components.Servidor;
 
 
 

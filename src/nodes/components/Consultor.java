@@ -1,3 +1,4 @@
+package nodes.components;
 import java.net.Socket;
 
 /**

@@ -1,3 +1,4 @@
+package nodes.components;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -6,6 +7,11 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
+
+import commons.ConexionTcp;
+import commons.CredImagen;
+import commons.Mensaje;
+import commons.Tupla2;
 
 /**
  * Consultor que corre en cada uno de los hilos generado por el Servidor de los Nodos Centrales. Es el

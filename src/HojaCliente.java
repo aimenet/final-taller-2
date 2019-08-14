@@ -8,6 +8,12 @@ import java.util.Random;
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+import commons.ConexionTcp;
+import commons.CredImagen;
+import commons.Imagen;
+import commons.Mensaje;
+import nodes.components.AtributosHoja;
+
 /**
  * "Parte" Cliente de un Nodo Hoja. Es la encargada de conectarse al Nodo Central e interactuar con él.
  * 

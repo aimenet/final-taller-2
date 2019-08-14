@@ -1,3 +1,4 @@
+package commons;
 import java.io.Serializable;
 
 /**Clase que representa una tupla de dos elementos (un par).*/

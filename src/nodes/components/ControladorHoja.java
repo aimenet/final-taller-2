@@ -1,3 +1,4 @@
+package nodes.components;
 import java.io.File;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -10,6 +11,10 @@ import java.util.Scanner;
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.filechooser.FileView;
+
+import commons.CredImagen;
+import commons.Imagen;
+import commons.Tupla2;
 
 /**
  * Clase que permite el control de un Nodo Hoja (su faceta Cliente) mediante una interfaz gráfica muy simple

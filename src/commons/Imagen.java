@@ -1,3 +1,4 @@
+package commons;
 /**
  * Clase que representa una imagen. Almacena (valga la redundancia) la imagen en tamaño original, 
  * su vista previa, el vector caraterístico que la representa y el vector característico comprimido.

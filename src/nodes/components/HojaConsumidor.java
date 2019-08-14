@@ -1,10 +1,15 @@
+package nodes.components;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
-import MyExceptions.ManualInterruptedException;
+import my_exceptions.ManualInterruptException;
+import commons.ConexionTcp;
+import commons.CredImagen;
+import commons.Mensaje;
+import commons.Tupla2;
 
 /**
  * Uno de las instancias que compone la "faceta" Cliente de un Nodo Hoja. Es la encargada de 
@@ -62,7 +67,7 @@ public class HojaConsumidor implements Runnable {
 		while (runFlag) {
 			try{
 				consumir();
-			} catch (ManualInterruptedException ex){
+			} catch (ManualInterruptException ex){
 				// Excepción para detener el hilo
 				ex.printStackTrace();
 				runFlag = false;
@@ -72,7 +77,7 @@ public class HojaConsumidor implements Runnable {
 		}
 	}
 	
-	private void consumir() throws InterruptedException, ManualInterruptedException {
+	private void consumir() throws InterruptedException, ManualInterruptException {
 		/**/
 		ArrayList<CredImagen> muchas = null;
 		CredImagen una = null;
@@ -146,8 +151,8 @@ public class HojaConsumidor implements Runnable {
 				// Provisorio -> naturalmente a fines académicos
 				// Lanzo una excepción para capturarla en el método run() y así detener el thread
 				//throw new InterruptedException("Forzada detención del thread");
-				//throw new ManualInterruptedException("Forzada detención del thread");
-				throw new ManualInterruptedException("Forzada detención del thread");
+				//throw new ManualInterruptException("Forzada detención del thread");
+				throw new ManualInterruptException("Forzada detención del thread", 1);
 		}
 		
 		System.out.println("\nConsumidor " + this.idConsumidor + " arrancando de nuevo inmediatamente");

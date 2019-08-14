@@ -1,5 +1,7 @@
 import java.io.IOException;
 
+import nodes.NodoHoja;
+
 // TODO: modificarlo ahora que cambié la estructura de los nodos Hoja.
 public class EjecutableConcurrente {
 	

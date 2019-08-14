@@ -1,4 +1,4 @@
-
+import nodes.NodoCentral;
 
 public class EjecutableServidor {
 

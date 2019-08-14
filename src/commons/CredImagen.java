@@ -1,3 +1,4 @@
+package commons;
 import java.io.Serializable;
 
 /**

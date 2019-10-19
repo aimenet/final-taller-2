@@ -30,7 +30,6 @@ public class HojaConsumidor implements Runnable {
 	public String idAsignadoNC, ipNC;
 
 
-
 	// Métodos
 	// =======
 	public HojaConsumidor(Integer idConsumidor, String ipNodoCentral, Integer puertoNodoCentral) {

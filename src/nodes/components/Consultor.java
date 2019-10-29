@@ -4,6 +4,7 @@ import java.net.Socket;
 /**
  * Interface que define los métodos que implementarán los hilos generados por los Servidores para atender a 
  * los Clientes.
+ * 
  * @author rodrigo
  *
  */
@@ -18,3 +19,9 @@ public interface Consultor extends Runnable {
 	// Devuelve la dirección del socket conectado (el otro extremo), en formato "amigable".
 	String sockToString();
 }
+
+/** 
+ * Más que Interface debería ser una clase de la que hereden las demás (teniendo sí una interfaz que defina
+ * métodos requeridos) ya que los métodos setSock y sockToString -por ejemplo- son iguales para todos los consultores
+ * 
+ * */ 

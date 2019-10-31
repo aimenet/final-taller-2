@@ -50,6 +50,8 @@ public class AtributosCentral {
 	private static volatile HashMap<String,String> indiceHojas = new HashMap<String,String>();
 	private static volatile HashMap<String,ArrayList<CredImagen>> indiceImagenes = new HashMap<String,ArrayList<CredImagen>>();
 
+	private static volatile String wkanAsignado;
+	
 	private static final Object lockIndiceCentrales = new Object();
 	private static volatile ArrayList<String> indiceCentrales = new ArrayList<String>();
 	
@@ -144,6 +146,7 @@ public class AtributosCentral {
 		return String.format("%s:%d", this.ip,this.puertoServidorCentrales);
 	}
 	
+	public void setWKANAsignado(String direccion) {wkanAsignado = direccion;}
 	public void setPuertoServidorCentrales(Integer puerto){
 		this.puertoServidorCentrales = puerto; 
 	}

@@ -65,10 +65,12 @@ public class NodoCentral /*implements Runnable*/ {
 		atributos.setPuertoServidorHojas( Integer.parseInt(config.getProperty("puerto_h")) );
 		atributos.setPuertoServidorCentrales( Integer.parseInt(config.getProperty("puerto_nc")) );
 		
-		// Por ahora está hardcodeado a 3, hacerlo más general
+		// [2019-10-29] Ahora son los WKANs los que le dirán a qué NCs conectarse
+		/*// Por ahora está hardcodeado a 3, hacerlo más general
 		atributos.indexarCentral( config.getProperty("nc_conectado_1") );
 		atributos.indexarCentral( config.getProperty("nc_conectado_2") );
-		atributos.indexarCentral( config.getProperty("nc_conectado_3") );
+		atributos.indexarCentral( config.getProperty("nc_conectado_3") );*/
+		atributos.setWKANAsignado(config.getProperty("wkan"));
 		
 		atributos = null;
 		

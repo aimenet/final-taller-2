@@ -27,19 +27,29 @@ import java.util.HashMap;
 import java.util.Properties;
 import java.util.Scanner;
 
+import commons.Tarea;
 import nodes.components.AtributosCentral;
+import nodes.components.ClienteNA_NA;
+import nodes.components.ClienteNA_NC;
+import nodes.components.ClienteNC_NA;
 import nodes.components.ConsultorNC_H;
+import nodes.components.ConsultorNC_NA;
 import nodes.components.ConsultorNC_NC;
 import nodes.components.Servidor;
 
 
 
 public class NodoCentral /*implements Runnable*/ {
-	private Integer id;
+	private AtributosCentral atributos;
 	private Properties config;
 	private Servidor servidorHojas, servidorCentrales;
 	private Thread hiloServidorHojas, hiloServidorCentrales;
-	private String[] centralesVecinos;
+	
+	private ArrayList<Thread> clientThreads;
+	private ArrayList<Thread> serverThreads;
+	private HashMap<String, Runnable> clients;
+	private HashMap<String,Servidor> servers;
+	
 	
 	public NodoCentral(String archivoConfiguracion){
 		try {
@@ -51,29 +61,55 @@ public class NodoCentral /*implements Runnable*/ {
 			System.exit(1);
 		}
 		
-		servidorHojas = new Servidor(Integer.parseInt(config.getProperty("puerto_h")),
-				                     config.getProperty("nombre")+": Hojas",
-				                     ConsultorNC_H.class);
-		servidorCentrales = new Servidor(Integer.parseInt(config.getProperty("puerto_nc")),
-										 config.getProperty("nombre")+": Centrales",
-										 ConsultorNC_NC.class);
+		// Inicializaciones
+		this.clients = new HashMap<String, Runnable>();
+		this.servers = new HashMap<String, Servidor>();
+		this.clientThreads = new ArrayList<Thread>();
+		this.serverThreads = new ArrayList<Thread>();
 		
 		// Carga de atributos del NC
-		AtributosCentral atributos = new AtributosCentral();
+		atributos = new AtributosCentral();
 		
-		atributos.setIp( config.getProperty("ip") );
-		atributos.setPuertoServidorHojas( Integer.parseInt(config.getProperty("puerto_h")) );
-		atributos.setPuertoServidorCentrales( Integer.parseInt(config.getProperty("puerto_nc")) );
+		atributos.setDirecciones(config.getProperty("ip"),
+				Integer.parseInt(config.getProperty("puerto_na")),
+                Integer.parseInt(config.getProperty("puerto_nc")),
+                Integer.parseInt(config.getProperty("puerto_h")));
 		
-		// [2019-10-29] Ahora son los WKANs los que le dirán a qué NCs conectarse
-		/*// Por ahora está hardcodeado a 3, hacerlo más general
-		atributos.indexarCentral( config.getProperty("nc_conectado_1") );
-		atributos.indexarCentral( config.getProperty("nc_conectado_2") );
-		atributos.indexarCentral( config.getProperty("nc_conectado_3") );*/
+		// Punto de acceso a la red
 		atributos.setWKANAsignado(config.getProperty("wkan"));
 		
-		atributos = null;
+		// Inicialización de las colas donde se cargarán las "tareas" 
+		// Podría setear sólo las colas que voy a usar pero dejo las default
+		atributos.setNombreColas(new String[]{"acceso", "centrales", "hojas"});
+		atributos.setColas();
 		
+		// Servidores
+		this.servers.put("hojas", new Servidor(Integer.parseInt(config.getProperty("puerto_h")),
+				                               config.getProperty("nombre")+": Hojas",
+				                               ConsultorNC_H.class));
+		this.servers.put("centrales", new Servidor(Integer.parseInt(config.getProperty("puerto_nc")),
+										           config.getProperty("nombre")+": Centrales",
+										           ConsultorNC_NC.class));
+		this.servers.put("acceso", new Servidor(Integer.parseInt(config.getProperty("puerto_na")),
+		                                        config.getProperty("nombre")+": Acceso",
+		                                        ConsultorNC_NA.class));
+		
+		for (Servidor server : servers.values()) {
+			serverThreads.add(new Thread(server));
+		}
+				
+		// Clientes
+		// 1 para conectarse al WKAN que sirve de pto de entrada a la red
+		// 3 (def. por el archivo de configuración) para interactuar con los NCs a los que se conectará
+		//while (this.clients.size() < Integer.parseInt(this.config.getProperty("centrales")))
+		//	this.clients.put("NC-"+Integer.toString(this.clients.size()), new ClienteNC_NC(this.clients.size()));
+		this.clients.put("NC-"+Integer.toString(this.clients.size()), new ClienteNC_NA(this.clients.size()));
+		
+		// Hacer otro bucle para esto no creo que sea lo mejor
+		for (String cliente : this.clients.keySet())
+			this.clientThreads.add(new Thread(this.clients.get(cliente)));
+		
+				
 		/*Recordatorio
 		 * 
 		 * Si en el archivo de configuración pongo < nc_conectado_3= >, la propiedad leída
@@ -92,23 +128,40 @@ public class NodoCentral /*implements Runnable*/ {
 	}
 	
 	public void ponerEnMarcha() {
-		// Si deseo hacer que el servidor corra en un hilo, pudiendo tener de esta manera muchos en paralelo.		
-		hiloServidorHojas = new Thread( this.servidorHojas );
-		hiloServidorCentrales = new Thread( this.servidorCentrales );
+		boolean terminar = false;
+		Tarea tarea;
 		
-		hiloServidorHojas.start();
-		hiloServidorCentrales.start();
+		// Inicio de los hilos clientes y servidores
+		for (Thread hilo : serverThreads)
+			hilo.start();
 		
-		// Loop donde puedo establecer una "terminal" para verificar el estado del servidor
-		/*while(true){
-			Scanner teclado = new Scanner(System.in);
-			System.out.print("_");
-			String eleccion = teclado.nextLine();
-			System.out.println(eleccion);
-		}*/
+		for (Thread hilo : clientThreads)
+			hilo.start();
 		
-		// Si quiero una única instancia
-		//servidorHojas.atender();
+		// Ingreso a la red
+		// Nótese que no está hardcodeada la IP del WKAN así que este nodo tranquilamente podría estar concetado
+		// a más de un Nodo de Acceso
+		try {
+			atributos.encolar("acceso", new Tarea(00, "ANUNCIO-WKAN", atributos.getWKANAsignado()));
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		
+		System.out.println("Terminé de poner en marcha el Nodo Central");
+		
+		// Loop donde se administran ciertas tareas que ejecuta periódicamente el nodo
+		/*if (config.getProperty("mandar").equals("si"))
+			// El "mandar" es para debuggeo, para limitar el envío de mensajes y que no sea un lío de paquetes
+			// que vienen y van
+			while(!terminar) {
+				// Naturalmente podría verificar que haya WKAN para no disparar tareas innecesarias
+				try {
+					Thread.sleep(30000);
+					atributos.encolar("salida", new Tarea(00, "INFORMAR_WKANS", null));
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}*/
 	}
 	
 	
@@ -126,3 +179,11 @@ public class NodoCentral /*implements Runnable*/ {
 	
 	
 } // Fin clase 
+
+
+/** 
+ * [2019-11-02]
+ * Tendría que hacer una clase Nodo de la que hereden todos los nodos porque la estructura básica, independientemente
+ * del tipo, es la misma: tiene atributos, servidores y clientes (y tengo clases super de casi todos esos componentes)
+ * */
+

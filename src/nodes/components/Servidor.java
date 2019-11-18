@@ -45,8 +45,9 @@ public class Servidor implements Runnable {
 		
 		// TODO: guardar todos los sockests conectados al servidor.
 		
-		System.out.println("Servidor concurrente " + this.nombre);
-		System.out.println("-----------------------------------");
+		//System.out.println("Servidor concurrente " + this.nombre);
+		//System.out.println("-----------------------------------");
+		System.out.printf("[Server] [%s] corriendo en %s\n", this.nombre, Integer.toString(this.sockServidor.getLocalPort()));
 		try {
 			// Bucle principal donde recibe conexiones.
 			while (run_flag) {

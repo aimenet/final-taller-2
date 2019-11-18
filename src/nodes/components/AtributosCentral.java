@@ -36,7 +36,7 @@ import commons.Mensaje;
  * @author rodrigo
  *
  */
-public class AtributosCentral {
+public class AtributosCentral extends Atributos {
 	// Atributos
 	// =========
 	private static Integer puertoServidorCentrales;
@@ -51,6 +51,8 @@ public class AtributosCentral {
 	private static volatile HashMap<String,ArrayList<CredImagen>> indiceImagenes = new HashMap<String,ArrayList<CredImagen>>();
 
 	private static volatile String wkanAsignado;
+	private static volatile Timestamp ultimoIntentoConexionWKAN;
+	private static final int timeoutEsperaAnuncioWKAN = 60;
 	
 	private static final Object lockIndiceCentrales = new Object();
 	private static volatile ArrayList<String> indiceCentrales = new ArrayList<String>();
@@ -141,12 +143,7 @@ public class AtributosCentral {
 	public void indexarCentral(String direccion){
 		indiceCentrales.add(direccion);
 	}
-	
-	public String getDireccion(){
-		return String.format("%s:%d", this.ip,this.puertoServidorCentrales);
-	}
-	
-	public void setWKANAsignado(String direccion) {wkanAsignado = direccion;}
+		
 	public void setPuertoServidorCentrales(Integer puerto){
 		this.puertoServidorCentrales = puerto; 
 	}
@@ -156,6 +153,14 @@ public class AtributosCentral {
 	public void setIp(String ip){
 		this.ip = ip;
 	}
+
+	// Métodos relacionados a WKAN
+	public String getWKANAsignado() {return wkanAsignado;}
+	public void setWKANAsignado(String direccion) {wkanAsignado = direccion;}
+	public void marcarIntentoConexionWKAN() {
+		ultimoIntentoConexionWKAN = new Timestamp(new java.util.Date().getTime());
+	}
+	public int getTimeoutEsperaAnuncioWKAN() {return timeoutEsperaAnuncioWKAN;}
 	
 	/**Evalúa si una consulta ya fue recibida previamente. Si existe y expiró actualiza el horario, en caso contrario la encola.
 	 * Código de salida: 0_ La consulta existe y está vigente

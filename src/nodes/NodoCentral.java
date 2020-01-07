@@ -32,6 +32,7 @@ import nodes.components.AtributosCentral;
 import nodes.components.ClienteNA_NA;
 import nodes.components.ClienteNA_NC;
 import nodes.components.ClienteNC_NA;
+import nodes.components.ClienteNC_NC;
 import nodes.components.ConsultorNC_H;
 import nodes.components.ConsultorNC_NA;
 import nodes.components.ConsultorNC_NC;
@@ -78,6 +79,9 @@ public class NodoCentral /*implements Runnable*/ {
 		// Punto de acceso a la red
 		atributos.setWKANAsignado(config.getProperty("wkan"));
 		
+		// Cantidad de NC a los que debe conectarse
+		atributos.setMaxCentralesVecinos(Integer.parseInt(this.config.getProperty("centrales")));
+		
 		// Inicialización de las colas donde se cargarán las "tareas" 
 		// Podría setear sólo las colas que voy a usar pero dejo las default
 		atributos.setNombreColas(new String[]{"acceso", "centrales", "hojas"});
@@ -101,15 +105,15 @@ public class NodoCentral /*implements Runnable*/ {
 		// Clientes
 		// 1 para conectarse al WKAN que sirve de pto de entrada a la red
 		// 3 (def. por el archivo de configuración) para interactuar con los NCs a los que se conectará
-		//while (this.clients.size() < Integer.parseInt(this.config.getProperty("centrales")))
-		//	this.clients.put("NC-"+Integer.toString(this.clients.size()), new ClienteNC_NC(this.clients.size()));
+		while (this.clients.size() < Integer.parseInt(this.config.getProperty("centrales")))
+			this.clients.put("NC-"+Integer.toString(this.clients.size()), new ClienteNC_NC(this.clients.size()));
 		this.clients.put("NC-"+Integer.toString(this.clients.size()), new ClienteNC_NA(this.clients.size()));
 		
 		// Hacer otro bucle para esto no creo que sea lo mejor
 		for (String cliente : this.clients.keySet())
 			this.clientThreads.add(new Thread(this.clients.get(cliente)));
-		
-				
+
+
 		/*Recordatorio
 		 * 
 		 * Si en el archivo de configuración pongo < nc_conectado_3= >, la propiedad leída

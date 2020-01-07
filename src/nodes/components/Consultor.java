@@ -14,7 +14,7 @@ import java.net.Socket;
 public interface Consultor extends Runnable {
 	
 	// Método principal de todo hilo "consultor". Recibe y procesa consultas del cliente conectado.
-	void atender();
+	void atender() throws InterruptedException;
 	
 	// Setea el socket del cliente conectado, al cual deberá atender.
 	void setSock(Socket sock);

@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
 
+import commons.Codigos;
 import commons.ConexionTcp;
 import commons.CredImagen;
 import commons.Mensaje;
@@ -115,7 +116,7 @@ public class ConsultorNC_NC implements Consultor {
 		// Si el TTL lo permite retransmite el mensaje a los NC a los que está conectado
 		if(msj.getTTL() > 0){
 			cantHilos =  atributos.getCentrales().size();
-			direccionNodoActual = atributos.getDireccion();
+			direccionNodoActual = atributos.getDireccion("centrales");
 			latchCentrales = new CountDownLatch(cantHilos);
 			for(int i=0; i<cantHilos; i++){
 				String destino = atributos.getCentral(i);
@@ -209,6 +210,7 @@ public class ConsultorNC_NC implements Consultor {
 		boolean terminar = false;
 		ObjectInputStream buffEntrada;
 		ObjectOutputStream buffSalida;
+		String auxStr;
 		
 		try {
 			// Instanciación de los manejadores del buffer.
@@ -220,13 +222,20 @@ public class ConsultorNC_NC implements Consultor {
 				mensaje = (Mensaje) buffEntrada.readObject();
 				
 				switch(mensaje.getCodigo()){
-				case 30:
+				case Codigos.NC_NC_POST_SALUDO:
+					// Un NC solicita que éste sea su vecino
+					// TODO: [2019-11-30] por ahora acepto todos (yo soy su vecino, no ellos el mío) pero evaluar una lógica para controlarlo
+					auxStr = mensaje.getEmisor();
+					buffSalida.writeObject(new Mensaje(auxStr, Codigos.OK, null));
+					System.out.printf("[Con NC] aceptado saludo de nuevo NC (%s) en la red [OK]\n", auxStr);
+					break;
+				case Codigos.NC_NC_POST_CONSULTA:
 					if(!recibirConsulta(buffEntrada,buffSalida,mensaje)) {
 						terminar=true;
 					}
 					break;
 				//case TERMINAR:
-				case 333:
+				case Codigos.CONNECTION_END:
 					//El paquete indicaba el cierre de la conexión.
 					terminar = true;
 					break;

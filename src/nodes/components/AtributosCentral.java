@@ -43,22 +43,25 @@ public class AtributosCentral extends Atributos {
 	private static Integer puertoServidorHojas;
 	private static String ip;
 	
+	// Nodos Hojas
 	private static Integer idHoja = 1;
 	private static final Object lockIDHoja = new Object();
 	private static final Object lockIndiceHojas = new Object();
 	private static final Object lockIndiceImagenes = new Object();
+	private static final Object lockArchivoHojas = new Object();
+	private static final String pathArchivoHojas = Paths.get(System.getProperty("user.dir"),"config", "hojas_conectadas.json").toString();
 	private static volatile HashMap<String,String> indiceHojas = new HashMap<String,String>();
 	private static volatile HashMap<String,ArrayList<CredImagen>> indiceImagenes = new HashMap<String,ArrayList<CredImagen>>();
-
+	
+	// WKANs
 	private static volatile String wkanAsignado;
 	private static volatile Timestamp ultimoIntentoConexionWKAN;
 	private static final int timeoutEsperaAnuncioWKAN = 60;
 	
+	// Nodos Centrales
 	private static final Object lockIndiceCentrales = new Object();
 	private static volatile ArrayList<String> indiceCentrales = new ArrayList<String>();
-	
-	private static final Object lockArchivoHojas = new Object();
-	private static final String pathArchivoHojas = Paths.get(System.getProperty("user.dir"),"config", "hojas_conectadas.json").toString();
+	private static volatile Integer maxCentralesVecinos;
 	
 	// Últimas consultas recibidas para evitar duplicar respuestas. En la primer fila de la matriz se guardan
 	// las consultas (Mensaje) y en la segunda la hora en que fue recibida
@@ -155,12 +158,20 @@ public class AtributosCentral extends Atributos {
 	}
 
 	// Métodos relacionados a WKAN
+	// -----------------------------------------------------------------------------------
 	public String getWKANAsignado() {return wkanAsignado;}
 	public void setWKANAsignado(String direccion) {wkanAsignado = direccion;}
 	public void marcarIntentoConexionWKAN() {
 		ultimoIntentoConexionWKAN = new Timestamp(new java.util.Date().getTime());
 	}
 	public int getTimeoutEsperaAnuncioWKAN() {return timeoutEsperaAnuncioWKAN;}
+	
+	
+	// Métodos relacionados a Nodos Centrales
+	// -----------------------------------------------------------------------------------
+	public void setMaxCentralesVecinos(Integer cantidad) {maxCentralesVecinos = cantidad;}
+	public Integer getMaxCentralesVecinos() {return maxCentralesVecinos;}
+	
 	
 	/**Evalúa si una consulta ya fue recibida previamente. Si existe y expiró actualiza el horario, en caso contrario la encola.
 	 * Código de salida: 0_ La consulta existe y está vigente

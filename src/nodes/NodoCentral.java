@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Properties;
 import java.util.Scanner;
+import java.util.concurrent.TimeUnit;
 
 import commons.Tarea;
 import nodes.components.AtributosCentral;
@@ -154,18 +155,17 @@ public class NodoCentral /*implements Runnable*/ {
 		System.out.println("Terminé de poner en marcha el Nodo Central");
 		
 		// Loop donde se administran ciertas tareas que ejecuta periódicamente el nodo
-		/*if (config.getProperty("mandar").equals("si"))
-			// El "mandar" es para debuggeo, para limitar el envío de mensajes y que no sea un lío de paquetes
-			// que vienen y van
-			while(!terminar) {
-				// Naturalmente podría verificar que haya WKAN para no disparar tareas innecesarias
-				try {
-					Thread.sleep(30000);
-					atributos.encolar("salida", new Tarea(00, "INFORMAR_WKANS", null));
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			}*/
+		// Claramente esto es quick and dirty y funca porque hay una tarea periódica
+		while(!terminar) {
+			// Dispara tarea de envío de keepalive a WKAN
+			try {
+				Thread.sleep(TimeUnit.MILLISECONDS.convert(atributos.keepaliveWKAN, TimeUnit.SECONDS));
+				atributos.encolar("acceso", new Tarea(00, "SEND_KEEPALIVE_WKAN", null));
+				System.out.println("[Core] Disparada tarea periódica: keepalive WKAN");
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 	
 	

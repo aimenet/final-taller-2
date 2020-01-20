@@ -1,0 +1,23 @@
+[Archivo de configuración]
+	<2019-07-14> 
+		1) La dirección IP, es correcto que esté hardcodeada? Pensar en equipos que funcionen detrás de
+		   routers que implementen DHCP
+
+[Tareas]
+	<2019-07-14>
+		1) Se creó una clase específica -> cambiar todas las anteriores (nodos hoja y central)
+		2) Debería tener constantes para cada código-nombre de tareas -> interfaces para tipo de nodo??
+	<2020-01-08>
+		1) Cada vez que se reciba un mensaje de un NC en un WKAN éste último debe registrar el timestamp y que 
+		   dicho NC está activo.
+		2) Definir un mensaje específico que envíen los NCs a los WKANs para indicar que están vivos
+		   (independientemente) de lo estipulado en el punto anterior.
+	<2020-01-10>
+		1) Cuál sería un tiempo razonable para que los NCs manden keepalive? Cada 60 segundos? Y para que el WKAN
+		   los controle? 130 segundos? Naturalmente mientras desarrollo esos tiempos van a ser mucho más cortos
+	
+[Recordatorios]
+	<2020-01-08>
+		La tarea periódica que ejecuta un WKAN mediante la que controla el estado de los NCs a su cargo básicamente
+		consiste en cotejar la hora actual con el último timestamp en que se registró actividad del NC. Si
+		transcurrió más de X tiempo entre marcas se lo marca como inactivo hasta que dé señales de vida.

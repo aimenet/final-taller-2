@@ -32,9 +32,14 @@ public class AtributosHoja {
 	private static ArrayList<Object>[] colasTx;
 	private static Integer puertoServidor;
 	private static String ipServidor;
+	
+	private static Integer cantCentrales;
+
 	private static String[] direccionesNCs;
 	private static String[] idsHojas; // -> este debo instanciarlo, lo cargarán los hilos consumidores
 	
+	private static String wkanInicial;
+
 	// que no deben inicializarse
 	private static volatile HashMap<String,Imagen> indice = new HashMap<String,Imagen>();
 	private static volatile ArrayList<Imagen> colaDescargas = new ArrayList<Imagen>();
@@ -43,6 +48,31 @@ public class AtributosHoja {
 	private static volatile ArrayList<Object> colaTxHistorica = new ArrayList<Object>();
 	
 	
+	// Métodos - wkan
+	// =======================================================================================
+	public static String getWkanInicial() {
+		return wkanInicial;
+	}
+
+	public static void setWkanInicial(String wkanInicial) {
+		AtributosHoja.wkanInicial = wkanInicial;
+	}
+	
+	
+	// Métodos - nc
+	// =======================================================================================
+	public static Integer getCantCentrales() {
+		return cantCentrales;
+	}
+
+	public static void setCantCentrales(Integer cantCentrales) {
+		AtributosHoja.cantCentrales = cantCentrales;
+	}
+	
+	
+
+	// Métodos - me falta ordenarlos
+	// =======================================================================================
 	// Métodos
 	// =======
 	public boolean almacenarImagen(Imagen img){

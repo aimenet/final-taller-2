@@ -36,18 +36,12 @@ public class AtributosAcceso extends Atributos {
 	private static volatile HashMap<String, Integer> nodos = new HashMap<String, Integer>();
 	
 	private static volatile HashMap<String,HashMap<String, Comparable>> centrales = new HashMap<String,HashMap<String, Comparable>>();
-	// no sé si necesitaré para estos un lock -> creo que sí, porque potencialmente muchos ConsultorNA_NC van a estar
-	// accediendo a esta variable
-	
-	// Colas de tareas, para interacción con otros NABC
-	public static final String[] colasDisponibles = {"salida"};
-	private static HashMap<String,Object> locksColas;
-	private static HashMap<String,ArrayList<Tarea>> colas;
 	
 	// Parámetros "operativos"
+	public static int keepaliveNC = 30;  // segundos -> TODO: debería venir de config
 	public static int keepaliveNodoVecino = 3; // valor default, los nodos pueden sobreescribirlo si corresponde
 	public static int maxNCCapacity = 10;
-	public static int keepaliveNC = 30;  // segundos -> TODO: debería venir de config
+	
 	
 	// Constantes -> esta debería pisar a la de la clase padre no?
 	private final int MAX_QUEUE_SIZE = 10;
@@ -110,7 +104,7 @@ public class AtributosAcceso extends Atributos {
 		// TODO: breve descripción de c/u
 		nuevo.put("direccion_NA", direccion_NA);
 		nuevo.put("direccion_NC", direccion_NC);
-		nuevo.put("direccion_NC", direccion_NH);
+		nuevo.put("direccion_NH", direccion_NH);
 		nuevo.put("hojas_max", 10);
 		nuevo.put("hojas_activas", 0);
 		nuevo.put("centrales_max", 6);

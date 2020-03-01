@@ -6,6 +6,7 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Set;
 
 import commons.Codigos;
 import commons.Mensaje;
@@ -31,8 +32,10 @@ public class ConsultorNC_NA implements Consultor {
 	@Override
 	public void atender() throws InterruptedException {
 		Mensaje mensaje;
+		boolean auxBol;
 		boolean terminar = false;
 		Integer codigo;
+		Object auxObj;
 		ObjectInputStream buffEntrada;
 		ObjectOutputStream buffSalida;
 		String auxStr;
@@ -61,6 +64,19 @@ public class ConsultorNC_NA implements Consultor {
 						System.out.printf("NC vecino %s\n", (String) mensaje.getCarga());
 						tarea = new Tarea(00, "ANUNCIO-VECINO", (String) mensaje.getCarga());
 						atributos.encolar("centrales", tarea);
+					case Codigos.NA_NC_POST_CAPACIDAD_NH:
+						// Evalúa la capacidad de aceptar un nuevo NH, siempre que no se encuentre ya registrado
+						auxStr = (String) mensaje.getCarga();
+						
+						auxObj = atributos.getClavesIndiceHojas();
+						auxBol = !((Set<String>) auxObj).contains(auxStr);
+						auxBol = auxBol && ((Set<String>) auxObj).size() < this.atributos.getNHCapacity();
+						auxObj = auxBol ? Codigos.OK : Codigos.ACCEPTED;  // TODO: es ACCEPTED la respuesta negativa correcta??
+						
+						buffSalida.writeObject(new Mensaje(atributos.getDireccion("acceso"), 
+								                           (Integer) auxObj, auxBol));
+						terminar = true;
+						break;
 					case Codigos.CONNECTION_END:
 						terminar = true;
 						break;

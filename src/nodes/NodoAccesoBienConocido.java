@@ -11,6 +11,7 @@ import nodes.components.ClienteNA_NA;
 import nodes.components.ClienteNA_NC;
 import nodes.components.ConsultorNA_NA;
 import nodes.components.ConsultorNA_NC;
+import nodes.components.ConsultorNA_NH;
 import nodes.components.Servidor;
 import nodes.components.WorkerNA_Interno;
 
@@ -65,14 +66,12 @@ public class NodoAccesoBienConocido {
 		
 		// Definición de servidores -> moverlo a método si crece mucho
 		// ------------------------
-		//servidorHojas = new Servidor(Integer.parseInt(config.getProperty("puerto_h")),
-		//		                     config.getProperty("nombre")+": Hojas",
-		//		                     ConsultorNA_H.class);
 		servers.put("NABC", new Servidor(Integer.parseInt(config.getProperty("puerto_na")),
 	 			config.getProperty("nombre")+": Bien Conocidos", ConsultorNA_NA.class));
 		servers.put("CENTRALES", new Servidor(Integer.parseInt(config.getProperty("puerto_nc")),
-				                              config.getProperty("nombre")+": Centrales",
-				                              ConsultorNA_NC.class));
+				config.getProperty("nombre")+": Centrales", ConsultorNA_NC.class));
+		servers.put("HOJAS", new Servidor(Integer.parseInt(config.getProperty("puerto_nh")),
+				config.getProperty("nombre")+": Hojas", ConsultorNA_NH.class));
 		
 		for (Servidor server : servers.values()) {
 			serverThreads.add(new Thread(server));
@@ -84,7 +83,7 @@ public class NodoAccesoBienConocido {
 		atributos.setDirecciones(config.getProperty("ip"),
 				                 Integer.parseInt(config.getProperty("puerto_na")), 
 				                 Integer.parseInt(config.getProperty("puerto_nc")), 
-				                 null);
+				                 Integer.parseInt(config.getProperty("puerto_nh")));
 		
 		// NABC conocidos inicialmente
 		for (Object key : config.keySet()) {

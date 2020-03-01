@@ -31,7 +31,9 @@ public class ConsultorNA_NH implements Consultor {
 	public void atender() {
 		Mensaje mensaje;
 		boolean terminar = false;
+		ClienteNA_NC consultor;
 		HashMap<String, Comparable> diccionario;
+		HashMap<String, Comparable> diccionario2;
 		Integer auxInt;
 		Integer codigo;
 		LinkedList<String> auxLstStr;
@@ -39,6 +41,7 @@ public class ConsultorNA_NH implements Consultor {
 		ObjectInputStream buffEntrada;
 		ObjectOutputStream buffSalida;
 		String auxStr;
+		Tarea tarea;
 		Timestamp auxTimestamp;
 		
 		try {
@@ -61,10 +64,9 @@ public class ConsultorNA_NH implements Consultor {
 						 *            'pendientes': xxx}
 						 *            )
 						 */
-						
-						System.out.printf("[Con NH] Solicitud de %s NCs por parte de NH en %s ", mensaje.getCarga(), mensaje.getEmisor());
-						
 						diccionario = (HashMap<String, Comparable>) mensaje.getCarga();
+						
+						System.out.printf("[Con NH] Solicitud de %s NCs por parte de NH en %s ", diccionario.get("pendientes"), mensaje.getEmisor());
 						
 						// Obtrención de NCs que pueden recibir a la H: si no existen más WKANs en la red entonces buscará entre sus NCs la
 						// cantidad solicitada, sino escogerá sólo 1 (y retransmitirá la consulta)
@@ -74,19 +76,36 @@ public class ConsultorNA_NH implements Consultor {
 						
 						// Consulta al NC si cuenta con el NH entre sus filas, quedándose con aquellos que no lo posean
 						auxLstStr2 = new LinkedList<String>();
+						consultor = new ClienteNA_NC(99);
 						for (String dirNC : auxLstStr) {
-							// Creo que acá tengo que instanciar un Cliente para que se conecte al NC y le consulte. No voy a poder
-							// usar el método "atender" sino que voy a tener que hacer otro teniendo cuidado de que devuela OK o lo que 
-							// sea que haga falta
+							consultor.terminarConexion();
+							consultor.establecerConexion(dirNC.split(":")[0], 
+									                     Integer.parseInt(dirNC.split(":")[1]));
+							
+							diccionario2 = new HashMap<String, Comparable>();
+							diccionario2.put("ip", dirNC.split(":")[0]);
+							diccionario2.put("puerto", Integer.parseInt(dirNC.split(":")[1]));
+							diccionario2.put("NH", diccionario.get("direccionNH_NC"));
+							
+							tarea = new Tarea("CAPACIDAD-ATENCION-NH", diccionario2);
+							diccionario2 = null;
+							diccionario2 = consultor.procesarTarea(tarea);
+							
+							if (Integer.parseInt((String) diccionario2.get("status")) == Codigos.OK) {
+								auxLstStr2.add((String) atributos.getCentrales().get(dirNC).get("direccion_NH"));
+								if (auxLstStr2.size() >= auxInt)
+									break;
+							}
 						}
 						
-						
-						buffSalida.writeObject(new Mensaje(atributos.getDireccion("hojas"), Codigos.OK, auxLstStr));
+						buffSalida.writeObject(new Mensaje(atributos.getDireccion("hojas"), Codigos.OK, auxLstStr2));
 						
 						System.out.println("[OK]");
+						System.out.printf("[Con NH] Informados %s NCs a Hoja %s", auxLstStr2.size(), mensaje.getEmisor());
 						
 						// Si no se cubrió la cantidad requerida de NCs encola la tarea para retransmitir la solicitud a otro WKAN
-						if (Integer.parseInt((String) mensaje.getCarga()) - auxInt > 0) {
+						if ((Integer.parseInt((String) mensaje.getCarga()) - auxInt > 0) 
+						   || (auxLstStr2.size() < auxInt)) {
 							if (((AtributosAcceso) atributos).getNodos().size() > 0) {
 								diccionario.put("pendientes", (Integer) diccionario.get("pendientes") - auxInt);								
 								atributos.encolar("salida", new Tarea("RETRANSMITIR_SOLICITUD_NCS_NH", diccionario));

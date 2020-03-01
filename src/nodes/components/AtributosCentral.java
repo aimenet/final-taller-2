@@ -45,6 +45,7 @@ public class AtributosCentral extends Atributos {
 	
 	// Nodos Hojas
 	private static Integer idHoja = 1;
+	private static Integer NHCapacity = 30;  // Hojas que es capaz de administrar
 	private static final Object lockIDHoja = new Object();
 	private static final Object lockIndiceHojas = new Object();
 	private static final Object lockIndiceImagenes = new Object();
@@ -148,7 +149,11 @@ public class AtributosCentral extends Atributos {
 	public void indexarCentral(String direccion){
 		indiceCentrales.add(direccion);
 	}
-		
+	
+	// Getters y Setters
+	// -----------------------------------------------------------------------------------
+	public Integer getNHCapacity() {return AtributosCentral.NHCapacity;}  // Si pongo sólo NHCapacity es = que como está ahora 
+	
 	public void setPuertoServidorCentrales(Integer puerto){
 		this.puertoServidorCentrales = puerto; 
 	}

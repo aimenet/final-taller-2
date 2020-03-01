@@ -1,6 +1,6 @@
 import nodes.NodoHoja;
 
-public class Ejecutable {
+public class EjecutableNH {
 
 	public static void main(String[] args) {
 		String configFile;

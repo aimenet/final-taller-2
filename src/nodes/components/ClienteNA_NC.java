@@ -30,10 +30,9 @@ import commons.Tupla2;
 public class ClienteNA_NC extends Cliente {
 	// Atributos
 	// =========
-	private AtributosAcceso atributos;
 	private Callable<HashMap<String, Object>> funcion;
-	private ConexionTcp conexionConNodoCentral;
-	private boolean conexionEstablecida, sesionIniciada;
+	//private ConexionTcp conexionConNodoCentral;
+	//private boolean conexionEstablecida, sesionIniciada;
 	public Integer idConsumidor;
 	public String idAsignadoNA, tipoConsumidor;
 
@@ -47,9 +46,6 @@ public class ClienteNA_NC extends Cliente {
 	
 	
 	// Métodos que se usan para atender los distintos tipos de órdenes recibidas en una Tarea
-	// Por qué se necesitan? Para así en consumir() puedo hacer un único switch case que llame al método
-	// correspondiente y no tengo chotocientas mil líneas de código además de quedar todo encapsulado,
-	// prolijo y legible
 	// ---------------------------------------------------------------------------------------------------
 	// TODO: hacer una clase, interfaz o algo así
 	private HashMap<String, Object> anuncioAceptadoFnc(HashMap<String, Object> params){
@@ -64,7 +60,7 @@ public class ClienteNA_NC extends Cliente {
 		
 		if (params.containsKey("callbackOnFailure") && (Boolean) params.get("callbackOnFailure")) {
 			// No se pudo informar al NC. Se lo descarta
-			atributos.desencolarCentral((String) params.get("direccionNC"));
+			((AtributosAcceso) atributos).desencolarCentral((String) params.get("direccionNC"));
 			
 			System.out.print("\nConsumidor " + this.idConsumidor + ": ");
 			System.out.printf("falló aununcio aceptación a NC %s. Descartado\n", (String) params.get("direccionNC"));
@@ -72,7 +68,7 @@ public class ClienteNA_NC extends Cliente {
 			// Código "normal" que se ejecuta cuando sí se conecta al NC
 			Mensaje saludo = new Mensaje(this.atributos.getDireccion("centrales"), 
 					                     Codigos.NA_NC_POST_ANUNCIO_ACEPTADO, null);
-			this.conexionConNodoCentral.enviarSinRta(saludo);
+			this.conexionConNodo.enviarSinRta(saludo);
 			System.out.printf("Consumidor %s: anunciada aceptación a NC %s\n", this.idConsumidor, (String) params.get("direccionNC"));
 		}
 		
@@ -90,11 +86,28 @@ public class ClienteNA_NC extends Cliente {
 		Mensaje msj = new Mensaje(this.atributos.getDireccion("centrales"), 
 							      Codigos.NA_NC_POST_NC_VECINO, 
 							      (String) params.get("direccionNcVecino"));
-		this.conexionConNodoCentral.enviarSinRta(msj);
+		this.conexionConNodo.enviarSinRta(msj);
 		
 		System.out.printf("[Cli %s]\t", this.idConsumidor);
 		System.out.printf("anunciado NC vecino (%s) a ", (String) params.get("direccionNcVecino"));
 		System.out.printf("%s\n", (String) params.get("direccionNcNuevo"));
+		
+		return output;
+	}
+	
+	private HashMap<String, Object> consultaCapacidadNH(String direccionNH_NC) {
+		HashMap<String, Object> output = new HashMap<String, Object>();
+		
+		// Estos son comunes a todas las funciones
+		output.put("callBackOnSuccess", false);
+		output.put("callBackOnFailure", false);
+		
+		output.put("result", true);
+		Mensaje msj = new Mensaje(this.atributos.getDireccion("centrales"), 
+							      Codigos.NA_NC_POST_CAPACIDAD_NH, 
+							      direccionNH_NC);
+		msj = (Mensaje) this.conexionConNodo.enviarConRta(msj);
+		output.put("status", (boolean) msj.getCarga());
 		
 		return output;
 	}
@@ -105,6 +118,7 @@ public class ClienteNA_NC extends Cliente {
 		boolean flag;
 		Function<HashMap<String, Object>, HashMap<String, Object>> method;
 		HashMap<String,Object> diccionario;
+		HashMap<String, Comparable> diccionario2;
 		HashMap<String, Comparable> salida;
 		Integer contador=0; 
 		Integer intentos=3; 
@@ -148,6 +162,15 @@ public class ClienteNA_NC extends Cliente {
 				diccionario.put("direccionNcVecino", (String) ((Tupla2<String,String>) generico).getPrimero());
 				method = this::conectarNcsFnc;
 				break;
+			case "CAPACIDAD-ATENCION-NH":
+				// Consulta a un NC si tiene capacidad para recibir a un NH. Además se verifica que dicho NH
+				// no esté registrado en el NC
+				
+				diccionario2 = (HashMap<String, Comparable>) tarea.getPayload();
+				ipNcDestino = (String) diccionario.get("ip");
+				puertoNcDestino = (Integer) diccionario.get("puerto");
+				method = this::conectarNcsFnc;
+				break;
 		}
 		
 		contador = 0;
@@ -166,7 +189,7 @@ public class ClienteNA_NC extends Cliente {
 			|| (Boolean) diccionario.containsKey("callbackOnFailure"))
 			method.apply(diccionario);
 
-		this.conexionConNodoCentral.enviarSinRta(
+		this.conexionConNodo.enviarSinRta(
 				new Mensaje(this.atributos.getDireccion("centrales"), Codigos.CONNECTION_END, null));
 		this.terminarConexion();
 		System.out.println("[Cli  " + this.idConsumidor + "] arrancando de nuevo inmediatamente");
@@ -174,6 +197,7 @@ public class ClienteNA_NC extends Cliente {
 		// TODO: hacelo bien
 		return salida;
 	}
+
 }
 
 /**

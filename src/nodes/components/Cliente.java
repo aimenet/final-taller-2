@@ -24,8 +24,8 @@ import my_exceptions.ManualInterruptException;
 
 public abstract class Cliente implements Runnable {
 	protected Atributos atributos;
-	private boolean conexionEstablecida, sesionIniciada;
-	private ConexionTcp conexionConNodo;
+	protected boolean conexionEstablecida, sesionIniciada;
+	protected ConexionTcp conexionConNodo;
 	protected Integer id;
 	protected String cola;
 	

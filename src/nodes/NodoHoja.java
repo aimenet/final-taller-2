@@ -14,11 +14,17 @@ import javax.imageio.ImageIO;
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+import nodes.components.AtributosAcceso;
 import nodes.components.AtributosHoja;
+import nodes.components.ClienteNA_NA;
+import nodes.components.ClienteNA_NC;
 import nodes.components.ConsultorH;
+import nodes.components.ConsultorNA_NA;
+import nodes.components.ConsultorNA_NC;
 import nodes.components.ControladorHoja;
 import nodes.components.HojaConsumidor;
 import nodes.components.Servidor;
+import nodes.components.WorkerNA_Interno;
 
 /**
  * Nodo Hoja del sistema distribuido. Estos poseen las imágenes a compartir, calculan sus vectores
@@ -34,14 +40,24 @@ import nodes.components.Servidor;
 public class NodoHoja {
 	// Atributos
 	//===========
-	private AtributosHoja atributos;
-	private Properties config;
-	private Servidor servidor;
-	private Thread hiloProductor;
-	private Thread hiloServidor;
-	private Thread[] hilosConsumidores;
 	
-
+	/* No te olvides que usas "private ArrayList<Thread> clientThreads" y "private HashMap<String, Runnable> clients" porque de esa
+	 * manera tenes en una variable los hilos que están corriendo y en la otra las instancias que corren los hilos anteriores de manera de poder
+	 * acceder a ellas si fuera necesario.
+	 */
+	
+	private ArrayList<Thread> clientThreads;
+	private ArrayList<Thread> producerThreads;
+	private ArrayList<Thread> serverThreads;
+	private AtributosHoja atributos;
+	private HashMap<String, Runnable> clients;
+	private HashMap<String, Runnable> producers;
+	private HashMap<String, Servidor> servers;
+	private Integer maxClientes;
+	private Properties config;
+	private Servidor servidorAcceso, servidorCentrales, servidorHojas;
+	
+	
 	// Métodos
 	//=========
 	public NodoHoja(String configFile){
@@ -57,146 +73,112 @@ public class NodoHoja {
 			System.exit(1);
 		}
 		
-		//NCs a los que se conectará la H
-		cantCentrales = Integer.parseInt(config.getProperty("max_nc"));
-		centrales = new String[ cantCentrales ];
-		hilosConsumidores = new Thread[ cantCentrales ];
-		for(int i=1; i<=cantCentrales; i++)
-			centrales[i-1] = config.getProperty("nc_"+i);
+		// Inicializaciones generales
+		atributos = new AtributosHoja();
+		clients = new HashMap<String, Runnable>();
+		producers = new HashMap<String, Runnable>();
+		servers = new HashMap<String, Servidor>();
+		clientThreads = new ArrayList<Thread>();
+		producerThreads = new ArrayList<Thread>();
+		serverThreads = new ArrayList<Thread>();
 		
 		// Seteo de los atributos de la H.
-		atributos = new AtributosHoja(); // Acá debería ir la dirección del/los nodos centrales
-		atributos.setIpServidor( config.getProperty("ip") );
-		atributos.setPuertoServidor( Integer.parseInt(config.getProperty("puerto_server")) );
-		atributos.setDireccionesNCs(centrales);
+		atributos = new AtributosHoja();
+		atributos.setIpServidor(config.getProperty("ip"));
+		atributos.setPuertoServidor(Integer.parseInt(config.getProperty("puerto_server")));
 		
-		// Hilo Servidor de la H, donde recibe consultas y respuestas
-		servidor = new Servidor(Integer.parseInt(config.getProperty("puerto_server")),
-								"Bla bla bla",
-								ConsultorH.class);
+		// NABC que oficia de access point a la red
+		atributos.setWkanInicial(config.getProperty("wkan"));
 		
-		// Hilos Clientes (esquema Productor/Consumidor)
-		// Primero se instancia al hilo Controlador, el productor de consultas. 
-		hiloProductor = new Thread( new ControladorHoja() );
-		// Luego se instancian los consumidores, quienes enviarán dichas consultas a los NCs.
-		for(int i=0; i<cantCentrales; i++)
-			hilosConsumidores[i] = new Thread( new HojaConsumidor(i,
-					centrales[i].split(":")[0],
-					Integer.parseInt(centrales[i].split(":")[1])) );
+		// NCs a los que se conectará la H -> el wkan le indicará cuáles son
+		atributos.setCantCentrales(Integer.parseInt(config.getProperty("max_nc")));
 		
-		// Hilo servidor
-		hiloServidor = new Thread( this.servidor );
+		// Definición de servidores
+		// La H por ser el Nodo más viejo que hice no tiene separados en distintos archivos los Consultores de c/u de los Nodos
+		servers.put("GENERAL", new Servidor(Integer.parseInt(config.getProperty("puerto_server")), 
+				                            config.getProperty("nombre")+": General", 
+				                            ConsultorH.class));
+		
+		for (Servidor server : servers.values())
+			serverThreads.add(new Thread(server));
+		
+		// Productores
+		producers.put("GUI", new ControladorHoja());
+		
+		for (Runnable producer : producers.values())
+			producerThreads.add(new Thread(producer));
+		
+		// Consumidores: se define uno solo, cuando se conozcan los NCs se ampliará la cantidad según corresponda
+		clients.put("WKAN", new HojaConsumidor(0,
+											   atributos.getWkanInicial().split(":")[0],
+											   Integer.parseInt(atributos.getWkanInicial().split(":")[1])));
+		
+		for (Runnable client : clients.values())
+			clientThreads.add(new Thread(client));
 	}
 	
-	
-	/**
-	 * En el método ppal. de la Hoja debo poner a correr los hilos y definir una barrera: cuando el hilo Cliente
-	 * termina, termina la ejecución del Nodo. Esto es importante así puedo "acceder" al hilo desde afuera
-	 * para comunicarlo con la interfaz gráfica (espero).
-	 */
-	
 	public void ponerEnMarcha(){
-		hiloProductor.start();
-		hiloServidor.start();
+		for (Thread thread : producerThreads)
+			thread.start();
 		
-		for(int i=0; i<hilosConsumidores.length; i++){
-			hilosConsumidores[i].start();
-		}
+		for (Thread thread : clientThreads)
+			thread.start();
 		
-		// Acá estaría muy bueno hacer un bucle que corra mientras los hilos estén activos para monitorearlos
-		//System.out.println("El código sigue después de poner al hilo en marcha");
-		//System.out.println("Estado del hilo: " + hiloCliente.getState());
-		
-		System.out.println("Si me ves, preparate a ver qué hacer con el hilo consumidor");
-		System.out.println("DBG");
-		
-		// Hago esto por hora nada más
-		/*int counter = 0;
-		while(true) {
-			//Pause for 10 seconds
-            try {
-				Thread.sleep(10000);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-            
-            // Básico: muestra el estado de cada thread
-            /*for(int i=0; i<hilosConsumidores.length; i++){
-            	System.out.print(hilosConsumidores[i].getName() + " || ");
-    			System.out.print("Consumer thread #" + Integer.toString(i) + " state: ");
-    			System.out.println(hilosConsumidores[i].getState().toString());
-    		}*/
-            
-            // Simulo caída y generación de un thread
-            /*counter += 1;
-            if(counter == 3) {
-	        	// Interrumpo el thread
-            	System.out.println("\nThread state before interrupt: " + hilosConsumidores[0].getState().toString());
-	        	hilosConsumidores[0].interrupt();
-	        	// Agrego un delay para que efectivamente se interrumpa el thread
-	        	try {Thread.sleep(1000);} catch (InterruptedException e) {e.printStackTrace();}
-	        	System.out.println("Thread state after interrupt:  " + hilosConsumidores[0].getState().toString());
-	        	
-	        	// Muestro el estado del hilo que acabo de interrumpir
-	        	System.out.println("\nThread alive:       " + hilosConsumidores[0].isAlive());	     
-	        	System.out.println("Thread interrupted: " + hilosConsumidores[0].isInterrupted());
-	        	
-	        	// Instancio el nuevo hilo. Es importante usar el ID del que va a reemplazar para que utilice
-	        	// las colas de Tx/Rx del anterior
-	        	System.out.print("\nSetting up thread: ");
-	        	hilosConsumidores[0] = new Thread( new HojaConsumidor(0,
-	        			atributos.getDireccionesNCs()[0].split(":")[0],
-						Integer.parseInt(atributos.getDireccionesNCs()[0].split(":")[1])) );
-	        	System.out.println("DONE");
-	        	
-	        	// Inicio el nuevo hilo
-	        	System.out.println("\nThread state before start: " + hilosConsumidores[0].getState().toString());
-	        	hilosConsumidores[0].start();
-	        	System.out.println("Thread state after start:  " + hilosConsumidores[0].getState().toString());
-            } else {
-            	for(int i=0; i<hilosConsumidores.length; i++){
-            		System.out.print(hilosConsumidores[i].getName() + " || ");
-            		System.out.print("Consumer thread #" + Integer.toString(i) + " state: ");
-	    			System.out.println(hilosConsumidores[i].getState().toString());
-	    		}
-            }*/
-               
-		/*}*/
-		
-		
+		for (Thread thread : serverThreads)
+			thread.start();
+				
 		// Bucle "ppal" de la HOJA: revisión y recuperación de hilos mientras hilo PRODUCTOR esté vivo
-		while(this.hiloProductor.getState() != Thread.State.TERMINATED) {
+		while(producerThreads.get(0).getState() != Thread.State.TERMINATED) {
 			// Check consumer threads status
             System.out.println("\n[HOJA] check consumer threads status...");
-			for(int i=0; i<hilosConsumidores.length; i++){
-            	System.out.print("\t" + hilosConsumidores[i].getName() + " || ");
+            for(int i=0; i < clientThreads.size(); i++){
+            	System.out.print("\t" + clientThreads.get(i).getName() + " || ");
     			System.out.print("Consumer thread #" + Integer.toString(i) + " state: ");
-    			System.out.println(hilosConsumidores[i].getState().toString());
+    			System.out.println(clientThreads.get(i).getState().toString());
     			
     			// revivir los consumidores caídos
-    			if(hilosConsumidores[i].getState() == Thread.State.TERMINATED) {
-    				// Recordar: # de NODOCENTRAL empieza en 1, pero "i" lo hace en 0 por ser índice del arreglo
-    				String centralNode = this.config.getProperty("nc_"+ (i+1));
+    			if(clientThreads.get(i).getState() == Thread.State.TERMINATED) {
+    				// SIEMPRE en la posición 0 va a estar el cliente que se conecta al WKAN. En las demás estan los que se conectan a NCs
+    				String name = null;
+    				String node = null;
+    				switch (i) {
+    					case 0:
+    						name = "WKAN";
+    						node = this.config.getProperty("wkan");
+    						break;
+    					default:
+    						name = "NC" + i;
+    						node = this.config.getProperty("nc_" + i);
+    						break;
+    				}
     				
-    				hilosConsumidores[i] = new Thread( new HojaConsumidor(i,
-    						centralNode.split(":")[0], Integer.parseInt(centralNode.split(":")[1])) );
-    				hilosConsumidores[i].start();
+    				// Esta parte está horrible, porque no sé qué keys del hashmap de clientes se correponde con cada posición
+    				// del arreglo de client threads. Pero bueno, queda así por ahora
+    				clients.put(name, new HojaConsumidor(i, node.split(":")[0], Integer.parseInt(node.split(":")[1])));
+    				clientThreads.set(i, new Thread(clients.get(name)));
+    				clientThreads.get(i).start();
+    				
     				System.out.print("\t\tConsumer thread #" + Integer.toString(i) + " revived. ");
-    				System.out.println("Actual state: " + hilosConsumidores[i].getState().toString());
+    				System.out.println("Actual state: " + clientThreads.get(i).getState().toString());
     			}
     		}
 			
 			// Check server thread status
-			System.out.println("\n[HOJA] check server thread status...");
-			System.out.print("\t" + this.hiloServidor.getName() + " || ");
-			System.out.print("Server thread state: " + this.hiloServidor.getState().toString());
-			if(this.hiloServidor.getState() == Thread.State.TERMINATED) {
-				this.hiloServidor = new Thread(this.servidor);
-				this.hiloServidor.start();
+			// Por ahora hay un único server -> generalizarlo a muchos
+            System.out.println("\n[HOJA] check server thread status...");
+			System.out.print("\t" + serverThreads.get(0).getName() + " || ");
+			System.out.print("Server thread state: " + serverThreads.get(0).getState().toString());
+			
+			if(serverThreads.get(0).getState() == Thread.State.TERMINATED) {
+				servers.put("GENERAL", new Servidor(Integer.parseInt(config.getProperty("puerto_server")), 
+                        config.getProperty("nombre")+": General", 
+                        ConsultorH.class));
+				
+				serverThreads.set(0, new Thread(servers.get("GENERAL")));
+				serverThreads.get(0).start();
 				
 				System.out.print("\t\tServer thread revived. ");
-				System.out.println("Actual state: " + this.hiloServidor.getState().toString());
+				System.out.println("Actual state: " + serverThreads.get(0).getState().toString());
 			}
 			
 			// Pause for 10 seconds
@@ -206,17 +188,21 @@ public class NodoHoja {
             System.out.println("\n[HOJA] Waiting until Producer stop...");
 		}
 		
-		// TODO: ¿debería controlar que la salida del while anterior sea porque efectivamente se salió desde
-		//       el menú?
+		// TODO: ¿debería controlar que la salida del while anterior sea porque efectivamente se salió desde el menú?
 		
 		// Detención de todos los threads en ejecución
-		for(int i=0; i<hilosConsumidores.length; i++){ hilosConsumidores[i].interrupt(); }
-		hiloProductor.interrupt();
-		hiloServidor.interrupt(); // Por alguna razón esto no para al thread servidor
+		for (Thread thread : clientThreads)
+			thread.interrupt();
+		
+		for (Thread thread : producerThreads)
+			thread.interrupt();
+		
+		for (Thread thread : serverThreads)
+			thread.interrupt(); // Por alguna razón esto no para al thread servidor
 		
 		// Esto no sirver, el hilo servidor queda corriendo indefinidamente
-		/*while(hiloServidor.getState() != Thread.State.TERMINATED) {
-			hiloServidor.interrupt();
+		/*while(serverThreads.get(0).getState() != Thread.State.TERMINATED) {
+			serverThreads.get(0).interrupt();
 			System.out.println("\t\tX");
 		}*/
 
@@ -224,12 +210,21 @@ public class NodoHoja {
         catch (InterruptedException e) {e.printStackTrace();}
 		
 		System.out.println("[HOJA] Finalizando ejecución...");
-		for(int i=0; i<hilosConsumidores.length; i++){
+		for(int i=0; i < clientThreads.size(); i++){
 			System.out.print("\tconsumer thread #"+ Integer.toString(i) +" state: ");
-			System.out.println(hilosConsumidores[i].getState().toString());
+			System.out.println(clientThreads.get(i).getState().toString());
 		}
-		System.out.println("\tproducer thread state: " + hiloProductor.getState().toString());
-		System.out.println("\tserver thread state: " + hiloServidor.getState().toString());
+		
+		for(int i=0; i < producerThreads.size(); i++){
+			System.out.print("\tproducer thread #"+ Integer.toString(i) +" state: ");
+			System.out.println(producerThreads.get(i).getState().toString());
+		}
+		
+		for(int i=0; i < serverThreads.size(); i++){
+			System.out.print("\tserver thread #"+ Integer.toString(i) +" state: ");
+			System.out.println(serverThreads.get(i).getState().toString());
+		}
+		
 		System.out.println("\n[HOJA] Terminada");
 		System.exit(0);
 	}

@@ -22,7 +22,7 @@ import nodes.components.ConsultorH;
 import nodes.components.ConsultorNA_NA;
 import nodes.components.ConsultorNA_NC;
 import nodes.components.ControladorHoja;
-import nodes.components.HojaConsumidor;
+import nodes.components.ClienteNH_Gral;
 import nodes.components.Servidor;
 import nodes.components.WorkerNA_Interno;
 
@@ -84,10 +84,14 @@ public class NodoHoja {
 		
 		// Seteo de los atributos de la H.
 		atributos = new AtributosHoja();
-		atributos.setIpServidor(config.getProperty("ip"));
-		atributos.setPuertoServidor(Integer.parseInt(config.getProperty("puerto_nh")));
-		// Recordar que los NH tiene un único puerto servidor porque es viejo y todavía no había definido el esquema actual.
-		// Uso el puerto_nh pero no es exclusivo para Hojas
+		atributos.setDirecciones(config.getProperty("ip"),
+				Integer.parseInt(config.getProperty("puerto_na")), 
+				Integer.parseInt(config.getProperty("puerto_nc")), 
+				Integer.parseInt(config.getProperty("puerto_nh")));
+		
+		// Inicialización de las colas donde se cargarán las "tareas" 
+		atributos.setNombreColas(new String[] {"salida"});
+		atributos.setColas();
 		
 		// NABC que oficia de access point a la red
 		atributos.setWkanInicial(config.getProperty("wkan"));
@@ -97,9 +101,12 @@ public class NodoHoja {
 		
 		// Definición de servidores
 		// La H por ser el Nodo más viejo que hice no tiene separados en distintos archivos los Consultores de c/u de los Nodos
-		servers.put("GENERAL", new Servidor(Integer.parseInt(config.getProperty("puerto_nh")), 
-				                            config.getProperty("nombre")+": General", 
-				                            ConsultorH.class));
+		servers.put("NABC",
+				new Servidor(Integer.parseInt(config.getProperty("puerto_nh")), config.getProperty("nombre")+": Acceso", ConsultorH.class));
+		servers.put("CENTRALES",
+				new Servidor(Integer.parseInt(config.getProperty("puerto_nh")), config.getProperty("nombre")+": Centrales", ConsultorH.class));
+		servers.put("HOJAS",
+				new Servidor(Integer.parseInt(config.getProperty("puerto_nh")), config.getProperty("nombre")+": Hojas", ConsultorH.class));
 		
 		for (Servidor server : servers.values())
 			serverThreads.add(new Thread(server));
@@ -111,11 +118,24 @@ public class NodoHoja {
 			producerThreads.add(new Thread(producer));
 		
 		// Consumidores: se define uno solo, cuando se conozcan los NCs se ampliará la cantidad según corresponda
-		clients.put("PPAL - NC0", new HojaConsumidor(0));
+		clients.put("PPAL - NC0", new ClienteNH_Gral(0));
+		
+		for (int i=0; i < Integer.parseInt(config.getProperty("max_nc")); i++) {
+			switch (i) {
+				case 0:
+					// Nada especial, sólo quiero un nombre distinto porqie va a tratar con WKANs además de NCs
+					clients.put("PPAL + NC-0", new ClienteNH_Gral(0));
+					break;
+				case 1:
+					clients.put("NC-" + Integer.toString(i), new ClienteNH_Gral(0));
+					break;
+			}
+		}
 		
 		for (Runnable client : clients.values())
 			clientThreads.add(new Thread(client));
 	}
+	
 	
 	public void ponerEnMarcha(){
 		for (Thread thread : producerThreads)
@@ -134,55 +154,61 @@ public class NodoHoja {
 		while(producerThreads.get(0).getState() != Thread.State.TERMINATED) {
 			// Check consumer threads status
             System.out.println("\n[HOJA] check consumer threads status...");
-            for(int i=0; i < clientThreads.size(); i++){
-            	System.out.print("\t" + clientThreads.get(i).getName() + " || ");
-    			System.out.print("Consumer thread #" + Integer.toString(i) + " state: ");
-    			System.out.println(clientThreads.get(i).getState().toString());
-    			
-    			// revivir los consumidores caídos
-    			if(clientThreads.get(i).getState() == Thread.State.TERMINATED) {
-    				// SIEMPRE en la posición 0 va a estar el cliente que se conecta al WKAN. En las demás estan los que se conectan a NCs
-    				String name = null;
-    				String node = null;
-    				switch (i) {
-    					case 0:
-    						name = "PPAL - NC0";
-    						node = this.config.getProperty("wkan");
-    						break;
-    					default:
-    						name = "NC" + i;
-    						node = this.config.getProperty("nc_" + i);
-    						break;
-    				}
-    				
-    				// Esta parte está horrible, porque no sé qué keys del hashmap de clientes se correponde con cada posición
-    				// del arreglo de client threads. Pero bueno, queda así por ahora
-    				clients.put(name, new HojaConsumidor(i, node.split(":")[0], Integer.parseInt(node.split(":")[1])));
-    				clientThreads.set(i, new Thread(clients.get(name)));
-    				clientThreads.get(i).start();
-    				
-    				System.out.print("\t\tConsumer thread #" + Integer.toString(i) + " revived. ");
-    				System.out.println("Actual state: " + clientThreads.get(i).getState().toString());
-    			}
-    		}
-			
+            
+// TODO: descomentar
+//            for(int i=0; i < clientThreads.size(); i++){
+//            	System.out.print("\t" + clientThreads.get(i).getName() + " || ");
+//    			System.out.print("Consumer thread #" + Integer.toString(i) + " state: ");
+//    			System.out.println(clientThreads.get(i).getState().toString());
+//    			
+//    			// revivir los consumidores caídos
+//    			// TODO: hacerlo bien porque no es así
+//    			if(clientThreads.get(i).getState() == Thread.State.TERMINATED) {
+//    				// SIEMPRE en la posición 0 va a estar el cliente que se conecta al WKAN. En las demás estan los que se conectan a NCs
+//    				String name = null;
+//    				String node = null;
+//    				switch (i) {
+//    					case 0:
+//    						name = "PPAL - NC0";
+//    						node = this.config.getProperty("wkan");
+//    						break;
+//    					default:
+//    						name = "NC" + i;
+//    						node = this.config.getProperty("nc_" + i);
+//    						break;
+//    				}
+//    				
+//    				// Esta parte está horrible, porque no sé qué keys del hashmap de clientes se correponde con cada posición
+//    				// del arreglo de client threads. Pero bueno, queda así por ahora
+//    				clients.put(name, new HojaConsumidor(i, node.split(":")[0], Integer.parseInt(node.split(":")[1])));
+//    				clientThreads.set(i, new Thread(clients.get(name)));
+//    				clientThreads.get(i).start();
+//    				
+//    				System.out.print("\t\tConsumer thread #" + Integer.toString(i) + " revived. ");
+//    				System.out.println("Actual state: " + clientThreads.get(i).getState().toString());
+//    			}
+//    		}
+		
 			// Check server thread status
-			// Por ahora hay un único server -> generalizarlo a muchos
-            System.out.println("\n[HOJA] check server thread status...");
-			System.out.print("\t" + serverThreads.get(0).getName() + " || ");
-			System.out.print("Server thread state: " + serverThreads.get(0).getState().toString());
-			
-			if(serverThreads.get(0).getState() == Thread.State.TERMINATED) {
-				servers.put("GENERAL", new Servidor(Integer.parseInt(config.getProperty("puerto_server")), 
-                        config.getProperty("nombre")+": General", 
-                        ConsultorH.class));
-				
-				serverThreads.set(0, new Thread(servers.get("GENERAL")));
-				serverThreads.get(0).start();
-				
-				System.out.print("\t\tServer thread revived. ");
-				System.out.println("Actual state: " + serverThreads.get(0).getState().toString());
-			}
+			System.out.println("\n[HOJA] check server thread status...");
+
+// TODO: descomentar
+//			// TODO: actualizar
+//          // Por ahora hay un único server -> generalizarlo a muchos
+//			System.out.print("\t" + serverThreads.get(0).getName() + " || ");
+//			System.out.print("Server thread state: " + serverThreads.get(0).getState().toString());
+//			
+//			if(serverThreads.get(0).getState() == Thread.State.TERMINATED) {
+//				servers.put("GENERAL", new Servidor(Integer.parseInt(config.getProperty("puerto_server")), 
+//                        config.getProperty("nombre")+": General", 
+//                        ConsultorH.class));
+//				
+//				serverThreads.set(0, new Thread(servers.get("GENERAL")));
+//				serverThreads.get(0).start();
+//				
+//				System.out.print("\t\tServer thread revived. ");
+//				System.out.println("Actual state: " + serverThreads.get(0).getState().toString());
+//			}
 			
 			// Pause for 10 seconds
             try {Thread.sleep(10000);}

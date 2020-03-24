@@ -84,7 +84,7 @@ public class ControladorHoja implements Runnable {
 
 	
 	//Menú que permite generar una consulta para el/los NCs y encolarla para su envío
-	private void menuConsultar(Scanner teclado){
+	private void menuConsultar(Scanner teclado) throws InterruptedException{
 		boolean terminar=false, resultado;	
 		File elegida = null;
 		Imagen imagen;
@@ -111,19 +111,19 @@ public class ControladorHoja implements Runnable {
 		System.out.println("\nPresione una tecla para encolar: _");
 		teclado.nextLine();
 		
-		if( elegida != null ){
+		if( elegida != null ) {
 			imagen = new Imagen(elegida);
-			resultado =  this.variables.encolarTx(
-							new Tupla2<CredImagen,String>(
-									new CredImagen(imagen.getNombre(), imagen.getVecCarComprimido()),
-									"QUERY"
-							)
-						);
-			if(resultado){
-				System.out.println("Consulta encolada satisfactoriamente");
-			} else {
-				System.out.println("No pudo encolarse la consulta");
+			
+			// Se genera una tarea de consulta por cada uno de los NCs conocidos
+			for (String direccion : variables.getDireccionesNCs()) {
+				HashMap<String, Object> taskPayload = new HashMap<String, Object>();
+				
+				taskPayload.put("credImg", new CredImagen(imagen.getNombre(), imagen.getVecCarComprimido()));
+				taskPayload.put("direccionNC", direccion);
+				variables.encolar("salida", new Tarea("QUERY", taskPayload));	
 			}
+			
+			System.out.println("Consulta encolada satisfactoriamente");
 			
 			//Moverlo a menú independiente
 			/*if( resultado.isEmpty() ){
@@ -233,7 +233,7 @@ public class ControladorHoja implements Runnable {
 	
 	// TODO: adaptarlo a <HojaConsumidor> consumir2() 
 	//Menú que permite enviar al Nodo Central el listado de imágenes a compartir.
-	private void menuAnunciarImagenes(Scanner teclado){
+	private void menuAnunciarImagenes(Scanner teclado) throws InterruptedException{
 		ArrayList<CredImagen> pendientes;
 		String resultado;
 		Tupla2<ArrayList<CredImagen>,String> anuncio;
@@ -251,9 +251,17 @@ public class ControladorHoja implements Runnable {
 		}
 		
 		if(variables.hayImagenes()){
-			anuncio = new Tupla2<ArrayList<CredImagen>,String>(pendientes,"ANUNCIO");
-			resultado =  variables.encolarTx(anuncio) ? "Envío realizado con éxito" : "No pudo realiarse el envío"; 
-			System.out.println(resultado);
+			// Genero una tarea de anuncio por cada uno de los NCs conocidos
+			for (String direccion : variables.getDireccionesNCs()) {
+				HashMap<String, Object> taskPayload = new HashMap<String, Object>();
+				
+				taskPayload.put("imagenes", pendientes);
+				taskPayload.put("direccionNC", direccion);
+				
+				variables.encolar("salida", new Tarea("ANUNCIO", taskPayload));
+			}
+			
+			System.out.println("Anuncio de imágenes encolado para envío");
 			System.out.println("\nPresione una tecla para continuar: _");
 		} else {
 			System.out.println("Debe cargar imágenes antes de su envío");
@@ -345,7 +353,7 @@ public class ControladorHoja implements Runnable {
 	
 
 	//Lista en pantalla todas las respuestas recibidas hasta el momento 
-	private void menuDescargar(Scanner teclado){
+	private void menuDescargar(Scanner teclado) throws InterruptedException{
 		Boolean encolado = false;
 		CredImagen laImg;
 		CredImagen[] candidatas;
@@ -411,14 +419,12 @@ public class ControladorHoja implements Runnable {
 		laImg = candidatas[opcion];
 		System.out.println("\n\n Bien pibe de los astilleros, vas a descargar " + laImg.getNombre() + " de " + laHoja);
 		
-		solicitud = new Tupla2<String,CredImagen>(laHoja,laImg);
-		encolado =  this.variables.encolarTx( new Tupla2<Tupla2<String,CredImagen>,String>(solicitud, "DESCARGA") );
+		HashMap<String, Object> taskPayload = new HashMap<String, Object>();
+		taskPayload.put("direccionNH", laHoja);
+		taskPayload.put("credImg", laImg);
+		this.variables.encolar("salida", new Tarea("DESCARGA", taskPayload));
 		
-		if(encolado){
-			System.out.println("Solicitud de descarga encolada con éxito");
-		} else {
-			System.out.println("No se pudo encolar la solicitud de descarga");
-		}
+		System.out.println("Solicitud de descarga encolada con éxito");
 	}
 	
 	
@@ -502,7 +508,7 @@ public class ControladorHoja implements Runnable {
 	}
 
 
-	public void menuPrincipal(Scanner teclado){
+	public void menuPrincipal(Scanner teclado) throws InterruptedException{
 		boolean terminar = false;
 		
 		while(!terminar){
@@ -582,6 +588,11 @@ public class ControladorHoja implements Runnable {
 		Scanner teclado;
 		teclado = new Scanner(System.in);
 		
-		menuPrincipal(teclado);
+		try {
+			menuPrincipal(teclado);
+		} catch (InterruptedException e) {
+			// TODO: hacer que termine
+			e.printStackTrace();
+		}
 	}
 }

@@ -20,34 +20,37 @@ import commons.Tupla2;
  * @author rodrigo
  *
  */
-public class AtributosHoja {
+public class AtributosHoja extends Atributos {
 	// Atributos
 	// =========
-	// Constantes
-	private static final Integer MAX_COLA_TX = 100;
-	private static final Object lockDescargas = new Object();
+	// Imágenes del Nodo
 	private static final Object lockIndice = new Object();
-	private static final Object lockRtas = new Object();
-	private static final String[] extensionesValidas = new String[]{"bmp","jpg","jpeg","png"};
-	
-	// que deben definirse antes de generar los hilos de la Hoja
-	private static ArrayList<Object>[] colasTx;
-	private static Integer puertoServidor;
-	private static String ipServidor;
-	
-	private static Integer cantCentrales;
-
-	private static String[] direccionesNCs;
-	private static String[] idsHojas; // -> este debo instanciarlo, lo cargarán los hilos consumidores
-	
-	private static String wkanInicial;
-
-	// que no deben inicializarse
 	private static volatile HashMap<String,Imagen> indice = new HashMap<String,Imagen>();
+	
+	// Imágenes descargadas
+	private static final Object lockDescargas = new Object();
 	private static volatile ArrayList<Imagen> colaDescargas = new ArrayList<Imagen>();
+
+	// Respuestas recibidas (a queries)
+	private static final Object lockRtas = new Object();
 	private static volatile ArrayList< HashMap<String,CredImagen[]> > colaRespuestas = new ArrayList<HashMap<String,CredImagen[]>>(); // Deprecated
 	private static volatile HashMap<String,HashMap<String,CredImagen[]>> nuevaColaRespuestas = new HashMap<String,HashMap<String,CredImagen[]>>();
+	
+	// Otras colas
 	private static volatile ArrayList<Object> colaTxHistorica = new ArrayList<Object>();
+	
+	// Constantes
+	private static final Integer MAX_COLA_TX = 100;
+	private static final String[] extensionesValidas = new String[]{"bmp","jpg","jpeg","png"};
+	private static Integer cantCentrales;
+	private static String[] direccionesNCs;
+	private static String[] idsHojas; // -> este debo instanciarlo, lo cargarán los hilos consumidores
+	private static String wkanInicial;
+	
+	// que deben definirse antes de generar los hilos de la Hoja
+	// private static ArrayList<Object>[] colasTx;
+	// private static Integer puertoServidor;
+	// private static String ipServidor;
 	
 	
 	// Métodos - wkan
@@ -72,11 +75,8 @@ public class AtributosHoja {
 	}
 	
 	
-
 	// Métodos - me falta ordenarlos
 	// =======================================================================================
-	// Métodos
-	// =======
 	public boolean almacenarImagen(Imagen img){
 		//Al utilizar HashMap para el índice, si se carga una imagen con nombre ya existente, sobreescribirá
 		//a la anterior.
@@ -149,13 +149,6 @@ public class AtributosHoja {
 		}
 	}
 	
-	// Deprecated
-	/*public boolean almacenarRta(HashMap<String, CredImagen[]>  respuesta){
-		synchronized (lockRtas) {
-			colaRespuestas.add(respuesta);
-			return true;
-		}
-	}*/
 	public boolean almacenarRta(CredImagen query, HashMap<String,CredImagen[]>  respuesta){
 		
 		synchronized (lockRtas) {
@@ -171,6 +164,64 @@ public class AtributosHoja {
 		}
 	}
 	
+	
+	// Getters
+	// -------	
+	public String[] getDireccionesNCs(){ 
+		return this.direccionesNCs;
+	}
+	
+	public Imagen getDescarga(Integer indice){
+		synchronized (lockDescargas) {
+			return colaDescargas.get(indice);
+		}
+	}
+	
+	public String getId(Integer index) {
+		return this.idsHojas[index];
+	}
+	
+	public Imagen getImagen(String nombre){
+		synchronized (lockIndice) {
+			return indice.get(nombre);
+		}
+	}
+		
+	public HashMap<String,Imagen> getImagenes(){
+		synchronized (lockIndice) {
+			return indice;
+		}
+	}
+		
+	public HashMap<String, HashMap<String, CredImagen[]>> getColaRtas(){
+		return this.nuevaColaRespuestas;
+	}
+	
+	public HashMap<String, CredImagen[]> getUnaRta(CredImagen query){
+		return nuevaColaRespuestas.get(query.getNombre());
+	}
+	
+		
+	// Setters
+	// -------	
+	public void setId(Integer index, String token){
+		this.idsHojas[index] = token;
+	}
+		
+	public void setDireccionesNCs(String[] direcciones){
+		/** Se definen los NCs a los que se conectará la H, las colas de transmisión y el arreglo de
+		 * IDs para poder llevar a cabo la operación con los mismos
+		 * 
+		 * Debo instanciarlos acá pues es necesario conocer el número de NCs previamente
+		 *  */
+		this.direccionesNCs = direcciones;
+		this.setColasTx();
+		this.idsHojas = new String[direcciones.length]; // La H poseerá un ID diferente en cada NC
+	}
+
+	
+	// Métodos - deprecated
+	// =======================================================================================	
 	public boolean encolarTx(Object carga){
 		/* Se encola una tarea en cada una de las colas de Salida existentes para comunicación con NCs. */
 		HashMap<String, Object> diccionario = new HashMap<String, Object>();
@@ -256,82 +307,24 @@ public class AtributosHoja {
 		return true;
 	}
 	
-	
-	// Getters
-	// -------
 	public ArrayList<Object>[] getColasTx(){
 		return this.colasTx;
 	}
-	
-	public String[] getDireccionesNCs(){ 
-		return this.direccionesNCs;
-	}
-	
-	public Imagen getDescarga(Integer indice){
-		synchronized (lockDescargas) {
-			return colaDescargas.get(indice);
-		}
-	}
-	
-	public String getId(Integer index) {
-		return this.idsHojas[index];
-	}
-	
-	public Imagen getImagen(String nombre){
-		synchronized (lockIndice) {
-			return indice.get(nombre);
-		}
-	}
-		
-	public HashMap<String,Imagen> getImagenes(){
-		synchronized (lockIndice) {
-			return indice;
-		}
-	}
 
-	public Integer getPuertoServidor(){ return puertoServidor; }
-
-	public String getIpServidor(){ return ipServidor; }
-		
-	public HashMap<String, HashMap<String, CredImagen[]>> getColaRtas(){
-		return this.nuevaColaRespuestas;
-	}
-	
-	public HashMap<String, CredImagen[]> getUnaRta(CredImagen query){
-		return nuevaColaRespuestas.get(query.getNombre());
-	}
-	
-	
-	
-	// Setters
-	// -------
-	public void setPuertoServidor(Integer puerto){ this.puertoServidor = puerto; }
-	
-	public void setId(Integer index, String token){
-		this.idsHojas[index] = token;
-	}
-	
-	public void setIpServidor(String ip){ this.ipServidor = ip; }
-	
-	public void setDireccionesNCs(String[] direcciones){
-		/** Se definen los NCs a los que se conectará la H, las colas de transmisión y el arreglo de
-		 * IDs para poder llevar a cabo la operación con los mismos
-		 * 
-		 * Debo instanciarlos acá pues es necesario conocer el número de NCs previamente
-		 *  */
-		this.direccionesNCs = direcciones;
-		this.setColasTx();
-		this.idsHojas = new String[direcciones.length]; // La H poseerá un ID diferente en cada NC
-	}
-	
 	private void setColasTx(){
 		colasTx = (ArrayList<Object>[]) new ArrayList[direccionesNCs.length];
 		
 		for(int i=0; i<direccionesNCs.length; i++)
 			colasTx[i] = new ArrayList<Object>();	
 	}
-	
 
-	
+	public Integer getPuertoServidor(){ return puertoServidor; }
+
+	public String getIpServidor(){ return ipServidor; }
+
+	public void setPuertoServidor(Integer puerto){ this.puertoServidor = puerto; }
+
+	public void setIpServidor(String ip){ this.ipServidor = ip; }
+
 	
 } //Fin clase

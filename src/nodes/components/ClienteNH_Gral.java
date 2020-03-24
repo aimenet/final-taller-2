@@ -26,7 +26,7 @@ import commons.Tupla2;
  * @author rodrigo
  */
 
-public class HojaConsumidor extends Cliente {
+public class ClienteNH_Gral extends Cliente {
 	// Atributos
 	// =========
 	private AtributosHoja atributos;
@@ -38,8 +38,8 @@ public class HojaConsumidor extends Cliente {
 
 	// Métodos
 	// =======
-	public HojaConsumidor(int idConsumidor) {
-		super(idConsumidor, "centrales");
+	public ClienteNH_Gral(int idConsumidor) {
+		super(idConsumidor, "salida");  // TODO: la cola debería ser un parámetro y no algo hardcodeado 
 		this.atributos = new AtributosHoja();
 	}
 	
@@ -59,7 +59,7 @@ public class HojaConsumidor extends Cliente {
 		output.put("callBackOnFailure", false);
 		output.put("result", true);
 		
-		ipServerPropia = this.atributos.getIpServidor() + ":" + this.atributos.getPuertoServidor().toString();
+		ipServerPropia = this.atributos.getDireccion("centrales");
 		
 		// Si existe un ID de Hoja definido en los atributos, se envía un mensaje de reconexión.
 		// En caso contrario se envía un saludo
@@ -127,7 +127,7 @@ public class HojaConsumidor extends Cliente {
 		output.put("callBackOnFailure", false);
 		output.put("result", true);
 		
-		direccionRecepcionRta = this.atributos.getIpServidor() + ":" + this.atributos.getPuertoServidor().toString();
+		direccionRecepcionRta = this.atributos.getDireccion("hojas");
 		conexionConNodo.enviarSinRta(new Mensaje(null, direccionRecepcionRta, 21, params.get("credImg")));
 		
 		System.out.printf("[Cli %s]", this.idConsumidor);
@@ -145,7 +145,7 @@ public class HojaConsumidor extends Cliente {
 		output.put("callBackOnFailure", false);
 		output.put("result", true);
 		
-		direccionRecepcionRta = this.atributos.getIpServidor() + ":" + this.atributos.getPuertoServidor().toString();
+		direccionRecepcionRta = this.atributos.getDireccion("centrales");
 		conexionConNodo.enviarSinRta(new Mensaje(idAsignadoNC, direccionRecepcionRta, 4, (CredImagen) params.get("credImg")));
 		
 		System.out.printf("[Cli %s]", this.idConsumidor);
@@ -239,8 +239,9 @@ public class HojaConsumidor extends Cliente {
 			|| (Boolean) diccionario.containsKey("callbackOnFailure"))
 			method.apply(diccionario);
 
+		// TODO Ojo que estoy mandando una única dirección sin considerar qué tipo de Nodo es el destinatario 
 		this.conexionConNodo.enviarSinRta(
-				new Mensaje(String.format("%s:%s", this.atributos.getIpServidor(), this.atributos.getPuertoServidor().toString()), 
+				new Mensaje(this.atributos.getDireccion("centrales"),
 						    Codigos.CONNECTION_END, 
 						    null));
 		this.terminarConexion();

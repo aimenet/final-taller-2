@@ -27,6 +27,8 @@ import commons.Tupla2;
  * @since 2019-10-01
  */
 
+/* [2020-03-01] -> esta clase es la que tengo que tomar como ejemplo cada vez que quiera hacer un Cliente */ 
+
 public class ClienteNA_NC extends Cliente {
 	// Atributos
 	// =========

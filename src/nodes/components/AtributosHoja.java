@@ -5,6 +5,8 @@ import java.util.Set;
 
 import commons.CredImagen;
 import commons.Imagen;
+import commons.Tarea;
+import commons.Tupla2;
 
 /**
  * Clase que engloba todos los atributos de un Nodo Hoja e implementa los métodos necesarios para
@@ -170,8 +172,31 @@ public class AtributosHoja {
 	}
 	
 	public boolean encolarTx(Object carga){
-		/*Carga puede ser: CredImagen            -> consulta al/los NC
-		                   ArrayList<CredImagen> -> anuncio de las imágenes a compartir*/
+		/* Se encola una tarea en cada una de las colas de Salida existentes para comunicación con NCs. */
+		HashMap<String, Object> diccionario = new HashMap<String, Object>();
+		String task = "";
+		
+		// Carga puede ser: CredImagen            -> consulta al/los NC
+		//                  ArrayList<CredImagen> -> anuncio de las imágenes a compartir
+		//                  *lo que sea que llegue para conectarme *
+		// Adaptación a "HojaConsumidor 2020": definir el receptor en base a la tarea
+		if (carga instanceof Tupla2) {
+			task = (String) ((Tupla2) carga).getSegundo();
+			
+			switch (task) {
+				case "ANUNCIO":
+					diccionario.put("imagenes", ((Tupla2<ArrayList<CredImagen>,String>) carga).getPrimero());
+					break;
+				case "DESCARGA":
+					diccionario.put("direccionNH", ((Tupla2<String,CredImagen>) ((Tupla2<Tupla2<String,CredImagen>,String>) carga).getPrimero()).getPrimero());
+					diccionario.put("credImg", ((Tupla2<String,CredImagen>) ((Tupla2<Tupla2<String,CredImagen>,String>) carga).getPrimero()).getSegundo());
+					break;
+				case "QUERY":
+					diccionario.put("credImg", ((Tupla2<CredImagen,String>) carga).getPrimero());
+					break;
+			}
+		}
+		
 		// Cola histórica, para referencia. No hay problemas de concurrencia pues (por ahora) nadie consume de ella
 		this.colaTxHistorica.add(carga);
 		
@@ -180,6 +205,8 @@ public class AtributosHoja {
 		 * ponga en funcionamiento, conusma de la cola y realize la consulta.
 		 */
 		for(int i=0; i<colasTx.length; i++){
+			diccionario.put("direccionNC", direccionesNCs[i]);
+			
 			synchronized (colasTx[i]) {
 				//TODO: esto hoy es anecdótico porque no puedo bloquear el hilo porque se llenó una cola. Ver qué hacer (hoy descarto la consulta)
 				//TODO: ver "Ejemplo productor - consumidor 3" (no modo manual) para saber como era originalmente
@@ -187,7 +214,7 @@ public class AtributosHoja {
 					System.out.println("Cola " + i + " llena: " + Thread.currentThread().getName() + " Consulta descartada. Tamaño: " + colasTx[i].size());
 					colasTx[i].notifyAll(); // Se notifica al consumidor de la cola para que cominece a liberar espacio.
 				} else {
-					colasTx[i].add(carga);
+					colasTx[i].add(new Tarea(task, diccionario));
 					colasTx[i].notifyAll(); //Sólo hay un consumidor así que con notify() alcanza
 				}
 			}
@@ -199,8 +226,7 @@ public class AtributosHoja {
 	public boolean encolarTxEspecifica(Object carga, int indexColaTx){
 		/* Similar a encolarTxEspecifica() pero encolando en una cola específica en lugar de todas
 		 * 
-		 * Carga puede ser: CredImagen            -> consulta al/los NC
-		 *                  ArrayList<CredImagen> -> anuncio de las imágenes a compartir
+		 * Carga puede será una tarea directamente (al menos hasta ahora)
 		 */
 		
 		// Cola histórica, para referencia. No hay problemas de concurrencia pues (por ahora) nadie consume de ella

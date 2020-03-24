@@ -5,10 +5,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
+import java.util.function.Function;
+
 import my_exceptions.ManualInterruptException;
+import commons.Codigos;
 import commons.ConexionTcp;
 import commons.CredImagen;
 import commons.Mensaje;
+import commons.Tarea;
 import commons.Tupla2;
 
 /**
@@ -16,11 +20,13 @@ import commons.Tupla2;
  * conectarse a un Nodo Central e interactuar con él. Consume de la cola de transmisión que le fue asignada,
  * enviando tanto consultas como listado de imágenes a compartir
  * 
+ * [2020-03-01] Ahora el consumidor debe conectarse tanto con NCs como con WKANs.
+ *              Lo correcto es implementar el esquema nuevo, es decir, que esta clase extienda de Cliente
+ * 
  * @author rodrigo
- *
  */
 
-public class HojaConsumidor implements Runnable {
+public class HojaConsumidor extends Cliente {
 	// Atributos
 	// =========
 	private AtributosHoja atributos;
@@ -28,182 +34,46 @@ public class HojaConsumidor implements Runnable {
 	private boolean conexionEstablecida, sesionIniciada;
 	public Integer idConsumidor, puertoNC;
 	public String idAsignadoNC, ipNC;
-
+	
 
 	// Métodos
 	// =======
-	public HojaConsumidor(Integer idConsumidor, String ipNodoCentral, Integer puertoNodoCentral) {
-		ipNC = ipNodoCentral;
-		puertoNC = puertoNodoCentral;
-		atributos = new AtributosHoja();
-		conexionEstablecida = false;
-		sesionIniciada = false;
-		this.idConsumidor = idConsumidor;
-		try {
-			this.conexionConNodoCentral = new ConexionTcp(ipNodoCentral, puertoNodoCentral);
-			conexionEstablecida = true;
-		} catch (IOException e) {
-			System.out.println("No se pudo establecer conexión con el servidor");
-			// TODO: ver como capturar el error y parar el consumidor sin detener el Nodo (this.wait() no sirve)
-		}
-	}
-
-	@Override
-	public void run() {
-		// TODO: ¿loop infinito? Pensarlo bien
-		
-		
-		// TODO: <2019-02-16> Comento mientras pruebo como parar y restartear un thread
-		if(establecerConexionNodoCentral()){
-			System.out.println("Consumidor " + idConsumidor +": iniciada sesión en NC");
-			sesionIniciada = true;
-		} else {
-			System.out.println("Consumidor " + idConsumidor +": imposible iniciar sesión en NC");
-			// TODO: <2019-04-02> capturar el error y actuar en consecuencia
-		}
-		
-		boolean runFlag = true;
-		while (runFlag) {
-			try{
-				consumir();
-			} catch (ManualInterruptException ex){
-				// Excepción para detener el hilo
-				ex.printStackTrace();
-				runFlag = false;
-			} catch (InterruptedException ex) {
-				ex.printStackTrace();
-			}
-		}
-	}
-	
-	private void consumir() throws InterruptedException, ManualInterruptException {
-		/**/
-		ArrayList<CredImagen> muchas = null;
-		CredImagen una = null;
-		ArrayList<Object> colaPropia = atributos.getColasTx()[idConsumidor];
-		Tupla2<Object,String> tarea;
-		Tupla2<String,CredImagen> solicitudDescarga;
-		String direccionServidor;
-		
-		synchronized (colaPropia){
-			while ( colaPropia.isEmpty() ){
-				System.out.println("Consumidor " + idConsumidor + " esperando. Tamaño cola: " + colaPropia.size());
-				colaPropia.wait();
-			}
-
-			tarea = (Tupla2<Object,String>) colaPropia.remove(0);
-			colaPropia.notifyAll();
-		}
-		
-		direccionServidor = String.format("%s:%d", atributos.getIpServidor(), atributos.getPuertoServidor());
-		
-		switch(tarea.getSegundo()){
-			case "QUERY": //Consulta a NC
-				una = (CredImagen) tarea.getPrimero();
-				conexionConNodoCentral.enviarSinRta(new Mensaje(idAsignadoNC,direccionServidor,4,una));
-				System.out.println("Consumidor "+idConsumidor+" : enviada consulta por "+una.getNombre());
-				break;
-				
-			case "DESCARGA": //Descarga de H
-				String ipServerH = atributos.getIpServidor() + ":" + atributos.getPuertoServidor();
-				solicitudDescarga = (Tupla2<String,CredImagen>) tarea.getPrimero();
-				
-				// El primer elemento es la dirección (y puerto) de la H de la que descarga
-				// El segundo es la creddencial de la imagen que se desea descargar.
-				
-				String ipDestino = solicitudDescarga.getPrimero().split(":")[0];
-				Integer portDestino = Integer.parseInt( solicitudDescarga.getPrimero().split(":")[1] );
-				
-				ConexionTcp conexionTmp = null;
-				try { conexionTmp = new ConexionTcp(ipDestino, portDestino); }
-				catch (IOException e) { System.out.println("No se pudo establecer conexión con el Nodo Hoja"); return;}
-				
-				//Mensaje respuesta = (Mensaje) conexionTmp.enviarConRta(new Mensaje(0,21,solicitudDescarga.getSegundo().getNombre()));
-				//Imagen descargada = (Imagen) respuesta.getCarga();
-				
-				String direccionRecepcionRta = this.atributos.getIpServidor() + ":" + this.atributos.getPuertoServidor().toString();
-				Mensaje solicitud = new Mensaje(null,direccionRecepcionRta,21,solicitudDescarga.getSegundo());
-				/*Mensaje respuesta = (Mensaje) conexionTmp.enviarConRta(solicitud);
-				Imagen descargada = (Imagen) respuesta.getCarga();
-				
-				atributos.almacenarDescarga(descargada);
-				System.out.println("Consumidor "+idConsumidor+" : descargada " + descargada.getNombre());*/
-				
-				conexionTmp.enviarSinRta(solicitud);
-				break;
-				
-			case "ANUNCIO": //Anuncio a NC de imágenes compartidas
-				muchas = (ArrayList<CredImagen>) tarea.getPrimero();
-				// Mensaje indicando la cantidad de imágenes a enviar
-				conexionConNodoCentral.enviarSinRta(new Mensaje(this.idAsignadoNC,3,muchas.size()));
-				// Envío de imágenes
-				Mensaje respuesta = (Mensaje) conexionConNodoCentral.enviarConRta(new Mensaje(this.idAsignadoNC,3,muchas));
-				// Si carga del mensaje = 0 -> recibió todo OK, si = 1 -> algo salió mal.
-				if ((Integer) respuesta.getCarga() != 0){
-					System.out.println("Consumidor " + idConsumidor + " falló anuncio de imágenes compartidas");
-				} else {
-					System.out.println("Consumidor "+idConsumidor+" : compartidas " +muchas.size()+ " imágenes");
-				}
-				break;
-				
-			case "STOP":
-				// Provisorio -> naturalmente a fines académicos
-				// Lanzo una excepción para capturarla en el método run() y así detener el thread
-				//throw new InterruptedException("Forzada detención del thread");
-				//throw new ManualInterruptException("Forzada detención del thread");
-				throw new ManualInterruptException("Forzada detención del thread", 1);
-		}
-		
-		System.out.println("\nConsumidor " + this.idConsumidor + " arrancando de nuevo inmediatamente");
+	public HojaConsumidor(int idConsumidor) {
+		super(idConsumidor, "centrales");
+		this.atributos = new AtributosHoja();
 	}
 	
 	
-	public void enviarConsulta(CredImagen una, ArrayList<CredImagen> muchas) {
-		String direccionServidor; // -> servidor de la H, donde espera la rta
-
-		direccionServidor = String.format("%s:%d", atributos.getIpServidor(), atributos.getPuertoServidor());
-
-		if( muchas == null ){
-			conexionConNodoCentral.enviarSinRta(new Mensaje(idAsignadoNC,direccionServidor,4,una));
-			System.out.println("Consumidor "+idConsumidor+" : enviada consulta por "+una.getNombre());
-		} else {
-			Mensaje respuesta;
-				
-			// Mensaje indicando la cantidad de imágenes a enviar
-			conexionConNodoCentral.enviarSinRta(new Mensaje(this.idAsignadoNC,3,muchas.size()));
-			
-			// Envío de imágenes
-			respuesta = (Mensaje) conexionConNodoCentral.enviarConRta(new Mensaje(this.idAsignadoNC,3,muchas));
-				
-			// Si carga del mensaje = 0 -> recibió todo OK, si = 1 -> algo salió mal.
-			if ((Integer) respuesta.getCarga() != 0){
-				System.out.println("Consumidor " + idConsumidor + " falló anuncio de imágenes compartidas");
-			} else {
-				System.out.println("Consumidor "+idConsumidor+" : compartidas " +muchas.size()+ " imágenes");
-			}
-		}
-	}
-	
-	
-	private boolean establecerConexionNodoCentral(){
-		boolean resultado;
-		Mensaje saludo, respuesta;
-		String hojaServer, token;
+	// Métodos que se usan para atender los distintos tipos de órdenes recibidas en una Tarea
+	// ---------------------------------------------------------------------------------------------------
+	private HashMap<String, Object> anunciarAnteNCFnc(HashMap<String, Object> params){
+		ArrayList<CredImagen> credencialesImgs;
+		HashMap<String, Object> output = new HashMap<String, Object>();
+		Mensaje mensaje;
+		Mensaje respuesta;
+		String ipServerPropia;
+		String token;
 		
-		hojaServer = atributos.getIpServidor() + ":" + atributos.getPuertoServidor().toString();
-
+		// Estos son comunes a todas las funciones
+		output.put("callBackOnSuccess", false);
+		output.put("callBackOnFailure", false);
+		output.put("result", true);
+		
+		ipServerPropia = this.atributos.getIpServidor() + ":" + this.atributos.getPuertoServidor().toString();
+		
 		// Si existe un ID de Hoja definido en los atributos, se envía un mensaje de reconexión.
 		// En caso contrario se envía un saludo
 		token = this.atributos.getId(this.idConsumidor);
 		if (token == null || token.length() == 0) {
 			// Saludo, 1ra conexión
-			saludo = new Mensaje(null,1, hojaServer);
+			mensaje = new Mensaje(null,1, ipServerPropia);
 		} else {
 			// Saludo de reconexión
-			saludo = new Mensaje(null,1, "##"+token+"##");
+			mensaje = new Mensaje(null,1, "##"+token+"##");
 		}
 		
-		respuesta = (Mensaje) conexionConNodoCentral.enviarConRta(saludo);
+		respuesta = (Mensaje) conexionConNodo.enviarConRta(mensaje);
+		
 		if (respuesta.getCodigo().equals(1) && respuesta.getCarga() != null){
 			//La respuesta contiene el ID con el que se identificará al Cliente.
 			idAsignadoNC = respuesta.getCarga().toString();
@@ -213,10 +83,172 @@ public class HojaConsumidor implements Runnable {
 			// "componentes" del nodo Hoja. Si se trataba de una reconexión el ID será igual así que en realidad es
 			// redundante ese paso
 			atributos.setId(this.idConsumidor, idAsignadoNC);
-			
-			return true;
 		} else {
-			return false;
+			output.put("result", false);
 		}
+		
+		return output;
 	}
+
+	private HashMap<String, Object> anunciarImgsFnc(HashMap<String, Object> params){
+		ArrayList<CredImagen> credencialesImgs;
+		HashMap<String, Object> output = new HashMap<String, Object>();
+		
+		
+		// Estos son comunes a todas las funciones
+		output.put("callBackOnSuccess", false);
+		output.put("callBackOnFailure", false);
+		output.put("result", true);
+		
+		credencialesImgs = (ArrayList<CredImagen>) params.get("imagenes");
+		
+		conexionConNodo.enviarSinRta(new Mensaje(this.idAsignadoNC, 3, credencialesImgs.size()));
+		
+		Mensaje respuesta = (Mensaje) conexionConNodo.enviarConRta(new Mensaje(this.idAsignadoNC, 3, credencialesImgs));
+		
+		// Si carga del mensaje = 0 -> recibió todo OK, si = 1 -> algo salió mal.
+		if ((Integer) respuesta.getCarga() != 0){
+			System.out.printf("[Cli %s] falló anuncio de imágenes compartidas\n", this.idConsumidor);
+			output.put("result", false);
+		} else {
+			System.out.printf("[Cli %s] compartidas %s imágenes\n", this.idConsumidor, credencialesImgs.size());
+		}
+		
+		return output;
+	}
+	
+	private HashMap<String, Object> descargarImgFnc(HashMap<String, Object> params){
+		HashMap<String, Object> output = new HashMap<String, Object>();
+		Mensaje solicitud;
+		String direccionRecepcionRta;
+		
+		// Estos son comunes a todas las funciones
+		output.put("callBackOnSuccess", false);
+		output.put("callBackOnFailure", false);
+		output.put("result", true);
+		
+		direccionRecepcionRta = this.atributos.getIpServidor() + ":" + this.atributos.getPuertoServidor().toString();
+		conexionConNodo.enviarSinRta(new Mensaje(null, direccionRecepcionRta, 21, params.get("credImg")));
+		
+		System.out.printf("[Cli %s]", this.idConsumidor);
+		System.out.printf(" solicitada imagen <%s> para descarga\n", ((CredImagen) params.get("credImg")).getNombre());
+		return output;
+	}
+
+	private HashMap<String, Object> queryNCFnc(HashMap<String, Object> params){
+		HashMap<String, Object> output = new HashMap<String, Object>();
+		Mensaje solicitud;
+		String direccionRecepcionRta;
+		
+		// Estos son comunes a todas las funciones
+		output.put("callBackOnSuccess", false);
+		output.put("callBackOnFailure", false);
+		output.put("result", true);
+		
+		direccionRecepcionRta = this.atributos.getIpServidor() + ":" + this.atributos.getPuertoServidor().toString();
+		conexionConNodo.enviarSinRta(new Mensaje(idAsignadoNC, direccionRecepcionRta, 4, (CredImagen) params.get("credImg")));
+		
+		System.out.printf("[Cli %s]", this.idConsumidor);
+		System.out.printf(" enviada consulta por <%s> a NC\n", ((CredImagen) params.get("credImg")).getNombre());
+		return output;
+	}
+
+		
+	// Procesamiento de las tareas
+	// ---------------------------------------------------------------------------------------------------
+	@Override
+	protected HashMap<String, Comparable> procesarTarea(Tarea tarea) throws InterruptedException {
+		// Variables "básicas" para procesar tareas
+		Function<HashMap<String, Object>, HashMap<String, Object>> method;
+		HashMap<String,Object> diccionario;
+		HashMap<String, Comparable> salida;
+		Integer contador;
+		Integer intentos;
+		Integer puertoDestino;
+		String ipDestino;
+		
+		// Variables propias de este Cliente
+		
+		// Inicializaciones de cortesía
+		method = null;
+		diccionario = null;
+		salida = null;
+		ipDestino = null;
+		puertoDestino = null;
+		
+		// En casi todos los case hago lo mismo, lo único que varía siempre es la difinición del "method"
+		switch(tarea.getName()){
+			case "ANUNCIO":
+				/* Informa a NC las imágenes compartidas */
+				
+				diccionario = (HashMap<String, Object>) tarea.getPayload();
+				ipDestino = ((String) diccionario.get("direccionNC")).split(":")[0];
+				puertoDestino = Integer.parseInt(((String) diccionario.get("direccionNC")).split(":")[1]);
+				method = this::anunciarImgsFnc;	
+				break;
+			case "ESTABLECER_CONEXION_NC":
+				/* Se conecta por primera vez a un NC, registrándose y recibiendo el ID de hoja que lo identificará */
+				
+				diccionario = (HashMap<String, Object>) tarea.getPayload();
+				ipDestino = ((String) diccionario.get("direccionNC")).split(":")[0];
+				puertoDestino = Integer.parseInt(((String) diccionario.get("direccionNC")).split(":")[1]);
+				method = this::anunciarAnteNCFnc;
+				break;
+			case "DESCARGA":
+				/* Descarga (request en realidad) de una imagen particular del Nodo Hoja que la posee */
+				
+				/* diccionario = {
+				 * 		"direccionNH": ip de la H que tiene la imagen que se va a solicitar descargar
+				 * 		"credImg": la imagen que se va a solicitar descargar
+				 * } */
+				diccionario = (HashMap<String, Object>) tarea.getPayload();
+				ipDestino = ((String) ((HashMap<String,Object>) tarea.getPayload()).get("direccionNH")).split(":")[0];
+				puertoDestino = Integer.parseInt(((String) diccionario.get("direccionNH")).split(":")[1]);
+				method = this::descargarImgFnc;
+				break;
+			case "QUERY":
+				/* Consulta a NC por imágenes similares a la dada cómo referencia */
+				
+				diccionario = (HashMap<String, Object>) tarea.getPayload();
+				ipDestino = ((String) diccionario.get("direccionNC")).split(":")[0];
+				puertoDestino = Integer.parseInt(((String) diccionario.get("direccionNC")).split(":")[1]);
+				method = this::queryNCFnc;
+				break;
+			case "STOP":
+				// Provisorio -> naturalmente a fines académicos
+				// Lanzo una excepción para capturarla y detener el thread
+				// throw new ManualInterruptException("Forzada detención del thread", 1);
+				throw new InterruptedException("Forzada detención del thread");
+				// break;
+		}
+		
+		contador = 0;
+		intentos = 3;
+		while (contador < intentos) {
+			if (this.establecerConexion(ipDestino, puertoDestino)) {
+				// Ahora llamo al método correspondiente para realizar la tarea (independientemente de cual sea)
+				diccionario = method.apply(diccionario);				
+				contador = intentos + 1;
+			} else {
+				contador += 1;
+				continue;
+			}
+		}
+
+		if ((Boolean) diccionario.containsKey("callbackOnSuccess") 
+			|| (Boolean) diccionario.containsKey("callbackOnFailure"))
+			method.apply(diccionario);
+
+		this.conexionConNodo.enviarSinRta(
+				new Mensaje(String.format("%s:%s", this.atributos.getIpServidor(), this.atributos.getPuertoServidor().toString()), 
+						    Codigos.CONNECTION_END, 
+						    null));
+		this.terminarConexion();
+		System.out.println("[Cli  " + this.idConsumidor + "] arrancando de nuevo inmediatamente");
+		
+		// TODO: hacelo bien
+		return salida;
+	}
+
 }
+	

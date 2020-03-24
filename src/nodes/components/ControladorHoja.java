@@ -14,6 +14,7 @@ import javax.swing.filechooser.FileView;
 
 import commons.CredImagen;
 import commons.Imagen;
+import commons.Tarea;
 import commons.Tupla2;
 
 /**
@@ -562,7 +563,7 @@ public class ControladorHoja implements Runnable {
 				
 				System.out.println("Interrumpiendo consumidor #" + consumerToInterrupt);
 				//this.variables.encolarTx(new Tupla2<Object, String>(null, "STOP"));
-				this.variables.encolarTxEspecifica(new Tupla2<Object, String>(null, "STOP"), consumerToInterrupt);
+				this.variables.encolarTxEspecifica(new Tarea("STOP"), consumerToInterrupt);
 				break;
 			case "0":
 				terminar = true;

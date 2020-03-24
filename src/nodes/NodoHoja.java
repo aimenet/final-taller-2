@@ -85,7 +85,9 @@ public class NodoHoja {
 		// Seteo de los atributos de la H.
 		atributos = new AtributosHoja();
 		atributos.setIpServidor(config.getProperty("ip"));
-		atributos.setPuertoServidor(Integer.parseInt(config.getProperty("puerto_server")));
+		atributos.setPuertoServidor(Integer.parseInt(config.getProperty("puerto_nh")));
+		// Recordar que los NH tiene un único puerto servidor porque es viejo y todavía no había definido el esquema actual.
+		// Uso el puerto_nh pero no es exclusivo para Hojas
 		
 		// NABC que oficia de access point a la red
 		atributos.setWkanInicial(config.getProperty("wkan"));
@@ -95,7 +97,7 @@ public class NodoHoja {
 		
 		// Definición de servidores
 		// La H por ser el Nodo más viejo que hice no tiene separados en distintos archivos los Consultores de c/u de los Nodos
-		servers.put("GENERAL", new Servidor(Integer.parseInt(config.getProperty("puerto_server")), 
+		servers.put("GENERAL", new Servidor(Integer.parseInt(config.getProperty("puerto_nh")), 
 				                            config.getProperty("nombre")+": General", 
 				                            ConsultorH.class));
 		
@@ -109,9 +111,7 @@ public class NodoHoja {
 			producerThreads.add(new Thread(producer));
 		
 		// Consumidores: se define uno solo, cuando se conozcan los NCs se ampliará la cantidad según corresponda
-		clients.put("WKAN", new HojaConsumidor(0,
-											   atributos.getWkanInicial().split(":")[0],
-											   Integer.parseInt(atributos.getWkanInicial().split(":")[1])));
+		clients.put("PPAL - NC0", new HojaConsumidor(0));
 		
 		for (Runnable client : clients.values())
 			clientThreads.add(new Thread(client));
@@ -127,6 +127,9 @@ public class NodoHoja {
 		for (Thread thread : serverThreads)
 			thread.start();
 				
+		// atributos.getWkanInicial().split(":")[0],
+		// Integer.parseInt(atributos.getWkanInicial().split(":")[1])));
+		
 		// Bucle "ppal" de la HOJA: revisión y recuperación de hilos mientras hilo PRODUCTOR esté vivo
 		while(producerThreads.get(0).getState() != Thread.State.TERMINATED) {
 			// Check consumer threads status
@@ -143,7 +146,7 @@ public class NodoHoja {
     				String node = null;
     				switch (i) {
     					case 0:
-    						name = "WKAN";
+    						name = "PPAL - NC0";
     						node = this.config.getProperty("wkan");
     						break;
     					default:

@@ -14,6 +14,7 @@ import javax.imageio.ImageIO;
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+import commons.Tarea;
 import nodes.components.AtributosAcceso;
 import nodes.components.AtributosHoja;
 import nodes.components.ClienteNA_NA;
@@ -102,9 +103,9 @@ public class NodoHoja {
 		// Definición de servidores
 		// La H por ser el Nodo más viejo que hice no tiene separados en distintos archivos los Consultores de c/u de los Nodos
 		servers.put("NABC",
-				new Servidor(Integer.parseInt(config.getProperty("puerto_nh")), config.getProperty("nombre")+": Acceso", ConsultorH.class));
+				new Servidor(Integer.parseInt(config.getProperty("puerto_na")), config.getProperty("nombre")+": Acceso", ConsultorH.class));
 		servers.put("CENTRALES",
-				new Servidor(Integer.parseInt(config.getProperty("puerto_nh")), config.getProperty("nombre")+": Centrales", ConsultorH.class));
+				new Servidor(Integer.parseInt(config.getProperty("puerto_nc")), config.getProperty("nombre")+": Centrales", ConsultorH.class));
 		servers.put("HOJAS",
 				new Servidor(Integer.parseInt(config.getProperty("puerto_nh")), config.getProperty("nombre")+": Hojas", ConsultorH.class));
 		
@@ -117,17 +118,15 @@ public class NodoHoja {
 		for (Runnable producer : producers.values())
 			producerThreads.add(new Thread(producer));
 		
-		// Consumidores: se define uno solo, cuando se conozcan los NCs se ampliará la cantidad según corresponda
-		clients.put("PPAL - NC0", new ClienteNH_Gral(0));
-		
+		// Consumidores
 		for (int i=0; i < Integer.parseInt(config.getProperty("max_nc")); i++) {
 			switch (i) {
 				case 0:
-					// Nada especial, sólo quiero un nombre distinto porqie va a tratar con WKANs además de NCs
+					// Nada especial, sólo quiero un nombre distinto porque va a tratar con WKANs además de NCs
 					clients.put("PPAL + NC-0", new ClienteNH_Gral(0));
 					break;
-				case 1:
-					clients.put("NC-" + Integer.toString(i), new ClienteNH_Gral(0));
+				default:
+					clients.put("NC-" + Integer.toString(i), new ClienteNH_Gral(i));
 					break;
 			}
 		}
@@ -137,7 +136,9 @@ public class NodoHoja {
 	}
 	
 	
-	public void ponerEnMarcha(){
+	public void ponerEnMarcha() throws InterruptedException{
+		HashMap<String, Object> payload = new HashMap<String, Object>();
+		
 		for (Thread thread : producerThreads)
 			thread.start();
 		
@@ -147,13 +148,15 @@ public class NodoHoja {
 		for (Thread thread : serverThreads)
 			thread.start();
 				
-		// atributos.getWkanInicial().split(":")[0],
-		// Integer.parseInt(atributos.getWkanInicial().split(":")[1])));
+		// Conexión con WKAN para ingreso a la red: no hay saludo inicial, directamente solicita NCs
+		payload.put("direccionWKAN", atributos.getWkanInicial());
+		atributos.encolar("salida", new Tarea("SOLICITUD_NCS", payload));
 		
 		// Bucle "ppal" de la HOJA: revisión y recuperación de hilos mientras hilo PRODUCTOR esté vivo
+		// TODO 01: revisar si faltan NCs y pedirlos
 		while(producerThreads.get(0).getState() != Thread.State.TERMINATED) {
 			// Check consumer threads status
-            System.out.println("\n[HOJA] check consumer threads status...");
+//            System.out.println("\n[HOJA] check consumer threads status...");
             
 // TODO: descomentar
 //            for(int i=0; i < clientThreads.size(); i++){
@@ -190,7 +193,7 @@ public class NodoHoja {
 //    		}
 		
 			// Check server thread status
-			System.out.println("\n[HOJA] check server thread status...");
+//			System.out.println("\n[HOJA] check server thread status...");
 
 // TODO: descomentar
 //			// TODO: actualizar
@@ -214,7 +217,7 @@ public class NodoHoja {
             try {Thread.sleep(10000);}
             catch (InterruptedException e) {e.printStackTrace();}
             
-            System.out.println("\n[HOJA] Waiting until Producer stop...");
+//            System.out.println("\n[HOJA] Waiting until Producer stop...");
 		}
 		
 		// TODO: ¿debería controlar que la salida del while anterior sea porque efectivamente se salió desde el menú?

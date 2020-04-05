@@ -28,8 +28,8 @@ public class Atributos {
 	// -----------------------------------------------------------------------------------------------
 	// Colas de tareas, para interacción con otros NABC
 	public static String[] colasDisponibles = {"entrada", "salida", "interna"};
-	private static HashMap<String,Object> locksColas;
-	private static HashMap<String,ArrayList<Tarea>> colas;
+	public static HashMap<String,Object> locksColas;
+	public static HashMap<String,ArrayList<Tarea>> colas;
 	
 	// Direcciones (cada nodo podrá correr varios servidores para los distintos tipos de nodos, en distintos puertos)
 	private static volatile HashMap<String, Comparable> network =  new HashMap<String, Comparable>();

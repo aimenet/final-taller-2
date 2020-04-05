@@ -80,18 +80,18 @@ public class WKAN_Funciones {
 		}
 	}
 
-	public LinkedList<String> getNCsConCapacidadNH(Integer cantidad) {
+	public LinkedList<HashMap<String, Comparable>> getNCsConCapacidadNH(Integer cantidad) {
 		/* Método que devuelve un listado (de la cantidad requerida) de NCs que son capaces de recibir a un NH */
 		
-		LinkedList<String> lista = new LinkedList<String>();
+		LinkedList<HashMap<String, Comparable>> lista = new LinkedList<HashMap<String, Comparable>>();
 		HashMap<String, HashMap<String, Comparable>> centrales;
 		HashMap<String, Comparable> nodo;
 		
 		// Acá se puede implementar una política de balanceo, por ahora voy "llenando" los NCs de Hojas de manera ordenada
 		centrales = ((AtributosAcceso) atributos).getCentrales();
 		for (Entry<String, HashMap<String, Comparable>> me : ((AtributosAcceso) this.atributos).getCentrales().entrySet()) {
-			if (Integer.parseInt((String) me.getValue().get("hojas_activas")) < Integer.parseInt((String) me.getValue().get("hojas_max"))) {
-				lista.add((String) me.getValue().get("direccion_NH"));
+			if ((Integer) me.getValue().get("hojas_activas") < (Integer) me.getValue().get("hojas_max")) {
+				lista.add(me.getValue());
 				
 				if (lista.size() >= cantidad)
 					break;

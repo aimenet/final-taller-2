@@ -1,8 +1,11 @@
 package nodes.components;
 import java.io.File;
 import java.io.IOException;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 import java.util.function.Function;
@@ -29,7 +32,6 @@ import commons.Tupla2;
 public class ClienteNH_Gral extends Cliente {
 	// Atributos
 	// =========
-	private AtributosHoja atributos;
 	private ConexionTcp conexionConNodoCentral;
 	private boolean conexionEstablecida, sesionIniciada;
 	public Integer idConsumidor, puertoNC;
@@ -63,7 +65,7 @@ public class ClienteNH_Gral extends Cliente {
 		
 		// Si existe un ID de Hoja definido en los atributos, se envía un mensaje de reconexión.
 		// En caso contrario se envía un saludo
-		token = this.atributos.getId(this.idConsumidor);
+		token = ((AtributosHoja) this.atributos).getId(this.id);
 		if (token == null || token.length() == 0) {
 			// Saludo, 1ra conexión
 			mensaje = new Mensaje(null,1, ipServerPropia);
@@ -82,7 +84,7 @@ public class ClienteNH_Gral extends Cliente {
 			// Seteo del ID que recibió la H en los atributos comartidos para ser conocido por todos los
 			// "componentes" del nodo Hoja. Si se trataba de una reconexión el ID será igual así que en realidad es
 			// redundante ese paso
-			atributos.setId(this.idConsumidor, idAsignadoNC);
+			((AtributosHoja) this.atributos).setId(this.id, idAsignadoNC);
 		} else {
 			output.put("result", false);
 		}
@@ -153,6 +155,55 @@ public class ClienteNH_Gral extends Cliente {
 		return output;
 	}
 
+	private HashMap<String, Object> solicitarNCsFnc(HashMap<String, Object> params){
+		HashMap<String, Object> output = new HashMap<String, Object>();
+		HashMap<String, Object> payload;
+		Integer amount;
+		LinkedList<String> centrales;
+		Mensaje mensaje;
+		
+		// Estos son comunes a todas las funciones
+		output.put("callBackOnSuccess", false);
+		output.put("callBackOnFailure", false);
+		output.put("result", true);
+		
+		// Determina la cantidad de NCs que debe solicitar
+		amount = ((AtributosHoja) this.atributos).getCantCentrales() - ((AtributosHoja) this.atributos).getDireccionesNCs().size();
+		
+		if (amount.equals(0))
+			return output;
+	
+		System.out.printf("[Cli %s]", this.idConsumidor);
+		System.out.printf(" enviando solicitud por <%s> NCs a WKAN", amount);
+		
+		params.put("direccionNH_NC", this.atributos.getDireccion("centrales"));
+		params.put("direccionNH_NA", this.atributos.getDireccion("acceso"));
+		params.put("pendientes", amount);
+		
+		mensaje = (Mensaje) conexionConNodo.enviarConRta(new Mensaje(this.atributos.getDireccion("acceso"), 
+				                                                     Codigos.NH_NA_POST_SOLICITUD_NCS, 
+				                                                     params));
+		
+		if (mensaje.getCodigo().equals(Codigos.OK)) {
+			for (String central : (LinkedList<String>) mensaje.getCarga()) {
+				payload = new HashMap<String, Object>();
+				payload.put("direccionNC", central);
+				
+				try {
+					atributos.encolar("salida", new Tarea("ESTABLECER_CONEXION_NC", payload));
+				} catch (InterruptedException e) {
+					// No hago nada, hay una tarea periódica que solicia NCs si resta conectarse a alguno
+				}
+			}
+		}
+		
+		// Registra el timestamp en que se efectuó la solicitud
+		((AtributosHoja) this.atributos).solicitudNCs.lastRequest = Instant.now();
+		
+		System.out.printf("\t[OK]\n");
+		
+		return output;
+	}
 		
 	// Procesamiento de las tareas
 	// ---------------------------------------------------------------------------------------------------
@@ -193,6 +244,14 @@ public class ClienteNH_Gral extends Cliente {
 				ipDestino = ((String) diccionario.get("direccionNC")).split(":")[0];
 				puertoDestino = Integer.parseInt(((String) diccionario.get("direccionNC")).split(":")[1]);
 				method = this::anunciarAnteNCFnc;
+				break;
+			case "SOLICITUD_NCS":
+				/* Solicita al WKAN que oficia de pto de acceso a la red, una determinada cantidad de NCs a los que conectarse */
+				
+				diccionario = (HashMap<String, Object>) tarea.getPayload();
+				ipDestino = ((String) diccionario.get("direccionWKAN")).split(":")[0];
+				puertoDestino = Integer.parseInt(((String) diccionario.get("direccionWKAN")).split(":")[1]);
+				method = this::solicitarNCsFnc;
 				break;
 			case "DESCARGA":
 				/* Descarga (request en realidad) de una imagen particular del Nodo Hoja que la posee */

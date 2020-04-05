@@ -2,7 +2,7 @@ import nodes.NodoHoja;
 
 public class EjecutableNH {
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws InterruptedException {
 		String configFile;
 		
 		/* El único parámetro que recibe es el path (absoluto) del archivo de configuración */

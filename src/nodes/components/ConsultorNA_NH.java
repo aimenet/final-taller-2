@@ -35,9 +35,11 @@ public class ConsultorNA_NH implements Consultor {
 		HashMap<String, Comparable> diccionario;
 		HashMap<String, Comparable> diccionario2;
 		Integer auxInt;
+		Integer auxInt2;
 		Integer codigo;
 		LinkedList<String> auxLstStr;
 		LinkedList<String> auxLstStr2;
+		LinkedList<HashMap<String, Comparable>> auxLstHsh;
 		ObjectInputStream buffEntrada;
 		ObjectOutputStream buffSalida;
 		String auxStr;
@@ -55,7 +57,7 @@ public class ConsultorNA_NH implements Consultor {
 				
 				switch(mensaje.getCodigo()){
 					case Codigos.NH_NA_POST_SOLICITUD_NCS:
-						// Un NH solicita NCs a los que conectarse
+						// Un NH solicita NCs a los que conectarse. 
 						
 						/* Mensaje = (dirección del NH para atender WKAN, 
 						 *            código de tarea,
@@ -72,27 +74,26 @@ public class ConsultorNA_NH implements Consultor {
 						// cantidad solicitada, sino escogerá sólo 1 (y retransmitirá la consulta)
 						auxInt = ((AtributosAcceso) atributos).getNodos().size() > 0 ? 1 : (Integer) diccionario.get("pendientes");
 						// "Trae" el doble de lo requerido para aumentar las probabilidades de encontar un NC que no tenga ya al NH
-						auxLstStr = funciones.getNCsConCapacidadNH(auxInt * 2);
+						auxLstHsh = funciones.getNCsConCapacidadNH(auxInt * 2);
 						
 						// Consulta al NC si cuenta con el NH entre sus filas, quedándose con aquellos que no lo posean
 						auxLstStr2 = new LinkedList<String>();
 						consultor = new ClienteNA_NC(99);
-						for (String dirNC : auxLstStr) {
+						for (HashMap<String, Comparable> central : auxLstHsh) {
 							consultor.terminarConexion();
-							consultor.establecerConexion(dirNC.split(":")[0], 
-									                     Integer.parseInt(dirNC.split(":")[1]));
+							consultor.establecerConexion(((String) central.get("direccion_NH")).split(":")[0], 
+									                     Integer.parseInt(((String) central.get("direccion_NH")).split(":")[1]));
 							
 							diccionario2 = new HashMap<String, Comparable>();
-							diccionario2.put("ip", dirNC.split(":")[0]);
-							diccionario2.put("puerto", Integer.parseInt(dirNC.split(":")[1]));
+							diccionario2.put("direccionNC", (String) central.get("direccion_NH"));
 							diccionario2.put("NH", diccionario.get("direccionNH_NC"));
 							
 							tarea = new Tarea("CAPACIDAD-ATENCION-NH", diccionario2);
 							diccionario2 = null;
 							diccionario2 = consultor.procesarTarea(tarea);
 							
-							if (Integer.parseInt((String) diccionario2.get("status")) == Codigos.OK) {
-								auxLstStr2.add((String) atributos.getCentrales().get(dirNC).get("direccion_NH"));
+							if ((Boolean) diccionario2.get("status")) {
+								auxLstStr2.add((String) atributos.getCentrales().get((String) central.get("direccion_NA")).get("direccion_NH"));
 								if (auxLstStr2.size() >= auxInt)
 									break;
 							}
@@ -101,11 +102,11 @@ public class ConsultorNA_NH implements Consultor {
 						buffSalida.writeObject(new Mensaje(atributos.getDireccion("hojas"), Codigos.OK, auxLstStr2));
 						
 						System.out.println("[OK]");
-						System.out.printf("[Con NH] Informados %s NCs a Hoja %s", auxLstStr2.size(), mensaje.getEmisor());
+						System.out.printf("[Con NH] Informados %s NCs a Hoja %s\n", auxLstStr2.size(), mensaje.getEmisor());
 						
 						// Si no se cubrió la cantidad requerida de NCs encola la tarea para retransmitir la solicitud a otro WKAN
-						if ((Integer.parseInt((String) mensaje.getCarga()) - auxInt > 0) 
-						   || (auxLstStr2.size() < auxInt)) {
+						auxInt2 = (Integer) ((HashMap<String, Comparable>) mensaje.getCarga()).get("pendientes");
+						if ((auxInt2 - auxInt > 0) || (auxLstStr2.size() < auxInt)) {
 							if (((AtributosAcceso) atributos).getNodos().size() > 0) {
 								diccionario.put("pendientes", (Integer) diccionario.get("pendientes") - auxInt);								
 								atributos.encolar("salida", new Tarea("RETRANSMITIR_SOLICITUD_NCS_NH", diccionario));
@@ -114,7 +115,7 @@ public class ConsultorNA_NH implements Consultor {
 							}
 						}
 						
-						terminar = true;
+						//terminar = true;
 						break;
 					default:
 						System.out.printf("[Con NH] Recibido mensaje de %s: %s\n",  mensaje.getEmisor(), mensaje.getCarga());

@@ -1,12 +1,17 @@
 package nodes.components;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Set;
+
+import com.sun.org.apache.xerces.internal.xs.StringList;
+import com.sun.org.apache.xpath.internal.operations.String;
 
 import commons.CredImagen;
 import commons.Imagen;
 import commons.Tarea;
 import commons.Tupla2;
+import commons.structs.nh.SolicitudNCs;
 
 /**
  * Clase que engloba todos los atributos de un Nodo Hoja e implementa los métodos necesarios para
@@ -39,12 +44,17 @@ public class AtributosHoja extends Atributos {
 	// Otras colas
 	private static volatile ArrayList<Object> colaTxHistorica = new ArrayList<Object>();
 	
+	// Relativos a conexiones
+	protected static volatile SolicitudNCs solicitudNCs = new SolicitudNCs(null, 0.0, 180.0);
+	
+	// Relativos a NCs
+	private static Integer cantCentrales;
+	private static LinkedList<String> direccionesNCs = new LinkedList<String>();
+	private static LinkedList<String> idsHojas = new LinkedList<String>();
+	
 	// Constantes
 	private static final Integer MAX_COLA_TX = 100;
 	private static final String[] extensionesValidas = new String[]{"bmp","jpg","jpeg","png"};
-	private static Integer cantCentrales;
-	private static String[] direccionesNCs;
-	private static String[] idsHojas; // -> este debo instanciarlo, lo cargarán los hilos consumidores
 	private static String wkanInicial;
 	
 	// que deben definirse antes de generar los hilos de la Hoja
@@ -90,8 +100,8 @@ public class AtributosHoja extends Atributos {
 		/* Método que valida si un ID existe. Devuelve el índice del ID en el arreglo o null si no existe */
 		Integer index = null;
 		 
-		for (int i=0; i<this.idsHojas.length; i++) {
-		    if (this.idsHojas[i].equals(token)) {
+		for (int i=0; i<this.idsHojas.size(); i++) {
+		    if (this.idsHojas.get(i).equals(token)) {
 		        index = i;
 		        break;
 		    }
@@ -167,7 +177,7 @@ public class AtributosHoja extends Atributos {
 	
 	// Getters
 	// -------	
-	public String[] getDireccionesNCs(){ 
+	public LinkedList<String> getDireccionesNCs(){ 
 		return this.direccionesNCs;
 	}
 	
@@ -178,7 +188,10 @@ public class AtributosHoja extends Atributos {
 	}
 	
 	public String getId(Integer index) {
-		return this.idsHojas[index];
+		if (index <= this.idsHojas.size() - 1)
+			return this.idsHojas.get(index);
+		else
+			return null;
 	}
 	
 	public Imagen getImagen(String nombre){
@@ -205,20 +218,9 @@ public class AtributosHoja extends Atributos {
 	// Setters
 	// -------	
 	public void setId(Integer index, String token){
-		this.idsHojas[index] = token;
+		this.idsHojas.set(index, token);
 	}
 		
-	public void setDireccionesNCs(String[] direcciones){
-		/** Se definen los NCs a los que se conectará la H, las colas de transmisión y el arreglo de
-		 * IDs para poder llevar a cabo la operación con los mismos
-		 * 
-		 * Debo instanciarlos acá pues es necesario conocer el número de NCs previamente
-		 *  */
-		this.direccionesNCs = direcciones;
-		this.setColasTx();
-		this.idsHojas = new String[direcciones.length]; // La H poseerá un ID diferente en cada NC
-	}
-
 	
 	// Métodos - deprecated
 	// =======================================================================================	
@@ -326,5 +328,17 @@ public class AtributosHoja extends Atributos {
 
 	public void setIpServidor(String ip){ this.ipServidor = ip; }
 
+	public void setDireccionesNCs(String[] direcciones){
+		/** Se definen los NCs a los que se conectará la H, las colas de transmisión y el arreglo de
+		 * IDs para poder llevar a cabo la operación con los mismos
+		 * 
+		 * Debo instanciarlos acá pues es necesario conocer el número de NCs previamente
+		 *  */
+		this.direccionesNCs = direcciones;
+		this.setColasTx();
+		this.idsHojas = new String[direcciones.length]; // La H poseerá un ID diferente en cada NC
+	}
+
+	
 	
 } //Fin clase

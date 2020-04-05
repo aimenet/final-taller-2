@@ -87,7 +87,7 @@ public class ClienteNA_NC extends Cliente {
 		output.put("result", true);
 		Mensaje msj = new Mensaje(this.atributos.getDireccion("centrales"), 
 							      Codigos.NA_NC_POST_NC_VECINO, 
-							      (String) params.get("direccionNcVecino"));
+							      (String) params.get("direccionNC"));
 		this.conexionConNodo.enviarSinRta(msj);
 		
 		System.out.printf("[Cli %s]\t", this.idConsumidor);
@@ -168,9 +168,9 @@ public class ClienteNA_NC extends Cliente {
 				// Consulta a un NC si tiene capacidad para recibir a un NH. Además se verifica que dicho NH
 				// no esté registrado en el NC
 				
-				diccionario2 = (HashMap<String, Comparable>) tarea.getPayload();
-				ipNcDestino = (String) diccionario.get("ip");
-				puertoNcDestino = (Integer) diccionario.get("puerto");
+				diccionario = (HashMap<String, Object>) tarea.getPayload();
+				ipNcDestino = ((String) diccionario.get("direccionNC")).split(":")[0];
+				puertoNcDestino = Integer.parseInt(((String) diccionario.get("direccionNC")).split(":")[1]);
 				method = this::conectarNcsFnc;
 				break;
 		}
@@ -197,7 +197,9 @@ public class ClienteNA_NC extends Cliente {
 		System.out.println("[Cli  " + this.idConsumidor + "] arrancando de nuevo inmediatamente");
 		
 		// TODO: hacelo bien
-		return salida;
+		diccionario2 = new HashMap<String, Comparable>();
+		diccionario2.put("status", (Comparable) diccionario.get("result"));
+		return diccionario2;
 	}
 
 }

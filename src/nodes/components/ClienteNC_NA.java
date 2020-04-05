@@ -39,15 +39,18 @@ public class ClienteNC_NA extends Cliente {
 	}
 
 	@Override
-	public void procesarTarea(Tarea tarea) throws InterruptedException {
+	public HashMap<String, Comparable> procesarTarea(Tarea tarea) throws InterruptedException {
 		boolean success;
 		HashMap<String, Comparable> diccionario;
+		HashMap<String, Comparable> output;
 		Integer contador = 0; 
 		Integer intentos = 3;
 		Integer auxInt, puertoDestino;
 		Integer status = 0;
 		Object lock;
 		String auxStr, ipDestino;
+		
+		output = null;
 		
 		switch(tarea.getName()){
 			case "ANUNCIO-WKAN":
@@ -137,6 +140,8 @@ public class ClienteNC_NA extends Cliente {
 		}
 		
 		this.terminarConexionConNodoAcceso();
+		
+		return output;
 	}
 	
 	

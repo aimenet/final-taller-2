@@ -100,7 +100,7 @@ public class ConsultorNC_H implements Consultor {
 		// Acá tengo que hacer la consulta a los NC -> sólo si el TTL del mensaje lo permite
 		// La respuesta del servior debe ser algo así: HashMap<String, String[]>
 		cantHilos =  atributos.getCentrales().size();
-		direccionNodoActual = atributos.getDireccion();
+		direccionNodoActual = atributos.getDireccion("centrales");
 		direccionRta = msj.recepcionRta();
 		CountDownLatch latchCentrales = new CountDownLatch(cantHilos);
 		
@@ -212,7 +212,7 @@ public class ConsultorNC_H implements Consultor {
 	 * Recibe un saludo y le responde con otro, más un mensaje con el ID asignado
 	 * @param entrada
 	 * @param salida
-	 * @param direcciones 
+	 * @param direccionesServer
 	 * @return
 	 */
 	private boolean saludo(ObjectInputStream entrada, ObjectOutputStream salida, String direccionesServer){

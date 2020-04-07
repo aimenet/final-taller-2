@@ -115,7 +115,7 @@ public class ConsultorNA_NH implements Consultor {
 							}
 						}
 						
-						//terminar = true;
+						terminar = true;
 						break;
 					default:
 						System.out.printf("[Con NH] Recibido mensaje de %s: %s\n",  mensaje.getEmisor(), mensaje.getCarga());

@@ -4,9 +4,6 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Set;
 
-import com.sun.org.apache.xerces.internal.xs.StringList;
-import com.sun.org.apache.xpath.internal.operations.String;
-
 import commons.CredImagen;
 import commons.Imagen;
 import commons.Tarea;
@@ -51,7 +48,7 @@ public class AtributosHoja extends Atributos {
 	private static Integer cantCentrales;
 	private static LinkedList<String> direccionesNCs = new LinkedList<String>();
 	private static LinkedList<String> idsHojas = new LinkedList<String>();
-	
+
 	// Constantes
 	private static final Integer MAX_COLA_TX = 100;
 	private static final String[] extensionesValidas = new String[]{"bmp","jpg","jpeg","png"};
@@ -218,126 +215,132 @@ public class AtributosHoja extends Atributos {
 	// Setters
 	// -------	
 	public void setId(Integer index, String token){
+		// idsHojas no se inicializa al ppio porque no se conoce la cantidad de NCs a los que debe conectarse
+		// (parámetro cantCentrales). Por eso debo forzar su tamaño si quiero insertar en una posición específica
+		while (this.idsHojas.size() < (index+1))
+			this.idsHojas.add(null);
+
 		this.idsHojas.set(index, token);
+		// TODO: claramente sería más fácil que sea un array fijo pero originalmente estaba pensado para ser variable
 	}
 		
 	
 	// Métodos - deprecated
 	// =======================================================================================	
-	public boolean encolarTx(Object carga){
-		/* Se encola una tarea en cada una de las colas de Salida existentes para comunicación con NCs. */
-		HashMap<String, Object> diccionario = new HashMap<String, Object>();
-		String task = "";
-		
-		// Carga puede ser: CredImagen            -> consulta al/los NC
-		//                  ArrayList<CredImagen> -> anuncio de las imágenes a compartir
-		//                  *lo que sea que llegue para conectarme *
-		// Adaptación a "HojaConsumidor 2020": definir el receptor en base a la tarea
-		if (carga instanceof Tupla2) {
-			task = (String) ((Tupla2) carga).getSegundo();
-			
-			switch (task) {
-				case "ANUNCIO":
-					diccionario.put("imagenes", ((Tupla2<ArrayList<CredImagen>,String>) carga).getPrimero());
-					break;
-				case "DESCARGA":
-					diccionario.put("direccionNH", ((Tupla2<String,CredImagen>) ((Tupla2<Tupla2<String,CredImagen>,String>) carga).getPrimero()).getPrimero());
-					diccionario.put("credImg", ((Tupla2<String,CredImagen>) ((Tupla2<Tupla2<String,CredImagen>,String>) carga).getPrimero()).getSegundo());
-					break;
-				case "QUERY":
-					diccionario.put("credImg", ((Tupla2<CredImagen,String>) carga).getPrimero());
-					break;
-			}
-		}
-		
-		// Cola histórica, para referencia. No hay problemas de concurrencia pues (por ahora) nadie consume de ella
-		this.colaTxHistorica.add(carga);
-		
-		/* Encolado en colas "de trabajo" (una por consumidor): para realizar cada encolado se bloque la cola
-		 * a fin de evitar problemas de concurrencia. Una vez completado se notifica al Consumidor para que se
-		 * ponga en funcionamiento, conusma de la cola y realize la consulta.
-		 */
-		for(int i=0; i<colasTx.length; i++){
-			diccionario.put("direccionNC", direccionesNCs[i]);
-			
-			synchronized (colasTx[i]) {
-				//TODO: esto hoy es anecdótico porque no puedo bloquear el hilo porque se llenó una cola. Ver qué hacer (hoy descarto la consulta)
-				//TODO: ver "Ejemplo productor - consumidor 3" (no modo manual) para saber como era originalmente
-				if (colasTx[i].size() == MAX_COLA_TX) {
-					System.out.println("Cola " + i + " llena: " + Thread.currentThread().getName() + " Consulta descartada. Tamaño: " + colasTx[i].size());
-					colasTx[i].notifyAll(); // Se notifica al consumidor de la cola para que cominece a liberar espacio.
-				} else {
-					colasTx[i].add(new Tarea(task, diccionario));
-					colasTx[i].notifyAll(); //Sólo hay un consumidor así que con notify() alcanza
-				}
-			}
-		}
-		
-		return true;
-	} 
-	
-	public boolean encolarTxEspecifica(Object carga, int indexColaTx){
-		/* Similar a encolarTxEspecifica() pero encolando en una cola específica en lugar de todas
-		 * 
-		 * Carga puede será una tarea directamente (al menos hasta ahora)
-		 */
-		
-		// Cola histórica, para referencia. No hay problemas de concurrencia pues (por ahora) nadie consume de ella
-		this.colaTxHistorica.add(carga);
-		
-		/* Encolado en colas "de trabajo" (una por consumidor): para realizar cada encolado se bloque la cola
-		 * a fin de evitar problemas de concurrencia. Una vez completado se notifica al Consumidor para que se
-		 * ponga en funcionamiento, conusma de la cola y realize la consulta.
-		 */
-		
-		synchronized (colasTx[indexColaTx]) {
-			//TODO: esto hoy es anecdótico porque no puedo bloquear el hilo porque se llenó una cola. Ver qué hacer (hoy descarto la consulta)
-			//TODO: ver "Ejemplo productor - consumidor 3" (no modo manual) para saber como era originalmente
-			if (colasTx[indexColaTx].size() == MAX_COLA_TX) {
-				System.out.print("Cola " + indexColaTx + " llena: ");
-				System.out.print(Thread.currentThread().getName() + " Consulta descartada.");
-				System.out.println("Tamaño: " + colasTx[indexColaTx].size());
-				
-				// Se notifica al consumidor de la cola para que cominece a liberar espacio.
-				colasTx[indexColaTx].notifyAll(); 
-			} else {
-				colasTx[indexColaTx].add(carga);
-				colasTx[indexColaTx].notifyAll(); //Sólo hay un consumidor así que con notify() alcanza
-			}
-		}
-		
-		return true;
-	}
-	
-	public ArrayList<Object>[] getColasTx(){
-		return this.colasTx;
-	}
-
-	private void setColasTx(){
-		colasTx = (ArrayList<Object>[]) new ArrayList[direccionesNCs.length];
-		
-		for(int i=0; i<direccionesNCs.length; i++)
-			colasTx[i] = new ArrayList<Object>();	
-	}
-
-	public Integer getPuertoServidor(){ return puertoServidor; }
-
-	public String getIpServidor(){ return ipServidor; }
-
-	public void setPuertoServidor(Integer puerto){ this.puertoServidor = puerto; }
-
-	public void setIpServidor(String ip){ this.ipServidor = ip; }
-
-	public void setDireccionesNCs(String[] direcciones){
-		/** Se definen los NCs a los que se conectará la H, las colas de transmisión y el arreglo de
-		 * IDs para poder llevar a cabo la operación con los mismos
-		 * 
-		 * Debo instanciarlos acá pues es necesario conocer el número de NCs previamente
-		 *  */
-		this.direccionesNCs = direcciones;
-		this.setColasTx();
-		this.idsHojas = new String[direcciones.length]; // La H poseerá un ID diferente en cada NC
-	}
+//	public boolean encolarTx(Object carga){
+//		/* Se encola una tarea en cada una de las colas de Salida existentes para comunicación con NCs. */
+//		HashMap<String, Object> diccionario = new HashMap<String, Object>();
+//		String task = "";
+//
+//		// Carga puede ser: CredImagen            -> consulta al/los NC
+//		//                  ArrayList<CredImagen> -> anuncio de las imágenes a compartir
+//		//                  *lo que sea que llegue para conectarme *
+//		// Adaptación a "HojaConsumidor 2020": definir el receptor en base a la tarea
+//		if (carga instanceof Tupla2) {
+//			task = (String) ((Tupla2) carga).getSegundo();
+//
+//			switch (task) {
+//				case "ANUNCIO":
+//					diccionario.put("imagenes", ((Tupla2<ArrayList<CredImagen>,String>) carga).getPrimero());
+//					break;
+//				case "DESCARGA":
+//					diccionario.put("direccionNH", ((Tupla2<String,CredImagen>) ((Tupla2<Tupla2<String,CredImagen>,String>) carga).getPrimero()).getPrimero());
+//					diccionario.put("credImg", ((Tupla2<String,CredImagen>) ((Tupla2<Tupla2<String,CredImagen>,String>) carga).getPrimero()).getSegundo());
+//					break;
+//				case "QUERY":
+//					diccionario.put("credImg", ((Tupla2<CredImagen,String>) carga).getPrimero());
+//					break;
+//			}
+//		}
+//
+//		// Cola histórica, para referencia. No hay problemas de concurrencia pues (por ahora) nadie consume de ella
+//		this.colaTxHistorica.add(carga);
+//
+//		/* Encolado en colas "de trabajo" (una por consumidor): para realizar cada encolado se bloque la cola
+//		 * a fin de evitar problemas de concurrencia. Una vez completado se notifica al Consumidor para que se
+//		 * ponga en funcionamiento, conusma de la cola y realize la consulta.
+//		 */
+//		for(int i=0; i<colasTx.length; i++){
+//			diccionario.put("direccionNC", direccionesNCs[i]);
+//
+//			synchronized (colasTx[i]) {
+//				//TODO: esto hoy es anecdótico porque no puedo bloquear el hilo porque se llenó una cola. Ver qué hacer (hoy descarto la consulta)
+//				//TODO: ver "Ejemplo productor - consumidor 3" (no modo manual) para saber como era originalmente
+//				if (colasTx[i].size() == MAX_COLA_TX) {
+//					System.out.println("Cola " + i + " llena: " + Thread.currentThread().getName() + " Consulta descartada. Tamaño: " + colasTx[i].size());
+//					colasTx[i].notifyAll(); // Se notifica al consumidor de la cola para que cominece a liberar espacio.
+//				} else {
+//					colasTx[i].add(new Tarea(task, diccionario));
+//					colasTx[i].notifyAll(); //Sólo hay un consumidor así que con notify() alcanza
+//				}
+//			}
+//		}
+//
+//		return true;
+//	}
+//
+//	public boolean encolarTxEspecifica(Object carga, int indexColaTx){
+//		/* Similar a encolarTxEspecifica() pero encolando en una cola específica en lugar de todas
+//		 *
+//		 * Carga puede será una tarea directamente (al menos hasta ahora)
+//		 */
+//
+//		// Cola histórica, para referencia. No hay problemas de concurrencia pues (por ahora) nadie consume de ella
+//		this.colaTxHistorica.add(carga);
+//
+//		/* Encolado en colas "de trabajo" (una por consumidor): para realizar cada encolado se bloque la cola
+//		 * a fin de evitar problemas de concurrencia. Una vez completado se notifica al Consumidor para que se
+//		 * ponga en funcionamiento, conusma de la cola y realize la consulta.
+//		 */
+//
+//		synchronized (colasTx[indexColaTx]) {
+//			//TODO: esto hoy es anecdótico porque no puedo bloquear el hilo porque se llenó una cola. Ver qué hacer (hoy descarto la consulta)
+//			//TODO: ver "Ejemplo productor - consumidor 3" (no modo manual) para saber como era originalmente
+//			if (colasTx[indexColaTx].size() == MAX_COLA_TX) {
+//				System.out.print("Cola " + indexColaTx + " llena: ");
+//				System.out.print(Thread.currentThread().getName() + " Consulta descartada.");
+//				System.out.println("Tamaño: " + colasTx[indexColaTx].size());
+//
+//				// Se notifica al consumidor de la cola para que cominece a liberar espacio.
+//				colasTx[indexColaTx].notifyAll();
+//			} else {
+//				colasTx[indexColaTx].add(carga);
+//				colasTx[indexColaTx].notifyAll(); //Sólo hay un consumidor así que con notify() alcanza
+//			}
+//		}
+//
+//		return true;
+//	}
+//
+//	public ArrayList<Object>[] getColasTx(){
+//		return this.colasTx;
+//	}
+//
+//	private void setColasTx(){
+//		colasTx = (ArrayList<Object>[]) new ArrayList[direccionesNCs.length];
+//
+//		for(int i=0; i<direccionesNCs.length; i++)
+//			colasTx[i] = new ArrayList<Object>();
+//	}
+//
+//	public Integer getPuertoServidor(){ return puertoServidor; }
+//
+//	public String getIpServidor(){ return ipServidor; }
+//
+//	public void setPuertoServidor(Integer puerto){ this.puertoServidor = puerto; }
+//
+//	public void setIpServidor(String ip){ this.ipServidor = ip; }
+//
+//	public void setDireccionesNCs(String[] direcciones){
+//		/** Se definen los NCs a los que se conectará la H, las colas de transmisión y el arreglo de
+//		 * IDs para poder llevar a cabo la operación con los mismos
+//		 *
+//		 * Debo instanciarlos acá pues es necesario conocer el número de NCs previamente
+//		 *  */
+//		this.direccionesNCs = direcciones;
+//		this.setColasTx();
+//		this.idsHojas = new String[direcciones.length]; // La H poseerá un ID diferente en cada NC
+//	}
 
 	
 	

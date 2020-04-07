@@ -94,6 +94,7 @@ public class ConsultorNA_NA implements Consultor {
 						diccionario = (HashMap<String, Object>) mensaje.getCarga();
 						codigo = funciones.atenderAnuncioNC((String) diccionario.get("ncDestino_NA"), 
 															(String) diccionario.get("ncDestino_NC"),
+															(String) diccionario.get("ncDestino_NH"),
 															false);
 						
 						if (codigo == Codigos.OK) {

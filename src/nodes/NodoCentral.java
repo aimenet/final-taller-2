@@ -75,7 +75,7 @@ public class NodoCentral /*implements Runnable*/ {
 		atributos.setDirecciones(config.getProperty("ip"),
 				Integer.parseInt(config.getProperty("puerto_na")),
                 Integer.parseInt(config.getProperty("puerto_nc")),
-                Integer.parseInt(config.getProperty("puerto_h")));
+                Integer.parseInt(config.getProperty("puerto_nh")));
 		
 		// Punto de acceso a la red
 		atributos.setWKANAsignado(config.getProperty("wkan"));
@@ -89,7 +89,7 @@ public class NodoCentral /*implements Runnable*/ {
 		atributos.setColas();
 		
 		// Servidores
-		this.servers.put("hojas", new Servidor(Integer.parseInt(config.getProperty("puerto_h")),
+		this.servers.put("hojas", new Servidor(Integer.parseInt(config.getProperty("puerto_nh")),
 				                               config.getProperty("nombre")+": Hojas",
 				                               ConsultorNC_H.class));
 		this.servers.put("centrales", new Servidor(Integer.parseInt(config.getProperty("puerto_nc")),

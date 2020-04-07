@@ -565,11 +565,11 @@ public class ControladorHoja implements Runnable {
 			case "11":
 				// TODO: <2019-03-02> Provisorio, si queda emprolijarlo
 				Random rand = new Random(); 
-				int consumerToInterrupt = rand.nextInt( this.variables.getColasTx().length ); 
+				/*int consumerToInterrupt = rand.nextInt( this.variables.getColasTx().length );
 				
 				System.out.println("Interrumpiendo consumidor #" + consumerToInterrupt);
 				//this.variables.encolarTx(new Tupla2<Object, String>(null, "STOP"));
-				this.variables.encolarTxEspecifica(new Tarea("STOP"), consumerToInterrupt);
+				this.variables.encolarTxEspecifica(new Tarea("STOP"), consumerToInterrupt);*/
 				break;
 			case "0":
 				terminar = true;

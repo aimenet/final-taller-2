@@ -109,7 +109,8 @@ public class HojaCliente {
 
 		imagen = new Imagen(imagenObjetivo);
 		referencia = new CredImagen(imagen.getNombre(), imagen.getVecCarComprimido());
-		direccionServidor = String.format("%s:%d", atributos.getIpServidor(), atributos.getPuertoServidor());
+		//direccionServidor = String.format("%s:%d", atributos.getIpServidor(), atributos.getPuertoServidor());
+		direccionServidor = atributos.getDireccion("hojas");
 		
 		//respuesta = (Mensaje) conexionConNodoCentral.enviarConRta(new Mensaje(id,direccionServidor,4,referencia));
 		conexionConNodoCentral.enviarSinRta(new Mensaje(id,direccionServidor,4,referencia));
@@ -200,7 +201,8 @@ public class HojaCliente {
 		
 		// hojaServer debe ser el token asignado a la HOJA en caso de que se trate de una reconexión
 		// Caso contrario será la dirección de la faceta servidor de la H
-		hojaServer = atributos.getIpServidor() + ":" + atributos.getPuertoServidor().toString();
+		//hojaServer = atributos.getIpServidor() + ":" + atributos.getPuertoServidor().toString();
+		hojaServer = atributos.getDireccion("hojas");
 
 		respuesta = (Mensaje) conexionConNodoCentral.enviarConRta(new Mensaje(null,1, hojaServer));
 		if (respuesta.getCodigo().equals(1) && respuesta.getCarga() != null){

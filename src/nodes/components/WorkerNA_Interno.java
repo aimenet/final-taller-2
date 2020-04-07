@@ -1,18 +1,12 @@
 package nodes.components;
 
-import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
-import java.util.Random;
-import my_exceptions.ManualInterruptException;
-import commons.Codigos;
-import commons.ConexionTcp;
-import commons.Mensaje;
+
 import commons.Tarea;
-import commons.Tupla2;
 
 /**
  * Clase que se encarga de las tareas internas de un WKAN.
@@ -38,7 +32,7 @@ public class WorkerNA_Interno extends Cliente {
 	}
 
 	@Override
-	public void procesarTarea(Tarea tarea) throws InterruptedException {
+	public HashMap<String, Comparable> procesarTarea(Tarea tarea) throws InterruptedException {
 		boolean success;
 		HashMap<String, Object> diccionario;
 		HashMap<String, Object> hashmapPayload;
@@ -80,6 +74,7 @@ public class WorkerNA_Interno extends Cliente {
 				System.out.printf("[Wrk %s] %s de %s NCs activos\n", this.id, contador, ((AtributosAcceso) this.atributos).getCentrales().size());
 				break;
 			}
+		return null;
 	}
 }
 

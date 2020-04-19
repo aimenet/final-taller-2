@@ -16,6 +16,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 
+import org.apache.commons.io.FilenameUtils;
+
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
@@ -67,7 +69,7 @@ public class Imagen implements Serializable {
 		    //vistaPrevia = ((DataBufferByte) tmpVistaPrevia.getData().getDataBuffer()).getData();
 		    
 			ByteArrayOutputStream bos = new ByteArrayOutputStream();
-			ImageIO.write(tmpImagen, "jpg", bos);
+			ImageIO.write(tmpImagen, FilenameUtils.getExtension(archivo.getAbsolutePath()), bos);
 			imagen = bos.toByteArray();
 			bos = new ByteArrayOutputStream();
 			ImageIO.write(tmpVistaPrevia, "jpg", bos);

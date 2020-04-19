@@ -115,6 +115,9 @@ public class ConsultorNA_NH implements Consultor {
 							}
 						}
 						
+						//terminar = true;
+						break;
+					case Codigos.CONNECTION_END:
 						terminar = true;
 						break;
 					default:

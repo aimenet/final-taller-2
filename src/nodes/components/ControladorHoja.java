@@ -16,6 +16,7 @@ import commons.CredImagen;
 import commons.Imagen;
 import commons.Tarea;
 import commons.Tupla2;
+import commons.structs.nh.ParametrosConexionNC;
 
 /**
  * Clase que permite el control de un Nodo Hoja (su faceta Cliente) mediante una interfaz gráfica muy simple
@@ -252,11 +253,11 @@ public class ControladorHoja implements Runnable {
 		
 		if(variables.hayImagenes()){
 			// Genero una tarea de anuncio por cada uno de los NCs conocidos
-			for (String direccion : variables.getDireccionesNCs()) {
+			for (String key : variables.getCentrales().keySet()) {
 				HashMap<String, Object> taskPayload = new HashMap<String, Object>();
 				
 				taskPayload.put("imagenes", pendientes);
-				taskPayload.put("direccionNC", direccion);
+				taskPayload.put("direccionNC", key);
 				
 				variables.encolar("salida", new Tarea("ANUNCIO", taskPayload));
 			}

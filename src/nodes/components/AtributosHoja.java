@@ -8,6 +8,7 @@ import commons.CredImagen;
 import commons.Imagen;
 import commons.Tarea;
 import commons.Tupla2;
+import commons.structs.nh.ParametrosConexionNC;
 import commons.structs.nh.SolicitudNCs;
 
 /**
@@ -48,6 +49,7 @@ public class AtributosHoja extends Atributos {
 	private static Integer cantCentrales;
 	private static LinkedList<String> direccionesNCs = new LinkedList<String>();
 	private static LinkedList<String> idsHojas = new LinkedList<String>();
+	private static HashMap<String, ParametrosConexionNC> centrales = new HashMap<String, ParametrosConexionNC>();
 
 	// Constantes
 	private static final Integer MAX_COLA_TX = 100;
@@ -77,8 +79,37 @@ public class AtributosHoja extends Atributos {
 		return cantCentrales;
 	}
 
+	public static HashMap<String, ParametrosConexionNC> getCentrales() {return centrales;}
+
 	public static void setCantCentrales(Integer cantCentrales) {
 		AtributosHoja.cantCentrales = cantCentrales;
+	}
+
+	/**
+	 *
+	 * @param direccion  del NC
+	 * @param idAsignado por el NC a la Hoja
+	 */
+	public static void encolarCentral(String direccion, Integer idAsignado) {
+		/* Método que almacena los parámetros relacionados a la conexión (establecida o por establecer) dirección de un NC al que está (o debe estar) conectado la Hoja */
+
+		if (!centrales.containsKey(direccion))
+				centrales.put(direccion, new ParametrosConexionNC(direccion, idAsignado));
+		else if (!centrales.get(direccion).idAsignado.equals(idAsignado))
+			centrales.get(direccion).idAsignado = idAsignado;
+
+	}
+
+	public void setId(Integer index, String token) {
+		/* Almacena un ID otorgado por un NC a fin de identificarlo */
+
+		// idsHojas no se inicializa al ppio porque no se conoce la cantidad de NCs a los que debe conectarse
+		// (parámetro cantCentrales). Por eso debo forzar su tamaño si quiero insertar en una posición específica
+		while (this.idsHojas.size() < (index+1))
+			this.idsHojas.add(null);
+
+		this.idsHojas.set(index, token);
+		// TODO: claramente sería más fácil que sea un array fijo pero originalmente estaba pensado para ser variable
 	}
 	
 	
@@ -213,16 +244,7 @@ public class AtributosHoja extends Atributos {
 	
 		
 	// Setters
-	// -------	
-	public void setId(Integer index, String token){
-		// idsHojas no se inicializa al ppio porque no se conoce la cantidad de NCs a los que debe conectarse
-		// (parámetro cantCentrales). Por eso debo forzar su tamaño si quiero insertar en una posición específica
-		while (this.idsHojas.size() < (index+1))
-			this.idsHojas.add(null);
-
-		this.idsHojas.set(index, token);
-		// TODO: claramente sería más fácil que sea un array fijo pero originalmente estaba pensado para ser variable
-	}
+	// -------
 		
 	
 	// Métodos - deprecated

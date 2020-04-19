@@ -186,6 +186,8 @@ public class ClienteNH_Gral extends Cliente {
 		
 		if (mensaje.getCodigo().equals(Codigos.OK)) {
 			for (String central : (LinkedList<String>) mensaje.getCarga()) {
+				((AtributosHoja) atributos).encolarCentral(central, this.id);
+
 				payload = new HashMap<String, Object>();
 				payload.put("direccionNC", central);
 				

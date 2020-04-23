@@ -96,21 +96,24 @@ public class ClienteNA_NC extends Cliente {
 		
 		return output;
 	}
-	
-	private HashMap<String, Object> consultaCapacidadNH(String direccionNH_NC) {
+
+	private HashMap<String, Object> consultaCapacidadNHFnc(HashMap<String, Object> params) {
 		HashMap<String, Object> output = new HashMap<String, Object>();
 		
 		// Estos son comunes a todas las funciones
 		output.put("callBackOnSuccess", false);
 		output.put("callBackOnFailure", false);
-		
 		output.put("result", true);
+
 		Mensaje msj = new Mensaje(this.atributos.getDireccion("centrales"), 
-							      Codigos.NA_NC_POST_CAPACIDAD_NH, 
-							      direccionNH_NC);
+							      Codigos.NA_NC_POST_CAPACIDAD_NH,
+				                  (String) params.get("direccionNH_NC"));
 		msj = (Mensaje) this.conexionConNodo.enviarConRta(msj);
 		output.put("status", (boolean) msj.getCarga());
-		
+
+		if (msj.getCodigo() != Codigos.OK)
+			output.put("result", false);
+
 		return output;
 	}
 	
@@ -171,7 +174,7 @@ public class ClienteNA_NC extends Cliente {
 				diccionario = (HashMap<String, Object>) tarea.getPayload();
 				ipNcDestino = ((String) diccionario.get("direccionNC")).split(":")[0];
 				puertoNcDestino = Integer.parseInt(((String) diccionario.get("direccionNC")).split(":")[1]);
-				method = this::conectarNcsFnc;
+				method = this::consultaCapacidadNHFnc;
 				break;
 		}
 		

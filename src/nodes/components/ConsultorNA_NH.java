@@ -75,18 +75,14 @@ public class ConsultorNA_NH implements Consultor {
 						auxInt = ((AtributosAcceso) atributos).getNodos().size() > 0 ? 1 : (Integer) diccionario.get("pendientes");
 						// "Trae" el doble de lo requerido para aumentar las probabilidades de encontar un NC que no tenga ya al NH
 						auxLstHsh = funciones.getNCsConCapacidadNH(auxInt * 2);
-						
+
 						// Consulta al NC si cuenta con el NH entre sus filas, quedándose con aquellos que no lo posean
 						auxLstStr2 = new LinkedList<String>();
 						consultor = new ClienteNA_NC(99);
 						for (HashMap<String, Comparable> central : auxLstHsh) {
-							consultor.terminarConexion();
-							consultor.establecerConexion(((String) central.get("direccion_NH")).split(":")[0], 
-									                     Integer.parseInt(((String) central.get("direccion_NH")).split(":")[1]));
-							
 							diccionario2 = new HashMap<String, Comparable>();
-							diccionario2.put("direccionNC", (String) central.get("direccion_NH"));
-							diccionario2.put("NH", diccionario.get("direccionNH_NC"));
+							diccionario2.put("direccionNC", (String) central.get("direccion_NA"));
+							diccionario2.put("direccionNH_NC", diccionario.get("direccionNH_NC"));
 							
 							tarea = new Tarea("CAPACIDAD-ATENCION-NH", diccionario2);
 							diccionario2 = null;

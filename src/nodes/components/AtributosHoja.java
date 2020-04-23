@@ -43,7 +43,8 @@ public class AtributosHoja extends Atributos {
 	private static volatile ArrayList<Object> colaTxHistorica = new ArrayList<Object>();
 	
 	// Relativos a conexiones
-	protected static volatile SolicitudNCs solicitudNCs = new SolicitudNCs(null, 0.0, 180.0);
+	// No está sincronizado porque en el peor de los casos (no va a pasar nunca) se aumenta el delay de nuevo pedido
+	public static volatile SolicitudNCs solicitudNCs = new SolicitudNCs();
 	
 	// Relativos a NCs
 	private static Integer cantCentrales;

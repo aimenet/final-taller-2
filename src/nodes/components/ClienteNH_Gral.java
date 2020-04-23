@@ -168,7 +168,8 @@ public class ClienteNH_Gral extends Cliente {
 		output.put("result", true);
 		
 		// Determina la cantidad de NCs que debe solicitar
-		amount = ((AtributosHoja) this.atributos).getCantCentrales() - ((AtributosHoja) this.atributos).getDireccionesNCs().size();
+		amount = ((AtributosHoja) this.atributos).getCantCentrales() ;
+		amount -= ((AtributosHoja) this.atributos).getCentrales().size();
 		
 		if (amount.equals(0))
 			return output;
@@ -199,8 +200,8 @@ public class ClienteNH_Gral extends Cliente {
 			}
 		}
 		
-		// Registra el timestamp en que se efectuó la solicitud
-		((AtributosHoja) this.atributos).solicitudNCs.lastRequest = Instant.now();
+		// Registra el timestamp en que se esolicitudNCsfectuó la solicitud
+		((AtributosHoja) this.atributos).solicitudNCs.setLastRequestNow();
 		
 		System.out.printf("\t[OK]\n");
 		

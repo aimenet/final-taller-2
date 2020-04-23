@@ -57,7 +57,7 @@ public class Standalone {
 	}
 	
 	
-	public static void main(String[] args) {
+	public static void mutableDict(String[] args) {
 		/* Voy a probar si los diccionarios acá son mutables como en python */
 		HashMap<String, HashMap<String, Comparable>> diccionarioAnidado = new HashMap<String, HashMap<String, Comparable>>(); 
 		HashMap<String, Comparable> nodo;
@@ -80,6 +80,11 @@ public class Standalone {
 			System.out.printf("%s ", ((HashMap<String, Comparable>) me.getValue()).get("nombre"));
 			System.out.printf("%s\n", ((HashMap<String, Comparable>) me.getValue()).get("apellido"));
 		}
+	}
+
+
+	public static void main(String[] args) {
+		System.out.println(Math.pow(3,2));
 	}
 }
 

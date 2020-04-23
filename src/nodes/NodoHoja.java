@@ -5,6 +5,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Properties;
@@ -155,6 +157,9 @@ public class NodoHoja {
 		// Bucle "ppal" de la HOJA: revisión y recuperación de hilos mientras hilo PRODUCTOR esté vivo
 		// TODO 01: revisar si faltan NCs y pedirlos
 		while(producerThreads.get(0).getState() != Thread.State.TERMINATED) {
+			// NC amount check
+			NCPeriodicCheck();
+
 			// Check consumer threads status
 //            System.out.println("\n[HOJA] check consumer threads status...");
             
@@ -261,6 +266,41 @@ public class NodoHoja {
 		System.exit(0);
 	}
 
+
+	/**
+	 * Controla periódicamente que el nodo esté conectado a la cantidad requerida de NCs.
+	 * De no ser así dispara la tarea de solicitud al WKAN.
+	 *
+	 * Existe un retardo o tiempo de espera entre solicitud y solicitud a fin de no saturar al WKAN receptor
+	 *
+	 * @since 2020-04-19
+	 * */
+	private void NCPeriodicCheck() throws InterruptedException {
+		HashMap<String, Object> payload = new HashMap<String, Object>();
+		Integer difference;
+		long timeElapsed;
+
+		// Si aún no se hizo el pedido inicial, no se vuelve a encolar la tarea
+		if (((AtributosHoja) atributos).solicitudNCs.getLastRequest() == null)
+			return;
+
+		difference = ((AtributosHoja) atributos).getCantCentrales();
+		difference -= ((AtributosHoja) atributos).getCentrales().keySet().size();
+
+		if (difference > 0) {
+			timeElapsed = Duration.between(((AtributosHoja) atributos).solicitudNCs.getLastRequest(),
+					Instant.now()).toSeconds();
+
+			if (timeElapsed > ((AtributosHoja) atributos).solicitudNCs.getLastDelay()) {
+				payload.put("direccionWKAN", atributos.getWkanInicial());
+				atributos.encolar("salida", new Tarea("SOLICITUD_NCS", payload));
+
+				((AtributosHoja) atributos).solicitudNCs.setNextDelay();
+
+				System.out.printf("NCs Periodic Check: asked %d nodes\t[OK]\n", difference);
+			}
+		}
+	}
 }// Fin clase
 
 /* 

@@ -29,5 +29,7 @@ public class Codigos {
 	public static final int ACCEPTED = 202;
 	public static final int DENIED = 403;
 	public static final int CONNECTION_END = 600;
+	public static final int PING = 610;
+	public static final int PONG = 611;
 	// 418 es "I'm a teapot" en http
 }

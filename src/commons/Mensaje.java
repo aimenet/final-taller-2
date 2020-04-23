@@ -35,6 +35,13 @@ public class Mensaje implements Serializable {
 	}
 	
 	// Constructor básico (deprecated): enviado desde Hoja a NC
+
+	/**
+	 *
+	 * @param emisor
+	 * @param codigo
+	 * @param carga
+	 */
 	public Mensaje(String emisor, Integer codigo, Object carga){
 		this.emisor = emisor;
 		this.codigo = codigo;
@@ -129,6 +136,9 @@ public class Mensaje implements Serializable {
 	
 	@Override
 	public String toString(){
-		return (getCodigo().toString() + " - <" + getCarga().toString() + ">");
+		if (getCarga() == null )
+			return getCodigo().toString();
+		else
+			return (getCodigo().toString() + " - <" + getCarga().toString() + ">");
 	}
 }

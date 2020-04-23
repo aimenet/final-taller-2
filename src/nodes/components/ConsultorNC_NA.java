@@ -51,6 +51,12 @@ public class ConsultorNC_NA implements Consultor {
 				mensaje = (Mensaje) buffEntrada.readObject();
 				
 				switch(mensaje.getCodigo()){
+					case Codigos.PING:
+						// PING - PONG para probar la conexión entre los nodos
+						System.out.printf("Recibido PING de WKAN %s ", mensaje.getEmisor());
+						buffSalida.writeObject(
+								new Mensaje(atributos.getDireccion("acceso"), Codigos.PONG, null));
+						break;
 					case Codigos.NA_NC_POST_ANUNCIO_ACEPTADO:
 						// Otro WKAN (no el asignado inicialmente) será el "administrador". Actualiza los datos
 						System.out.printf("Recibido aceptación de WKAN en %s ", mensaje.getEmisor());
@@ -75,7 +81,7 @@ public class ConsultorNC_NA implements Consultor {
 						
 						buffSalida.writeObject(new Mensaje(atributos.getDireccion("acceso"), 
 								                           (Integer) auxObj, auxBol));
-						terminar = true;
+						//terminar = true;
 						break;
 					case Codigos.CONNECTION_END:
 						terminar = true;

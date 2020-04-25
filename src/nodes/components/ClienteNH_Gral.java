@@ -3,11 +3,7 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.util.function.Function;
 
 import my_exceptions.ManualInterruptException;
@@ -35,7 +31,6 @@ public class ClienteNH_Gral extends Cliente {
 	private ConexionTcp conexionConNodoCentral;
 	private boolean conexionEstablecida, sesionIniciada;
 	public Integer idConsumidor, puertoNC;
-	public String idAsignadoNC, ipNC;
 	
 
 	// Métodos
@@ -65,26 +60,28 @@ public class ClienteNH_Gral extends Cliente {
 		
 		// Si existe un ID de Hoja definido en los atributos, se envía un mensaje de reconexión.
 		// En caso contrario se envía un saludo
-		token = ((AtributosHoja) this.atributos).getId(this.id);
-		if (token == null || token.length() == 0) {
+		token = ((AtributosHoja) this.atributos).getId((String) params.get("direccionNC"));
+
+		if (token == null) {
 			// Saludo, 1ra conexión
 			mensaje = new Mensaje(null,1, ipServerPropia);
 		} else {
 			// Saludo de reconexión
-			mensaje = new Mensaje(null,1, "##"+token+"##");
+			//mensaje = new Mensaje(null,1, "##"+token+"##");
+			mensaje = new Mensaje(null,1, token);
 		}
 		
 		respuesta = (Mensaje) conexionConNodo.enviarConRta(mensaje);
 		
 		if (respuesta.getCodigo().equals(1) && respuesta.getCarga() != null){
 			//La respuesta contiene el ID con el que se identificará al Cliente.
-			idAsignadoNC = respuesta.getCarga().toString();
+			token = (String) respuesta.getCarga();
 			sesionIniciada = true;
 			
 			// Seteo del ID que recibió la H en los atributos comartidos para ser conocido por todos los
 			// "componentes" del nodo Hoja. Si se trataba de una reconexión el ID será igual así que en realidad es
 			// redundante ese paso
-			((AtributosHoja) this.atributos).setId(this.id, idAsignadoNC);
+			((AtributosHoja) this.atributos).setId((String) params.get("direccionNC"), token);
 		} else {
 			output.put("result", false);
 		}
@@ -95,8 +92,10 @@ public class ClienteNH_Gral extends Cliente {
 	private HashMap<String, Object> anunciarImgsFnc(HashMap<String, Object> params){
 		ArrayList<CredImagen> credencialesImgs;
 		HashMap<String, Object> output = new HashMap<String, Object>();
-		
-		
+		Mensaje mensaje;
+		String idAsignado = ((AtributosHoja) this.atributos).getId((String) params.get("direccionNc"));
+
+
 		// Estos son comunes a todas las funciones
 		output.put("callBackOnSuccess", false);
 		output.put("callBackOnFailure", false);
@@ -104,12 +103,12 @@ public class ClienteNH_Gral extends Cliente {
 		
 		credencialesImgs = (ArrayList<CredImagen>) params.get("imagenes");
 		
-		conexionConNodo.enviarSinRta(new Mensaje(this.idAsignadoNC, 3, credencialesImgs.size()));
-		
-		Mensaje respuesta = (Mensaje) conexionConNodo.enviarConRta(new Mensaje(this.idAsignadoNC, 3, credencialesImgs));
-		
-		// Si carga del mensaje = 0 -> recibió todo OK, si = 1 -> algo salió mal.
-		if ((Integer) respuesta.getCarga() != 0){
+		conexionConNodo.enviarSinRta(new Mensaje(idAsignado.toString(), 3, credencialesImgs.size()));
+
+		mensaje = new Mensaje(idAsignado.toString(), 3, credencialesImgs);
+		Mensaje respuesta = (Mensaje) conexionConNodo.enviarConRta(mensaje);
+
+		if ((Integer) respuesta.getCodigo() != Codigos.OK){
 			System.out.printf("[Cli %s] falló anuncio de imágenes compartidas\n", this.idConsumidor);
 			output.put("result", false);
 		} else {
@@ -141,6 +140,7 @@ public class ClienteNH_Gral extends Cliente {
 		HashMap<String, Object> output = new HashMap<String, Object>();
 		Mensaje solicitud;
 		String direccionRecepcionRta;
+		String idAsignado = ((AtributosHoja) this.atributos).getId((String) params.get("direccionNC"));
 		
 		// Estos son comunes a todas las funciones
 		output.put("callBackOnSuccess", false);
@@ -148,7 +148,8 @@ public class ClienteNH_Gral extends Cliente {
 		output.put("result", true);
 		
 		direccionRecepcionRta = this.atributos.getDireccion("centrales");
-		conexionConNodo.enviarSinRta(new Mensaje(idAsignadoNC, direccionRecepcionRta, 4, (CredImagen) params.get("credImg")));
+		solicitud = new Mensaje(idAsignado.toString(), direccionRecepcionRta, 4, (CredImagen) params.get("credImg"));
+		conexionConNodo.enviarSinRta(solicitud);
 		
 		System.out.printf("[Cli %s]", this.idConsumidor);
 		System.out.printf(" enviada consulta por <%s> a NC\n", ((CredImagen) params.get("credImg")).getNombre());
@@ -185,9 +186,10 @@ public class ClienteNH_Gral extends Cliente {
 				                                                     Codigos.NH_NA_POST_SOLICITUD_NCS, 
 				                                                     params));
 		
+		// TODO: ver qué pasa acá con lo que encolo (idAsignado)
 		if (mensaje.getCodigo().equals(Codigos.OK)) {
 			for (String central : (LinkedList<String>) mensaje.getCarga()) {
-				((AtributosHoja) atributos).encolarCentral(central, this.id);
+				((AtributosHoja) atributos).encolarCentral(central, null);
 
 				payload = new HashMap<String, Object>();
 				payload.put("direccionNC", central);

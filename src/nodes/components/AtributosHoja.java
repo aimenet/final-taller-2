@@ -1,8 +1,5 @@
 package nodes.components;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Set;
+import java.util.*;
 
 import commons.CredImagen;
 import commons.Imagen;
@@ -91,29 +88,38 @@ public class AtributosHoja extends Atributos {
 	 * @param direccion  del NC
 	 * @param idAsignado por el NC a la Hoja
 	 */
-	public static void encolarCentral(String direccion, Integer idAsignado) {
+	public static void encolarCentral(String direccion, String idAsignado) {
 		/* Método que almacena los parámetros relacionados a la conexión (establecida o por establecer) dirección de un NC al que está (o debe estar) conectado la Hoja */
 
 		if (!centrales.containsKey(direccion))
 				centrales.put(direccion, new ParametrosConexionNC(direccion, idAsignado));
-		else if (!centrales.get(direccion).idAsignado.equals(idAsignado))
+		else if (idAsignado != null && !centrales.get(direccion).idAsignado.equals(idAsignado))
 			centrales.get(direccion).idAsignado = idAsignado;
 
 	}
 
-	public void setId(Integer index, String token) {
+	public void setId(String nc, String token) {
 		/* Almacena un ID otorgado por un NC a fin de identificarlo */
-
-		// idsHojas no se inicializa al ppio porque no se conoce la cantidad de NCs a los que debe conectarse
-		// (parámetro cantCentrales). Por eso debo forzar su tamaño si quiero insertar en una posición específica
-		while (this.idsHojas.size() < (index+1))
-			this.idsHojas.add(null);
-
-		this.idsHojas.set(index, token);
-		// TODO: claramente sería más fácil que sea un array fijo pero originalmente estaba pensado para ser variable
+		centrales.get(nc).idAsignado = token;
 	}
-	
-	
+
+	/**
+	 * Devuelve el ID que le fue asignado a la H en el NC indicado
+	 *
+	 * @param direccionNC dirección (sin puerto) del NC
+	 * @return ID asignado
+	 */
+	public String getId(String direccionNC) {
+		if (centrales.containsKey(direccionNC))
+			return centrales.get(direccionNC).idAsignado;
+		else
+			return null;
+	}
+
+
+
+
+
 	// Métodos - me falta ordenarlos
 	// =======================================================================================
 	public boolean almacenarImagen(Imagen img){
@@ -215,14 +221,7 @@ public class AtributosHoja extends Atributos {
 			return colaDescargas.get(indice);
 		}
 	}
-	
-	public String getId(Integer index) {
-		if (index <= this.idsHojas.size() - 1)
-			return this.idsHojas.get(index);
-		else
-			return null;
-	}
-	
+
 	public Imagen getImagen(String nombre){
 		synchronized (lockIndice) {
 			return indice.get(nombre);

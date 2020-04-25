@@ -73,7 +73,9 @@ public class ConsultorNC_NA implements Consultor {
 					case Codigos.NA_NC_POST_CAPACIDAD_NH:
 						// Evalúa la capacidad de aceptar un nuevo NH, siempre que no se encuentre ya registrado
 						auxStr = (String) mensaje.getCarga();
-						
+
+						// TODO: implementar un bidirectional map así no es necesaria una búsqueda secuencial
+						// TODO 2: mover todos los atributos  a SQLite y a la bosta
 						auxObj = atributos.getClavesIndiceHojas();
 						auxBol = !((Set<String>) auxObj).contains(auxStr);
 						auxBol = auxBol && ((Set<String>) auxObj).size() < this.atributos.getNHCapacity();

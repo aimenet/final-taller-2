@@ -1,6 +1,7 @@
 package commons.structs.nh;
 
 import java.time.Instant;
+import java.util.UUID;
 
 /**
  * Usada para registrar todos los parámetros asociados a la conexión con un NC
@@ -12,7 +13,7 @@ import java.time.Instant;
 
 
 public class ParametrosConexionNC {
-    public Integer idAsignado;  // el ID que el NC le asigna a la Hoja
+    public String idAsignado;  // el ID que el NC le asigna a la Hoja
     public String direccion;
 
     /**
@@ -20,7 +21,7 @@ public class ParametrosConexionNC {
      * @param idAsignado
      *
      * */
-    public ParametrosConexionNC(String direccion, Integer idAsignado) {
+    public ParametrosConexionNC(String direccion, String idAsignado) {
         this.direccion = direccion;
         this.idAsignado = idAsignado;
     }

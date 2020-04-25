@@ -3,14 +3,13 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import org.apache.commons.validator.routines.InetAddressValidator;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
-import commons.ConexionTcp;
-import commons.CredImagen;
-import commons.Mensaje;
-import commons.Tupla2;
+import commons.*;
 
 /**
  * Consultor que corre en cada uno de los hilos generado por el Servidor (dedicado a atender HOJAS) 
@@ -191,10 +190,8 @@ public class ConsultorNC_H implements Consultor {
 		atributos.indexarImagenes(msj.getEmisor(), (ArrayList<CredImagen>) msj.getCarga());
 		System.out.println("\tIndexadas imágenes de: " + sockToString());
 
-		//Envía el resultado al cliente (por ahora no contemplo que esto pueda fallar así que siempre
-		//va a ser código 0 (sin problemas)
 		try {
-			salida.writeObject(new Mensaje(null,3,resultado));
+			salida.writeObject(new Mensaje(null, Codigos.OK,resultado));
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -212,43 +209,37 @@ public class ConsultorNC_H implements Consultor {
 	 * Recibe un saludo y le responde con otro, más un mensaje con el ID asignado
 	 * @param entrada
 	 * @param salida
-	 * @param direccionesServer
+	 * @param direccionServer
 	 * @return
 	 */
-	private boolean saludo(ObjectInputStream entrada, ObjectOutputStream salida, String direccionesServer){
-		String idAsignado = null;
+	private boolean saludo(ObjectInputStream entrada, ObjectOutputStream salida, String direccionServer){
 		Mensaje mensaje;
 		String direccionesHoja;
-		String token = null;
+		String idAsignado = null;
+		UUID token = null;
 		
 		try {
-			// direccionesServer puede ser en realidad un TOKEN (el ID propiamente dicho) 
-			// que identifica a la HOJA pues ya estuvo conectada al nodo
-			// En ese caso se responde con el ID que le fue asignado anteriormente a modo de validación
+			// direccionServer puede ser una dirección IP (del servidor de la H) o el ID (UUID propiamente dicho)
+			// que identifica a la HOJA pues ya estuvo conectada al nodo y se envía a modo de validación
 			// TODO: marcar H como activa nuevamente
-			
-			// El token es un string alfanumérico de 16 dígitos, que en este contexto se identifica
-			// de la siguiente manera: ##DDDDDDDDDDDDDDDD##
-			if (direccionesServer.length()==20 && direccionesServer.startsWith("##") && direccionesServer.endsWith("##")) {
+
+			if (InetAddressValidator.getInstance().isValid(direccionServer.split(":")[0])) {
+				idAsignado = atributos.generarToken();
+			} else {
 				// se recibió un token -> saludo de reconexión
-				token = direccionesServer.replace("#","");
-				
-				// TODO: si el largo del token no es atributos.TOKEN_MAX_LENGTH hacer algo
-				
-				if (this.atributos.getHoja(token) == null || this.atributos.getHoja(token).length() == 0 ) {
+				token = UUID.fromString(direccionServer);
+
+				if (this.atributos.getHoja(token.toString()) == null || this.atributos.getHoja(token.toString()).length() == 0 ) {
 					// No es un ID válido por lo que se genera uno nuevo
 					idAsignado = atributos.generarToken();
 				} else {
-					idAsignado = token;
-					
+					idAsignado = token.toString();
+
 					// Obtengo la dirección del servidor de la H pues al ser reconexión ya se conoce
-					direccionesServer = this.atributos.getHoja(token).split(";")[1];
+					direccionServer = this.atributos.getHoja(token.toString()).split(";")[1];
 				}
-				
-			} else {
-				idAsignado = atributos.generarToken();
 			}
-			
+
 			//¿El servidor debería tener un ID, un Mensaje propio sin campo emisor o pongo null como ahora?
 			salida.writeObject(new Mensaje(null,1, idAsignado.toString()));
 			System.out.println("-> Asignado ID " +  idAsignado + " a cliente " + sockToString());
@@ -256,7 +247,7 @@ public class ConsultorNC_H implements Consultor {
 			// La Hoja envía en el saludo la dirección y puerto de su servidor de consultas. Junto a los de
 			// su faceta cliente se confecciona el arreglo de direcciones que será indexado
 			direccionesHoja = sock.getInetAddress().getHostAddress() + ":" + sock.getPort();
-			direccionesHoja += ";" + direccionesServer;
+			direccionesHoja += ";" + direccionServer;
 			
 			//Guardado del par ID<->Nodo Hoja (atributo de clase, debe sincronizarse)
 			atributos.indexarHoja(idAsignado, direccionesHoja);

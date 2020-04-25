@@ -7,10 +7,7 @@ import java.io.Reader;
 import java.nio.file.Paths;
 import java.security.SecureRandom;
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Set;
+import java.util.*;
 import java.util.Base64.Encoder;
 
 import org.json.simple.JSONArray;
@@ -115,6 +112,7 @@ public class AtributosCentral extends Atributos {
 	}
 	
 	public String generarToken() {
+		/* Depreco toda esta cosa manual de los token (que me gustaba mucho) en favor de UUID
 		// Los tokens son case sensitive por lo que puede considerarse que en el mejor de los casos
 		// tengo la mitad de probabilidad de repetición que si no lo fueran (ver nota B al final)
 		
@@ -129,6 +127,8 @@ public class AtributosCentral extends Atributos {
 		random.nextBytes(bytes);
 		Encoder encoder = Base64.getUrlEncoder().withoutPadding();
 		return encoder.encodeToString(bytes); // el token
+		*/
+		return UUID.randomUUID().toString();
 	}
 	
 	public Integer getTamanioIndiceImagenes(){
@@ -146,7 +146,8 @@ public class AtributosCentral extends Atributos {
 	public void indexarCentral(String direccion){
 		indiceCentrales.add(direccion);
 	}
-	
+
+
 	// Getters y Setters
 	// -----------------------------------------------------------------------------------
 	public Integer getNHCapacity() {return AtributosCentral.NHCapacity;}  // Si pongo sólo NHCapacity es = que como está ahora 
@@ -160,6 +161,7 @@ public class AtributosCentral extends Atributos {
 	public void setIp(String ip){
 		this.ip = ip;
 	}
+
 
 	// Métodos relacionados a WKAN
 	// -----------------------------------------------------------------------------------

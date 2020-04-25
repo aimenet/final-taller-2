@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
@@ -74,15 +75,11 @@ public class ConsultorNC_NA implements Consultor {
 						// Evalúa la capacidad de aceptar un nuevo NH, siempre que no se encuentre ya registrado
 						auxStr = (String) mensaje.getCarga();
 
-						// TODO: implementar un bidirectional map así no es necesaria una búsqueda secuencial
-						// TODO 2: mover todos los atributos  a SQLite y a la bosta
-						auxObj = atributos.getClavesIndiceHojas();
-						auxBol = !((Set<String>) auxObj).contains(auxStr);
-						auxBol = auxBol && ((Set<String>) auxObj).size() < this.atributos.getNHCapacity();
-						auxObj = auxBol ? Codigos.OK : Codigos.ACCEPTED;  // TODO: es ACCEPTED la respuesta negativa correcta??
-						
-						buffSalida.writeObject(new Mensaje(atributos.getDireccion("acceso"), 
-								                           (Integer) auxObj, auxBol));
+						auxBol = !((HashMap<String,String>) atributos.getHojas()).values().contains(auxStr);
+						auxBol = auxBol && (((HashMap<String,String>) atributos.getHojas()).values().size() < this.atributos.getNHCapacity());
+						auxObj = auxBol ? Codigos.OK : Codigos.ACCEPTED;
+
+						buffSalida.writeObject(new Mensaje(atributos.getDireccion("acceso"), (Integer) auxObj, auxBol));
 						//terminar = true;
 						break;
 					case Codigos.CONNECTION_END:

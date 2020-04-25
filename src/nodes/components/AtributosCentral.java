@@ -79,7 +79,9 @@ public class AtributosCentral extends Atributos {
 	public String getHoja(String clave){
 		return indiceHojas.get(clave);
 	}
-	
+
+	public HashMap<String,String> getHojas() {return this.indiceHojas;}
+
 	public String getCentral(Integer index){
 		return indiceCentrales.get(index);
 	}

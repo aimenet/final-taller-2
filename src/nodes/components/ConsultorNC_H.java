@@ -214,7 +214,6 @@ public class ConsultorNC_H implements Consultor {
 	 */
 	private boolean saludo(ObjectInputStream entrada, ObjectOutputStream salida, String direccionServer){
 		Mensaje mensaje;
-		String direccionesHoja;
 		String idAsignado = null;
 		UUID token = null;
 		
@@ -244,13 +243,8 @@ public class ConsultorNC_H implements Consultor {
 			salida.writeObject(new Mensaje(null,1, idAsignado.toString()));
 			System.out.println("-> Asignado ID " +  idAsignado + " a cliente " + sockToString());
 			
-			// La Hoja envía en el saludo la dirección y puerto de su servidor de consultas. Junto a los de
-			// su faceta cliente se confecciona el arreglo de direcciones que será indexado
-			direccionesHoja = sock.getInetAddress().getHostAddress() + ":" + sock.getPort();
-			direccionesHoja += ";" + direccionServer;
-			
 			//Guardado del par ID<->Nodo Hoja (atributo de clase, debe sincronizarse)
-			atributos.indexarHoja(idAsignado, direccionesHoja);
+			atributos.indexarHoja(idAsignado, direccionServer);
 						
 			return true;
 		} catch (IOException e){

@@ -76,22 +76,35 @@ public class ConsultorNA_NH implements Consultor {
 						// "Trae" el doble de lo requerido para aumentar las probabilidades de encontar un NC que no tenga ya al NH
 						auxLstHsh = funciones.getNCsConCapacidadNH(auxInt * 2);
 
-						// Consulta al NC si cuenta con el NH entre sus filas, quedándose con aquellos que no lo posean
-						auxLstStr2 = new LinkedList<String>();
-						consultor = new ClienteNA_NC(99);
-						for (HashMap<String, Comparable> central : auxLstHsh) {
-							diccionario2 = new HashMap<String, Comparable>();
-							diccionario2.put("direccionNC", (String) central.get("direccion_NA"));
-							diccionario2.put("direccionNH_NC", diccionario.get("direccionNH_NC"));
-							
-							tarea = new Tarea("CAPACIDAD-ATENCION-NH", diccionario2);
-							diccionario2 = null;
-							diccionario2 = consultor.procesarTarea(tarea);
-							
-							if ((Boolean) diccionario2.get("status")) {
-								auxLstStr2.add((String) atributos.getCentrales().get((String) central.get("direccion_NA")).get("direccion_NH"));
-								if (auxLstStr2.size() >= auxInt)
+						if ((Boolean) diccionario.get("primeraVez")) {
+							// Por tratarse de la primera vez que el NH se conecta a la red se ignora la consulta
+							// a los NCs si "ya conocen al NH".
+							auxLstStr2 = new LinkedList<String>();
+
+							for (int i=0; i<auxLstHsh.size(); i++){
+								auxLstStr2.add((String) auxLstHsh.get(i).get("direccion_NH"));
+
+								if (i >= auxInt)
 									break;
+							}
+						} else {
+							// Consulta al NC si cuenta con el NH entre sus filas, quedándose con aquellos que no lo posean
+							auxLstStr2 = new LinkedList<String>();
+							consultor = new ClienteNA_NC(99);
+							for (HashMap<String, Comparable> central : auxLstHsh) {
+								diccionario2 = new HashMap<String, Comparable>();
+								diccionario2.put("direccionNC", (String) central.get("direccion_NA"));
+								diccionario2.put("direccionNH_NC", diccionario.get("direccionNH_NC"));
+
+								tarea = new Tarea("CAPACIDAD-ATENCION-NH", diccionario2);
+								diccionario2 = null;
+								diccionario2 = consultor.procesarTarea(tarea);
+
+								if ((Boolean) diccionario2.get("status")) {
+									auxLstStr2.add((String) atributos.getCentrales().get((String) central.get("direccion_NA")).get("direccion_NH"));
+									if (auxLstStr2.size() >= auxInt)
+										break;
+								}
 							}
 						}
 						

@@ -152,6 +152,7 @@ public class NodoHoja {
 				
 		// Conexión con WKAN para ingreso a la red: no hay saludo inicial, directamente solicita NCs
 		payload.put("direccionWKAN", atributos.getWkanInicial());
+		payload.put("primeraVez", true);
 		atributos.encolar("salida", new Tarea("SOLICITUD_NCS", payload));
 		
 		// Bucle "ppal" de la HOJA: revisión y recuperación de hilos mientras hilo PRODUCTOR esté vivo
@@ -293,6 +294,7 @@ public class NodoHoja {
 
 			if (timeElapsed > ((AtributosHoja) atributos).solicitudNCs.getLastDelay()) {
 				payload.put("direccionWKAN", atributos.getWkanInicial());
+				payload.put("primeraVez", false);
 				atributos.encolar("salida", new Tarea("SOLICITUD_NCS", payload));
 
 				((AtributosHoja) atributos).solicitudNCs.setNextDelay();

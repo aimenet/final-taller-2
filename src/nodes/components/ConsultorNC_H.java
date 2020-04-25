@@ -223,7 +223,10 @@ public class ConsultorNC_H implements Consultor {
 			// TODO: marcar H como activa nuevamente
 
 			if (InetAddressValidator.getInstance().isValid(direccionServer.split(":")[0])) {
-				idAsignado = atributos.generarToken();
+				// Controla (defensivamente) la existencia del NH entre los conocidos previamente
+				idAsignado = atributos.getIDHoja(direccionServer);
+				if (idAsignado == null)
+					idAsignado = atributos.generarToken();
 			} else {
 				// se recibió un token -> saludo de reconexión
 				token = UUID.fromString(direccionServer);

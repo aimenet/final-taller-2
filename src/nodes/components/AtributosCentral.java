@@ -80,6 +80,18 @@ public class AtributosCentral extends Atributos {
 		return indiceHojas.get(clave);
 	}
 
+	public String getIDHoja(String direccion){
+		String idAsignado = null;
+
+		for (Map.Entry<String, String> entry : indiceHojas.entrySet())
+			if (entry.getValue().equals(direccion)){
+				idAsignado = entry.getKey();
+				break;
+			}
+
+		return idAsignado;
+	}
+
 	public HashMap<String,String> getHojas() {return this.indiceHojas;}
 
 	public String getCentral(Integer index){

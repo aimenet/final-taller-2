@@ -69,7 +69,7 @@ public class ConsultorH implements Consultor{
 		
 		try {
 			buffSalida.writeObject(new Mensaje(null,10,similares));
-			buffSalida.writeObject(new Mensaje(null,10,variables.getDireccion("centrales")));
+			buffSalida.writeObject(new Mensaje(null,10,variables.getDireccion("hojas")));
 		} catch (IOException e) {
 			e.printStackTrace();
 			return false;

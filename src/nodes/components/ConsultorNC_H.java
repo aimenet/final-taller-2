@@ -82,7 +82,7 @@ public class ConsultorNC_H implements Consultor {
 		String[] hojasConImagenes =  atributos.getClavesIndiceImagenes();
 		for(String clave : hojasConImagenes) {
 			if(clave != msj.getEmisor()) {
-				String destino = atributos.getHoja(clave).split(";")[1];
+				String destino = atributos.getHoja(clave);
 				Worker trabajador = new Worker(clave, similares, modelo, atributos.getImagenes(clave),
 						latchHojas, destino.split(":")[0], destino.split(":")[1], 1, "Hoja");
 				new Thread( trabajador ).start();

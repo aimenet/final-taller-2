@@ -93,7 +93,7 @@ public class ClienteNH_Gral extends Cliente {
 		ArrayList<CredImagen> credencialesImgs;
 		HashMap<String, Object> output = new HashMap<String, Object>();
 		Mensaje mensaje;
-		String idAsignado = ((AtributosHoja) this.atributos).getCentrales().get((String) params.get("direccionNC")).direccion;
+		String idAsignado = ((AtributosHoja) this.atributos).getCentrales().get((String) params.get("direccionNC")).idAsignado;
 
 
 		// Estos son comunes a todas las funciones

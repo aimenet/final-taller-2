@@ -116,7 +116,7 @@ public class ControladorHoja implements Runnable {
 			imagen = new Imagen(elegida);
 			
 			// Se genera una tarea de consulta por cada uno de los NCs conocidos
-			for (String direccion : variables.getDireccionesNCs()) {
+			for (String direccion : variables.getCentrales().keySet()) {
 				HashMap<String, Object> taskPayload = new HashMap<String, Object>();
 				
 				taskPayload.put("credImg", new CredImagen(imagen.getNombre(), imagen.getVecCarComprimido()));

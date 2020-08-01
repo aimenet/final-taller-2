@@ -82,6 +82,16 @@ public class ConsultorNC_NA implements Consultor {
 						buffSalida.writeObject(new Mensaje(atributos.getDireccion("acceso"), (Integer) auxObj, auxBol));
 						//terminar = true;
 						break;
+					case Codigos.NA_NC_POST_ACEPTAR_NH:
+						// WKAN informa NH ante el que anununciarse
+						System.out.printf("[Con WKAN] ");
+						System.out.printf("WKAN %s informó dirección de NH ", mensaje.getEmisor());
+						System.out.printf("%s ante el que anunciarse\n", (String) mensaje.getCarga());
+
+						// TODO 2020-08-01 acá me quedé: el NC debe anunciarse ante el NH indicado en el mensaje
+						//                               para "hacerse cargo" del mismo
+
+						break;
 					case Codigos.CONNECTION_END:
 						terminar = true;
 						break;

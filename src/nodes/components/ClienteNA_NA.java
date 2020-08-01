@@ -28,7 +28,7 @@ import commons.Tupla2;
  */
 
 
-/* [2020-01-16] Esta clase usá de ejemplo cuando quieras hacer un Cliente, HDP!!!! */
+
 
 
 public class ClienteNA_NA extends Cliente {
@@ -44,6 +44,80 @@ public class ClienteNA_NA extends Cliente {
 		super(idConsumidor, "salida");
 		this.atributos = new AtributosAcceso(); // <atributos> está declarado en Cliente
 	}
+
+	// Métodos que se usan para atender los distintos tipos de órdenes recibidas en una Tarea
+	// ---------------------------------------------------------------------------------------------------
+	private HashMap<String, Object> retransmitirSolicitudNcsNh(HashMap<String, Object> params) {
+		// Método en el que se retransmite a un WKAN random un mensaje emitido por un NH solicitando NCs a los
+		// que conectarse.
+		// Se elige aleatoriamente como medida (muy simple) de distribución equitativa de mensajes en la red
+
+		HashMap<String, Object> output = new HashMap<String, Object>();
+		HashMap<String, Object> payload = new HashMap<String, Object>();
+		Integer contador, saltos;
+		LinkedList<String> wkanConsultados;
+		String wkanDestino = null;
+
+
+		// Estos son comunes a todas las funciones
+		output.put("callBackOnSuccess", false);
+		output.put("callBackOnFailure", false);
+		output.put("result", true);
+
+		// Si bien params y payload compartirán gran parte de su contenido, prefiero utilizar una variable nueva
+		// con lo estrictamente necesario
+		payload.put("direccionNH_NA", params.get("direccionNH_NA"));
+		payload.put("direccionNH_NC", params.get("direccionNH_NC"));
+		payload.put("pendientes", params.get("pendientes"));
+
+		// Este WKAN puede ser el primero en retransmitir o estar "retransmitiendo una retransmisión"
+		if (payload.containsKey("consultados")) {
+			wkanConsultados = (LinkedList<String>) payload.get("consultados");
+			saltos = (Integer) payload.get("saltos");
+		} else {
+			wkanConsultados = new LinkedList<String>();
+			saltos = 9 + 1; // TODO: hardcodeo -> en realidad es 9 pero como es el primero y le resto uno después, se lo agrego acá (un asco)
+		}
+		wkanConsultados.add(atributos.getDireccion("acceso"));
+		payload.put("consultados", wkanConsultados);
+		payload.put("saltos", saltos - 1);
+
+		// Valida que el WKAN elegido no haya sido consultado previamente
+		contador = 5;
+		while (contador > 0) {
+			wkanDestino = ((AtributosAcceso) atributos).getRandomNABC();
+			if ( !((LinkedList<String>) payload.get("consultados")).contains(wkanDestino) ) {
+				contador = 0;
+			} else {
+				wkanDestino = null;
+			}
+		}
+
+		System.out.printf("[Cli %s]\t", this.id);
+		// Si no conoce ningún WKAN (o fallaron todos los intentos de elegir uno no visitado) no hace nada.
+		if (wkanDestino != null) {
+			String ipDestino = wkanDestino.split(":")[0];
+			Integer puertoDestino = Integer.parseInt(wkanDestino.split(":")[1]);
+
+			System.out.printf("enviando solicitud de NCs para NH a %s", wkanDestino);
+			if (this.establecerConexionConNodoAcceso(ipDestino, puertoDestino)) {
+				this.conexionConNodoAcceso.enviarSinRta(new Mensaje(this.atributos.getDireccion("acceso"),
+						Codigos.NA_NA_POST_RETRANSMISION_NH_SOLICITUD_NC, payload));
+				System.out.printf(" [COMPLETADO]\n");
+			} else {
+				Integer status = ((AtributosAcceso) this.atributos).getStatusNodo(wkanDestino);
+				status = status <= 0 ? 0 : status - 1;
+				((AtributosAcceso) this.atributos).setKeepaliveNodo(wkanDestino, status);
+				System.out.printf(" [FALLIDO]\n");
+			}
+		} else {
+			System.out.printf("no se encontró WKAN al que enviar solicitud de NCs para NH\n");
+		}
+
+		return output;
+	}
+
+
 
 	@Override
 	public HashMap<String, Comparable> procesarTarea(Tarea tarea) throws InterruptedException {
@@ -290,6 +364,14 @@ public class ClienteNA_NA extends Cliente {
 				} else {
 					System.out.printf("no se encontró WKAN al que enviar solicitud de vecinos\n");
 				}
+				break;
+			case "RETRANSMITIR_SOLICITUD_NCS_NH":
+				// Retransmite un pedido de NCs emitido por un NH a otros WKANs. Estos últimos nodos se escogen
+				// aleatoriamente como medida rudimentaria de balancear la distribución de nodos en la red
+
+				// 2020-07-25 toda este switch debería ser como el de ClienteNA_NC.java que es mucho más claro
+				this.retransmitirSolicitudNcsNh((HashMap<String, Object>) tarea.getPayload());
+
 				break;
 			}
 		return salida;

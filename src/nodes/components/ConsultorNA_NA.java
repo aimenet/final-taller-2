@@ -10,6 +10,7 @@ import commons.Codigos;
 import commons.Mensaje;
 import commons.Tarea;
 import commons.Tupla2;
+import org.apache.commons.io.input.ObservableInputStream;
 
 /**
  * Consultor que corre en hilos generado por el Servidor de Nodos de Acceso. Es el
@@ -31,15 +32,92 @@ public class ConsultorNA_NA implements Consultor {
 	// De la clase
 	
 	
-	/* --------------- */
-	/* Métodos Propios */
-	/* --------------- */
-	//public ConsultorNC_NC(){}
+	/* -------- */
+	/* Métodos  */
+	/* -------- */
+	// Métodos que se usan para atender los distintos tipos de órdenes recibidas en una Tarea
+	// ---------------------------------------------------------------------------------------------------
+	private HashMap<String, Object> retransmisionSolicitudNcsNh(HashMap<String, Object> params) throws InterruptedException {
+		// Método en el que se retransmite a un WKAN random un mensaje emitido por un NH solicitando NCs a los
+		// que conectarse.
+		// Se elige aleatoriamente como medida (muy simple) de distribución equitativa de mensajes en la red
+
+		// Estos son comunes a todas las funciones
+		HashMap<String, Object> output = new HashMap<String, Object>();
+		output.put("callBackOnSuccess", false);
+		output.put("callBackOnFailure", false);
+		output.put("result", true);
+
+		// Contenido de params
+		// {
+		// 	"direccionNH_NA": String,
+		// 	"direccionNH_NC": String,
+		// 	"pendientes": Integer,
+		// 	"consultados": LinkedList<String>,
+		// 	"saltos": Integer
+		// 	}
+
+		// -------------------------------------------------------------------------------------------------------------
+		// Esto que sigue es un copy paste de lo que hace ConsultorNA_NH.java -> unificarlo
+
+		// Obtrención de NCs que pueden recibir a la H: si no existen más WKANs en la red entonces buscará entre sus NCs
+		// la cantidad solicitada, sino escogerá sólo 1 (y retransmitirá la consulta)
+		Integer requeridos = ((AtributosAcceso) atributos).getNodos().size() > 0 ? 1 : (Integer) params.get("pendientes");
+		Boolean forward = ((AtributosAcceso) atributos).getNodos().size() > 0;
+
+		// "Trae" el doble de lo requerido para aumentar las probabilidades de encontar un NC que no tenga ya al NH
+		LinkedList<HashMap<String, Comparable>> candidatos = funciones.getNCsConCapacidadNH(requeridos * 2);
+
+		// Consulta a los NC si cuentan con el NH entre sus filas, quedándose con aquellos que no
+		ClienteNA_NC consultor = new ClienteNA_NC(99);
+		LinkedList<String> elegidos = new LinkedList<String>();
+
+		for (HashMap<String, Comparable> central : candidatos) {
+			HashMap<String, Comparable> payload = new HashMap<String, Comparable>();
+			payload.put("direccionNC", (String) central.get("direccion_NA"));
+			payload.put("direccionNH_NC", (String) params.get("direccionNH_NC"));
+
+			Tarea tarea = new Tarea("CAPACIDAD-ATENCION-NH", payload);
+
+			if ((Boolean) consultor.procesarTarea(tarea).get("status")) {
+				elegidos.add((String) central.get("direccion_NA"));
+
+				if (elegidos.size() >= requeridos)
+					break;
+			}
+		}
+
+		// Hasta acá lo que es igual
+		// -------------------------------------------------------------------------------------------------------------
+
+		// retransmite la consulta a otro WKAN si corresponde
+		if (forward && (Integer) params.get("pendientes") > elegidos.size()) {
+			LinkedList<String> aux = (LinkedList<String>) params.get("consultados");
+			aux.add(atributos.getDireccion("acceso"));
+
+			params.put("consultados", aux);
+			params.put("pendientes", (Integer) params.get("pendientes") > elegidos.size());
+
+			atributos.encolar("salida", new Tarea("RETRANSMITIR_SOLICITUD_NCS_NH", params));
+		}
+
+		// A cada NC elegido se le enviará la orden de establecer contacto con el NH
+		// -> es una ineficiencia no hacerlo al momento en que se le consulta la capacidad pero en esta primer versión
+		//    lo hago así deliveradamente para "modularizar" lo más posible (a costa de eficiencia)
+		for(String central : elegidos) {
+			HashMap<String, String> payload = new HashMap<String, String>();
+
+			payload.put("direccionNC", central);
+			payload.put("direccionNH_NC", (String) params.get("direccionNH_NC"));
+
+			atributos.encolar("centrales", new Tarea(00, "ACEPTAR-NH", payload));
+		}
+
+		return output;
+	}
 
 
-	/* --------------------- */
-	/* Métodos de Interfaces */
-	/* --------------------- */
+
 	@Override
 	public void atender() {
 		HashMap<String, HashMap<String,Comparable>> centralesRegistrados;
@@ -157,6 +235,10 @@ public class ConsultorNA_NA implements Consultor {
 						}
 						
 						System.out.println("Procesada solicitud de vecinos para NC [OK]");
+						break;
+					case Codigos.NA_NA_POST_RETRANSMISION_NH_SOLICITUD_NC:
+						// 2020-07-25 esto tendría que ser como CienteNA_NC.java
+						this.retransmisionSolicitudNcsNh((HashMap<String, Object>) mensaje.getCarga());
 						break;
 					default:
 						System.out.printf("\tAnuncio de nodo %s: %s\n", sockToString(), mensaje.getCarga());

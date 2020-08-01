@@ -116,8 +116,30 @@ public class ClienteNA_NC extends Cliente {
 
 		return output;
 	}
-	
-	
+
+	private HashMap<String, Object> aceptarNHFnc(HashMap<String, Object> params) {
+		HashMap<String, Object> output = new HashMap<String, Object>();
+
+		// Estos son comunes a todas las funciones
+		output.put("callBackOnSuccess", false);
+		output.put("callBackOnFailure", false);
+		output.put("result", true);
+
+		// La finalidad de esta tarea es simplemente ordearle al NC que se anuncie ante el NH que solicitó NCs
+		// por ende basta con informar su dirección, más nada
+
+		Mensaje msj = new Mensaje(this.atributos.getDireccion("centrales"),
+				Codigos.NA_NC_POST_ACEPTAR_NH,
+				(String) params.get("direccionNH_NC"));
+		this.conexionConNodo.enviarSinRta(msj);
+
+		System.out.print("[Cli  " + this.idConsumidor + "] Informado a NC " + (String) params.get("direccionNC"));
+		System.out.println(" que debe aceptar al NH " + (String) params.get("direccionNH_NC"));
+
+		return output;
+	}
+
+
 	@Override
 	protected HashMap<String, Comparable> procesarTarea(Tarea tarea) throws InterruptedException {
 		boolean flag;
@@ -175,6 +197,14 @@ public class ClienteNA_NC extends Cliente {
 				ipNcDestino = ((String) diccionario.get("direccionNC")).split(":")[0];
 				puertoNcDestino = Integer.parseInt(((String) diccionario.get("direccionNC")).split(":")[1]);
 				method = this::consultaCapacidadNHFnc;
+				break;
+			case "ACEPTAR-NH":
+				// El WKAN indica que este nodo debe anunciarse ante un NH a fin de establecer conexión
+
+				diccionario = (HashMap<String, Object>) tarea.getPayload();
+				ipNcDestino = ((String) diccionario.get("direccionNC")).split(":")[0];
+				puertoNcDestino = Integer.parseInt(((String) diccionario.get("direccionNC")).split(":")[1]);
+				method = this::aceptarNHFnc;
 				break;
 		}
 		

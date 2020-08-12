@@ -4,7 +4,9 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.Set;
 
 import commons.Codigos;
 import commons.Mensaje;
@@ -66,7 +68,8 @@ public class ConsultorNA_NA implements Consultor {
 		Boolean forward = ((AtributosAcceso) atributos).getNodos().size() > 0;
 
 		// "Trae" el doble de lo requerido para aumentar las probabilidades de encontar un NC que no tenga ya al NH
-		LinkedList<HashMap<String, Comparable>> candidatos = funciones.getNCsConCapacidadNH(requeridos * 2);
+		LinkedList<HashMap<String, Comparable>> candidatos = funciones.getNCsConCapacidadNH(requeridos * 2,
+				                                                                            new HashSet<String>());
 
 		// Consulta a los NC si cuentan con el NH entre sus filas, quedándose con aquellos que no
 		ClienteNA_NC consultor = new ClienteNA_NC(99);

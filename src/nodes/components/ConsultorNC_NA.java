@@ -35,6 +35,7 @@ public class ConsultorNC_NA implements Consultor {
 		Mensaje mensaje;
 		boolean auxBol;
 		boolean terminar = false;
+		HashMap<String, Comparable> compDict;
 		Integer codigo;
 		Object auxObj;
 		ObjectInputStream buffEntrada;
@@ -88,8 +89,26 @@ public class ConsultorNC_NA implements Consultor {
 						System.out.printf("WKAN %s informó dirección de NH ", mensaje.getEmisor());
 						System.out.printf("%s ante el que anunciarse\n", (String) mensaje.getCarga());
 
-						// TODO 2020-08-01 acá me quedé: el NC debe anunciarse ante el NH indicado en el mensaje
-						//                               para "hacerse cargo" del mismo
+						// 2020-08-01:
+						// Este nodo informará su dirección a la Hoja y nada más. La H se anunciará tal como lo haría
+						// si un WKAN hubiera sido quien le proporcionara la dirección del NC.
+						// Esto si bien es ineficiente y genera más tráfico en la red, me gusta pues me permite
+						// "encapsular" y atomizar los distintos intercambios que se dan en la red, facilitando la
+						// comprensión a futuro y "segmentando" en caso de debuggeo
+
+						// Como es de las pocas actividades en las que el NC se conectará a un NH, levanto "on demand"
+						// el cliente para tal fin (en lugar de encolar y tener un cliente consultando en todo momento)
+						tarea = new Tarea(00, "INFORMAR-DIRECCION-A-NH", (String) mensaje.getCarga());
+						ClienteNC_NH anunciante = new ClienteNC_NH(99);
+						compDict = anunciante.procesarTarea(tarea);
+
+						System.out.printf("[Con WKAN] ");
+						System.out.printf("Enviada dirección a NH %s\t", (String) mensaje.getCarga());
+
+						if ((Boolean) compDict.get("status"))
+							System.out.printf("[COMPLETADO]\n");
+						else
+							System.out.printf("[ERROR]\n");
 
 						break;
 					case Codigos.CONNECTION_END:

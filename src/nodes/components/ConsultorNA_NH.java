@@ -6,9 +6,9 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.sql.Timestamp;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.Map;
-import java.util.Map.Entry;
+import java.util.Set;
 
 import commons.Codigos;
 import commons.Mensaje;
@@ -69,45 +69,26 @@ public class ConsultorNA_NH implements Consultor {
 						diccionario = (HashMap<String, Comparable>) mensaje.getCarga();
 						
 						System.out.printf("[Con NH] Solicitud de %s NCs por parte de NH en %s ", diccionario.get("pendientes"), mensaje.getEmisor());
-						
+
 						// Obtrención de NCs que pueden recibir a la H: si no existen más WKANs en la red entonces buscará entre sus NCs la
 						// cantidad solicitada, sino escogerá sólo 1 (y retransmitirá la consulta)
 						auxInt = ((AtributosAcceso) atributos).getNodos().size() > 0 ? 1 : (Integer) diccionario.get("pendientes");
+
+						// TODO: actualizar con la lista de excepciones que viene en dict
 						// "Trae" el doble de lo requerido para aumentar las probabilidades de encontar un NC que no tenga ya al NH
-						auxLstHsh = funciones.getNCsConCapacidadNH(auxInt * 2);
+						auxLstHsh = funciones.getNCsConCapacidadNH(auxInt * 2,
+								                                   (HashSet<String>) diccionario.get("conocidos"));
 
-						if ((Boolean) diccionario.get("primeraVez")) {
-							// Por tratarse de la primera vez que el NH se conecta a la red se ignora la consulta
-							// a los NCs si "ya conocen al NH".
-							auxLstStr2 = new LinkedList<String>();
+						// TODO: Asegurarme que no esté vacío y toda la bola
+						auxLstStr2 = new LinkedList<String>();
 
-							for (int i=0; i<auxLstHsh.size(); i++){
-								auxLstStr2.add((String) auxLstHsh.get(i).get("direccion_NH"));
+						for (int i=0; i<auxLstHsh.size(); i++){
+							auxLstStr2.add((String) auxLstHsh.get(i).get("direccion_NH"));
 
-								if (i >= auxInt)
-									break;
-							}
-						} else {
-							// Consulta al NC si cuenta con el NH entre sus filas, quedándose con aquellos que no lo posean
-							auxLstStr2 = new LinkedList<String>();
-							consultor = new ClienteNA_NC(99);
-							for (HashMap<String, Comparable> central : auxLstHsh) {
-								diccionario2 = new HashMap<String, Comparable>();
-								diccionario2.put("direccionNC", (String) central.get("direccion_NA"));
-								diccionario2.put("direccionNH_NC", diccionario.get("direccionNH_NC"));
-
-								tarea = new Tarea("CAPACIDAD-ATENCION-NH", diccionario2);
-								diccionario2 = null;
-								diccionario2 = consultor.procesarTarea(tarea);
-
-								if ((Boolean) diccionario2.get("status")) {
-									auxLstStr2.add((String) atributos.getCentrales().get((String) central.get("direccion_NA")).get("direccion_NH"));
-									if (auxLstStr2.size() >= auxInt)
-										break;
-								}
-							}
+							if (i >= auxInt)
+								break;
 						}
-						
+
 						buffSalida.writeObject(new Mensaje(atributos.getDireccion("hojas"), Codigos.OK, auxLstStr2));
 						
 						System.out.println("[OK]");

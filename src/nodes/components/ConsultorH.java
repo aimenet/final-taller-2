@@ -6,11 +6,7 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import commons.ConexionTcp;
-import commons.CredImagen;
-import commons.Imagen;
-import commons.Mensaje;
-import commons.Tupla2;
+import commons.*;
 
 /**
  * Clase que se instancia en cada uno de los hilos generados por el Servidor de un nodo hoja para atender
@@ -39,8 +35,8 @@ public class ConsultorH implements Consultor{
 		//Instanciación de los atributos del Nodo Hoja
 		variables = new AtributosHoja();
 	}
-	
-	
+
+
 	public boolean consultaNodoCentral(Mensaje msj){
 		ArrayList<CredImagen> similares;
 		CredImagen referencia;
@@ -77,8 +73,7 @@ public class ConsultorH implements Consultor{
 		
 		return true;
 	}
-	
-	
+
 	/** Método donde se reciba la respuesta (de un NC) a una consulta realizada. Se encola la misma
 	 * para su futuro procesamiento. 
 	 * La carga del mensaje es una tupla de dos elementos: 1) la imagen dada como referencia por la H solicitante
@@ -116,8 +111,7 @@ public class ConsultorH implements Consultor{
 		
 		return true;
 	}
-	
-	
+
 	// TODO: La solicitud de descarga debería hacerse mediante una CredImagen y no por el nombre de la img a
 	// descargar porque nada garantiza que este haya cambiado o que se le haya asignado a otra imagen
 	// totalmente distinta
@@ -174,8 +168,7 @@ public class ConsultorH implements Consultor{
 		
 		return true;
 	}
-	
-	
+
 	public boolean recibirImagen(Mensaje msj){
 		boolean exito = false;
 		Imagen descargada = null;
@@ -207,7 +200,28 @@ public class ConsultorH implements Consultor{
 		return true;
 	}
 	
-	
+	private void recibirDirNC(Mensaje msj) {
+		HashMap<String, Object> payload;
+		Integer amount;
+
+		// Si no necesita NC igual podría guardarlo como un "suplente"
+		amount = ((AtributosHoja) this.variables).getCantCentrales() ;
+		amount -= ((AtributosHoja) this.variables).getCentrales().size();
+
+		if (amount > 0) {
+			((AtributosHoja) variables).encolarCentral((String) msj.getCarga(), null);
+
+			payload = new HashMap<String, Object>();
+			payload.put("direccionNC", (String) msj.getCarga());
+
+			try {
+				variables.encolar("salida", new Tarea("ESTABLECER_CONEXION_NC", payload));
+			} catch (InterruptedException e) {
+				// No hago nada, hay una tarea periódica que solicia NCs si resta conectarse a alguno
+			}
+		}
+	}
+
 	
 	/* ------------------------- */
 	/* Implementaciones interfaz */
@@ -250,6 +264,12 @@ public class ConsultorH implements Consultor{
 					// Recepción de imagen descargada
 					recibirImagen(mensaje);
 					terminar=true;
+					break;
+				case Codigos.NC_NH_POST_ANUNCIO:
+					// Un NC anuncia su dirección pues tiene capacidad de recibir NHs
+
+					recibirDirNC(mensaje);
+
 					break;
 				case 20:
 					// Cierre de conexión

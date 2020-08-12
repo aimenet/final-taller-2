@@ -1,9 +1,6 @@
 package nodes.components;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 
 import commons.Codigos;
@@ -80,18 +77,34 @@ public class WKAN_Funciones {
 		}
 	}
 
-	public LinkedList<HashMap<String, Comparable>> getNCsConCapacidadNH(Integer cantidad) {
-		/* Método que devuelve un listado (de la cantidad requerida) de NCs que son capaces de recibir a un NH */
-		
+	public LinkedList<HashMap<String, Comparable>> getNCsConCapacidadNH(Integer cantidad, Set<String> excepciones) {
+		/* Método que devuelve un listado (de la cantidad requerida) de NCs que son capaces de recibir a un NH.
+		*
+		*  Se excluyen los NCs indicados en el conjunto excepciones
+		* */
+		0
 		LinkedList<HashMap<String, Comparable>> lista = new LinkedList<HashMap<String, Comparable>>();
-		HashMap<String, HashMap<String, Comparable>> centrales;
+		List<String> shuffled;
 		HashMap<String, Comparable> nodo;
-		
-		// Acá se puede implementar una política de balanceo, por ahora voy "llenando" los NCs de Hojas de manera ordenada
-		centrales = ((AtributosAcceso) atributos).getCentrales();
-		for (Entry<String, HashMap<String, Comparable>> me : ((AtributosAcceso) this.atributos).getCentrales().entrySet()) {
-			if ((Integer) me.getValue().get("hojas_activas") < (Integer) me.getValue().get("hojas_max")) {
-				lista.add(me.getValue());
+		Set<String> actuales;
+
+		// TODO 2020-08-12: acá tengo un problema que se resolvería fijando los puertos para cada tipo de nodo y probando
+		// cada nodo en máquinas distintas o al menos en ips distintas -> el NH informa los NCs que conoce pero estos son los puertos donde atiende Hojas, disitntos a los que
+		// uso como key en atributos.getCentrales()
+		// Si los puertos fueran fijos (en el 10001 se atienden los WKAN, en el 10002 a los NCs y en el 10003 a los NH, lo único que cambiaría
+		// de nodo a nodo sería la IP, que es lo que usaría cómo key y chau picho
+		actuales = new HashSet<String>(((AtributosAcceso) this.atributos).getCentrales().keySet());
+		actuales.removeAll(excepciones);
+
+		// Política de balanceo de carga random
+		shuffled = new ArrayList<String>(actuales);
+		Collections.shuffle(shuffled);
+
+		for (String key : shuffled) {
+			nodo = ((AtributosAcceso) this.atributos).getCentrales().get(key);
+
+			if ((Integer) nodo.get("hojas_activas") < (Integer) nodo.get("hojas_max")) {
+				lista.add(nodo);
 				
 				if (lista.size() >= cantidad)
 					break;

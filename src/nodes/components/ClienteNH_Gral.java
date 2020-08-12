@@ -174,7 +174,10 @@ public class ClienteNH_Gral extends Cliente {
 		
 		if (amount.equals(0))
 			return output;
-	
+
+		// Lista de NCs actuales
+		params.put("conocidos", new HashSet<String>(((AtributosHoja) this.atributos).getCentrales().keySet()));
+
 		System.out.printf("[Cli %s]", this.idConsumidor);
 		System.out.printf(" enviando solicitud por <%s> NCs a WKAN", amount);
 		

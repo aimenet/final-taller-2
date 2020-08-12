@@ -23,7 +23,7 @@ public class Codigos {
 	public static final int NA_NC_POST_ACEPTAR_NH = 65;
 
 	// Usados entre NCs y NHs
-	public static final int NC_NH_ANUNCIO = 80;
+	public static final int NC_NH_POST_ANUNCIO = 80;
 
 	// Usados entre Hs y WKANs
 	public static final int NH_NA_POST_SOLICITUD_NCS = 70;

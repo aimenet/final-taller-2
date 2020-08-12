@@ -66,7 +66,7 @@ public class NodoAccesoBienConocido {
 		
 		// Definición de servidores -> moverlo a método si crece mucho
 		// ------------------------
-		servers.put("NABC", new Servidor(Integer.parseInt(config.getProperty("puerto_na")),
+		servers.put("NABC", new Servidor(config.getProperty("ip"), Integer.parseInt(config.getProperty("puerto_na")),
 	 			config.getProperty("nombre")+": Bien Conocidos", ConsultorNA_NA.class));
 		servers.put("CENTRALES", new Servidor(Integer.parseInt(config.getProperty("puerto_nc")),
 				config.getProperty("nombre")+": Centrales", ConsultorNA_NC.class));

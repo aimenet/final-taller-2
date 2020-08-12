@@ -2,6 +2,7 @@ package nodes.components;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -31,13 +32,25 @@ public class Servidor implements Runnable {
 	/* ------- */
 	public Servidor(Integer puerto, String nombre, Class<?> claseConsultor){
 		try {
+			InetAddress addr = InetAddress.getByName("127.0.0.2");
+
 			this.claseConsultor = claseConsultor;
-			this.sockServidor = new ServerSocket(puerto);
+			this.sockServidor = new ServerSocket(puerto, 50, addr);
 			this.nombre = nombre;
 		} catch (IOException e) {e.printStackTrace();}
 	}
 
-	
+	public Servidor(String ip, Integer puerto, String nombre, Class<?> claseConsultor){
+		try {
+			InetAddress addr = InetAddress.getByName(ip);
+
+			this.claseConsultor = claseConsultor;
+			this.sockServidor = new ServerSocket(puerto, 50, addr);
+			this.nombre = nombre;
+		} catch (IOException e) {e.printStackTrace();}
+	}
+
+
 	/**Método principal del servidor. Acepta conexiones de los distintos clientes, generando un hilo por c/u.*/
 	protected void atender(){
 		boolean run_flag = true;

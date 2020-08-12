@@ -100,7 +100,11 @@ public class AtributosHoja extends Atributos {
 
 	public void setId(String nc, String token) {
 		/* Almacena un ID otorgado por un NC a fin de identificarlo */
-		centrales.get(nc).idAsignado = token;
+
+		if (centrales.containsKey(nc))
+			centrales.get(nc).idAsignado = token;
+		else
+			encolarCentral(nc, token);
 	}
 
 	/**

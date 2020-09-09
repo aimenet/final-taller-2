@@ -66,12 +66,15 @@ public class NodoAccesoBienConocido {
 		
 		// Definición de servidores -> moverlo a método si crece mucho
 		// ------------------------
-		servers.put("NABC", new Servidor(config.getProperty("ip"), Integer.parseInt(config.getProperty("puerto_na")),
-	 			config.getProperty("nombre")+": Bien Conocidos", ConsultorNA_NA.class));
-		servers.put("CENTRALES", new Servidor(Integer.parseInt(config.getProperty("puerto_nc")),
-				config.getProperty("nombre")+": Centrales", ConsultorNA_NC.class));
-		servers.put("HOJAS", new Servidor(Integer.parseInt(config.getProperty("puerto_nh")),
-				config.getProperty("nombre")+": Hojas", ConsultorNA_NH.class));
+		servers.put("NABC", new Servidor(config.getProperty("ip"),
+				                         Integer.parseInt(config.getProperty("puerto_na")),
+				                         config.getProperty("nombre")+": Bien Conocidos", ConsultorNA_NA.class));
+		servers.put("CENTRALES", new Servidor(config.getProperty("ip"),
+				                              Integer.parseInt(config.getProperty("puerto_nc")),
+				                              config.getProperty("nombre")+": Centrales", ConsultorNA_NC.class));
+		servers.put("HOJAS", new Servidor(config.getProperty("ip"),
+				                          Integer.parseInt(config.getProperty("puerto_nh")),
+				                          config.getProperty("nombre")+": Hojas", ConsultorNA_NH.class));
 		
 		for (Servidor server : servers.values()) {
 			serverThreads.add(new Thread(server));
@@ -80,10 +83,7 @@ public class NodoAccesoBienConocido {
 		// Carga de atributos del NABC
 		// ---------------------------
 		atributos.setKeepaliveNodoVecino(Integer.parseInt(config.getProperty("keepalive_nodo_vecino")));
-		atributos.setDirecciones(config.getProperty("ip"),
-				                 Integer.parseInt(config.getProperty("puerto_na")), 
-				                 Integer.parseInt(config.getProperty("puerto_nc")), 
-				                 Integer.parseInt(config.getProperty("puerto_nh")));
+		atributos.setDireccion(config.getProperty("ip"));
 		
 		// NABC conocidos inicialmente
 		for (Object key : config.keySet()) {

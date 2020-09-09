@@ -85,17 +85,19 @@ public class AtributosHoja extends Atributos {
 
 	/**
 	 *
-	 * @param direccion  del NC
+	 * @param direccion  IP del NC
 	 * @param idAsignado por el NC a la Hoja
 	 */
 	public static void encolarCentral(String direccion, String idAsignado) {
 		/* Método que almacena los parámetros relacionados a la conexión (establecida o por establecer) dirección de un NC al que está (o debe estar) conectado la Hoja */
 
+		// 2020-08-19: al fijar los puertos voy a guardar sólo la IP de los NCs
+		direccion = direccion.split(":")[0];
+
 		if (!centrales.containsKey(direccion))
 				centrales.put(direccion, new ParametrosConexionNC(direccion, idAsignado));
 		else if (idAsignado != null && !centrales.get(direccion).idAsignado.equals(idAsignado))
 			centrales.get(direccion).idAsignado = idAsignado;
-
 	}
 
 	public void setId(String nc, String token) {

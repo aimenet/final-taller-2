@@ -60,7 +60,7 @@ public class Servidor implements Runnable {
 		
 		//System.out.println("Servidor concurrente " + this.nombre);
 		//System.out.println("-----------------------------------");
-		System.out.printf("[Server] [%s] corriendo en %s\n", this.nombre, Integer.toString(this.sockServidor.getLocalPort()));
+		System.out.printf("[Server] [%s] corriendo en %s\n", this.nombre, this.sockServidor.getLocalSocketAddress().toString());
 		try {
 			// Bucle principal donde recibe conexiones.
 			while (run_flag) {

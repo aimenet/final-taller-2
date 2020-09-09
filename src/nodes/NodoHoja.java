@@ -87,10 +87,7 @@ public class NodoHoja {
 		
 		// Seteo de los atributos de la H.
 		atributos = new AtributosHoja();
-		atributos.setDirecciones(config.getProperty("ip"),
-				Integer.parseInt(config.getProperty("puerto_na")), 
-				Integer.parseInt(config.getProperty("puerto_nc")), 
-				Integer.parseInt(config.getProperty("puerto_nh")));
+		atributos.setDireccion(config.getProperty("ip"));
 		
 		// Inicialización de las colas donde se cargarán las "tareas" 
 		atributos.setNombreColas(new String[] {"salida"});
@@ -105,11 +102,14 @@ public class NodoHoja {
 		// Definición de servidores
 		// La H por ser el Nodo más viejo que hice no tiene separados en distintos archivos los Consultores de c/u de los Nodos
 		servers.put("NABC",
-				new Servidor(Integer.parseInt(config.getProperty("puerto_na")), config.getProperty("nombre")+": Acceso", ConsultorH.class));
+				new Servidor(config.getProperty("ip"), Integer.parseInt(config.getProperty("puerto_na")),
+						config.getProperty("nombre")+": Acceso", ConsultorH.class));
 		servers.put("CENTRALES",
-				new Servidor(Integer.parseInt(config.getProperty("puerto_nc")), config.getProperty("nombre")+": Centrales", ConsultorH.class));
+				new Servidor(config.getProperty("ip"), Integer.parseInt(config.getProperty("puerto_nc")),
+						config.getProperty("nombre")+": Centrales", ConsultorH.class));
 		servers.put("HOJAS",
-				new Servidor(Integer.parseInt(config.getProperty("puerto_nh")), config.getProperty("nombre")+": Hojas", ConsultorH.class));
+				new Servidor(config.getProperty("ip"), Integer.parseInt(config.getProperty("puerto_nh")),
+						config.getProperty("nombre")+": Hojas", ConsultorH.class));
 		
 		for (Servidor server : servers.values())
 			serverThreads.add(new Thread(server));

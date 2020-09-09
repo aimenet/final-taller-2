@@ -6,6 +6,7 @@ import java.util.LinkedList;
 import java.util.Map;
 
 import commons.Tarea;
+import commons.structs.DireccionNodo;
 
 
 /**
@@ -31,8 +32,9 @@ public class Atributos {
 	public static HashMap<String,Object> locksColas;
 	public static HashMap<String,ArrayList<Tarea>> colas;
 	
-	// Direcciones (cada nodo podrá correr varios servidores para los distintos tipos de nodos, en distintos puertos)
-	private static volatile HashMap<String, Comparable> network =  new HashMap<String, Comparable>();
+	// Direcciones (de los servidores para los distintos tipos de nodos)
+	private static volatile DireccionNodo direccion = new DireccionNodo();
+	//private static volatile HashMap<String, Comparable> network =  new HashMap<String, Comparable>();
 	
 	// Constantes
 	private final int MAX_QUEUE_SIZE = 100;
@@ -93,19 +95,12 @@ public class Atributos {
 
 	
 	// Direcciones de red
-	public void setDirecciones(String ip, Integer acceso, Integer centrales, Integer hojas) {
-		// Método que modifica los atributos de la clase (static). Tener cuidado cuando y dónde se lo llama
-		network.put("ip", ip);
-		network.put("acceso", acceso);
-		network.put("centrales", centrales);
-		network.put("hojas", hojas);
+	public void setDireccion(String ip) {
+		direccion.ip = ip;
 	}
 	
 	public String getDireccion(String puerto) {
-		if (network.containsKey("ip") && network.containsKey(puerto))
-			return network.get("ip") + ":" + Integer.toString((int) network.get(puerto));
-		else
-			return "--.--.--.--:--";
+		return direccion.get(puerto);
 	}
 
 	

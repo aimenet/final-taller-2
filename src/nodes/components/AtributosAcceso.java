@@ -52,8 +52,7 @@ public class AtributosAcceso extends Atributos {
 	// Listado de WKAN
 	public void addNodos(ArrayList<String> nuevosNodos) {
 		synchronized (lockNodos) {
-			// Evito duplicados, asumiendo que los agregados tiene prioridad, sobreescribiendo a los existentes
-			// si se dieran repetidos
+			// Evito duplicados sobreescribiendo a los existentes, si corresponde
 			for (String nodo : nuevosNodos)
 				nodos.put(nodo, 0);
 		}

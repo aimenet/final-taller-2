@@ -72,10 +72,7 @@ public class NodoCentral /*implements Runnable*/ {
 		// Carga de atributos del NC
 		atributos = new AtributosCentral();
 		
-		atributos.setDirecciones(config.getProperty("ip"),
-				Integer.parseInt(config.getProperty("puerto_na")),
-                Integer.parseInt(config.getProperty("puerto_nc")),
-                Integer.parseInt(config.getProperty("puerto_nh")));
+		atributos.setDireccion(config.getProperty("ip"));
 		
 		// Punto de acceso a la red
 		atributos.setWKANAsignado(config.getProperty("wkan"));
@@ -89,13 +86,16 @@ public class NodoCentral /*implements Runnable*/ {
 		atributos.setColas();
 		
 		// Servidores
-		this.servers.put("hojas", new Servidor(Integer.parseInt(config.getProperty("puerto_nh")),
+		this.servers.put("hojas", new Servidor(config.getProperty("ip"),
+				                               Integer.parseInt(config.getProperty("puerto_nh")),
 				                               config.getProperty("nombre")+": Hojas",
 				                               ConsultorNC_H.class));
-		this.servers.put("centrales", new Servidor(Integer.parseInt(config.getProperty("puerto_nc")),
+		this.servers.put("centrales", new Servidor(config.getProperty("ip"),
+				                                   Integer.parseInt(config.getProperty("puerto_nc")),
 										           config.getProperty("nombre")+": Centrales",
 										           ConsultorNC_NC.class));
-		this.servers.put("acceso", new Servidor(Integer.parseInt(config.getProperty("puerto_na")),
+		this.servers.put("acceso", new Servidor(config.getProperty("ip"),
+				                                Integer.parseInt(config.getProperty("puerto_na")),
 		                                        config.getProperty("nombre")+": Acceso",
 		                                        ConsultorNC_NA.class));
 		

@@ -25,7 +25,7 @@ public class WKAN_Funciones {
 	// -------------------------------------------------------------------------------------------------------------
 	private boolean checkAcceptationCapacity() {
 		// Acá la lógica puede ser tan compleja como se quiera
-		return atributos.getCentrales().size() < atributos.maxNCCapacity;
+		return atributos.getCentrales().size() <atributos.maxNCCapacity;
 	}
 	
 	
@@ -82,7 +82,7 @@ public class WKAN_Funciones {
 		*
 		*  Se excluyen los NCs indicados en el conjunto excepciones
 		* */
-		0
+
 		LinkedList<HashMap<String, Comparable>> lista = new LinkedList<HashMap<String, Comparable>>();
 		List<String> shuffled;
 		HashMap<String, Comparable> nodo;

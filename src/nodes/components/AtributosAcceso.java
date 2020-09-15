@@ -1,17 +1,12 @@
 package nodes.components;
 
-import java.lang.reflect.Array;
+import commons.structs.DireccionNodo;
+
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
-import java.util.Map.Entry;
-
-import commons.Tarea;
 
 
 /**
@@ -33,7 +28,7 @@ public class AtributosAcceso extends Atributos {
 	// =========
 	// Los defino acá porque todas las instancias van a usar el atributo de la clase 
 	private static final Object lockNodos = new Object();
-	private static volatile HashMap<String, Integer> nodos = new HashMap<String, Integer>();
+	private static volatile HashMap<DireccionNodo, Integer> nodosAcceso = new HashMap<DireccionNodo, Integer>();
 	
 	private static volatile HashMap<String,HashMap<String, Comparable>> centrales = new HashMap<String,HashMap<String, Comparable>>();
 	
@@ -50,43 +45,45 @@ public class AtributosAcceso extends Atributos {
 	// Métodos
 	// =======
 	// Listado de WKAN
-	public void addNodos(ArrayList<String> nuevosNodos) {
+	public void addNodos(ArrayList<DireccionNodo> nuevosNodos) {
 		synchronized (lockNodos) {
 			// Evito duplicados sobreescribiendo a los existentes, si corresponde
-			for (String nodo : nuevosNodos)
-				nodos.put(nodo, 0);
+			for (DireccionNodo nodo : nuevosNodos)
+				nodosAcceso.put(nodo, 0);
 		}
 	}
 
-	public void activarNodo(String nodo) {
+	public void activarNodo(DireccionNodo nodo) {
+		// Nótese que si se "activa" un nodo que ya existía en el listado, a fin de cuentas lo que se hace es reiniciar
+		// el keepalive
 		synchronized (lockNodos) {
-			nodos.put(nodo, keepaliveNodoVecino);
+			nodosAcceso.put(nodo, keepaliveNodoVecino);
 		}
 	}
 	
-	public void setKeepaliveNodo(String nodo, Integer valor) {
+	public void setKeepaliveNodo(DireccionNodo nodo, Integer valor) {
 		synchronized (lockNodos) {
-			nodos.put(nodo, valor);
+			nodosAcceso.put(nodo, valor);
 		}
 	}
 
-	public String getRandomNABC() {
+	public DireccionNodo getRandomNABC() {
 		Integer indice;
 		Random generador = new Random();
-		String direccion = null;
+		DireccionNodo direccion = null;
 		
 		// No sicnronizo acceso porque sólo leo y es un hash. Me "quedo" con estas keys, si en el transcurso 
 		// aparecen nuevas no serán consideradas
-		List<String> claves = new ArrayList<String>(nodos.keySet());
+		List<DireccionNodo> claves = new ArrayList<DireccionNodo>(nodosAcceso.keySet());
 		boolean buscar = true;
 		
 		while (buscar && claves.size() > 0) {
 			indice = generador.nextInt(claves.size());
-			String key = (String) claves.get(indice);
+			DireccionNodo nodo = claves.get(indice);
 			
-			if (nodos.get(key) == keepaliveNodoVecino) {
+			if (nodosAcceso.get(nodo) == keepaliveNodoVecino) {
 				buscar = false;
-				direccion = key;
+				direccion = nodo;
 			} else {
 				claves.remove(indice);
 			}
@@ -128,15 +125,15 @@ public class AtributosAcceso extends Atributos {
 	
 	
 	// Getters
-	public HashMap<String, Integer> getNodos() {
+	public HashMap<DireccionNodo, Integer> getNodos() {
 		synchronized(lockNodos) {
-			return nodos;
+			return nodosAcceso;
 		}
 	}
 	
-	public Integer getStatusNodo(String nodo) {
+	public Integer getStatusNodo(DireccionNodo nodo) {
 		synchronized(lockNodos) {
-			return nodos.get(nodo);
+			return nodosAcceso.get(nodo);
 		}
 	}
 

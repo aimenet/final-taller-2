@@ -92,7 +92,8 @@ public class NodoAccesoBienConocido {
 				this.wkanIniciales.add(config.getProperty(clave));
 		}
 		if (this.wkanIniciales.size() > 0)
-			atributos.addNodos(wkanIniciales);
+			//Volveme
+			//atributos.addNodos(wkanIniciales);
 		
 		// Inicialización de las colas donde se cargarán las "tareas" 
 		atributos.setNombreColas(new String[] {"salida","centrales","interna"});
@@ -153,13 +154,14 @@ public class NodoAccesoBienConocido {
 			hilo.start();
 		
 		// Anuncio en la red para darse a conocer
-		for (String ip : atributos.getNodos().keySet()) {
+		//Volveme
+		/*for (String ip : atributos.getNodos().keySet()) {
 			try {
 				atributos.encolar("salida", new Tarea(00, "ANUNCIO", ip));
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
-		}
+		}*/
 		
 		System.out.println("Terminé de poner en marcha el nodo de acceso");
 		
@@ -170,6 +172,9 @@ public class NodoAccesoBienConocido {
 			// TODO: el "mandar" es para debuggeo, para limitar el envío de mensajes y que no sea un lío de paquetes
 			// que vienen y van
 			while(!terminar) {
+				// TODO 2020-09-13: hace falta tarea para ANUNCIO si no tengo WKAN activos
+				// -> supongo que podría anunciarse a todos, a cualquiera o al incial nada más
+
 				// Dispara tarea que actualiza el estado de los NCs administrados. Es una tarea interna del Nodo
 				try {
 					Thread.sleep(30000);

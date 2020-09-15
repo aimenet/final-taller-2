@@ -2,8 +2,10 @@ package commons.structs;
 
 import commons.Constantes;
 
+import java.net.InetAddress;
+
 public class DireccionNodo implements Comparable<DireccionNodo>{
-    public String ip;
+    public InetAddress ip;
     public Integer puerto_na;
     public Integer puerto_nc;
     public Integer puerto_nh;
@@ -15,7 +17,7 @@ public class DireccionNodo implements Comparable<DireccionNodo>{
         this.puerto_nh = Constantes.PUERTO_NH;
     }
 
-    public DireccionNodo(String ip) {
+    public DireccionNodo(InetAddress ip) {
         this.ip = ip;
         this.puerto_na = Constantes.PUERTO_NA;
         this.puerto_nc = Constantes.PUERTO_NC;
@@ -37,21 +39,36 @@ public class DireccionNodo implements Comparable<DireccionNodo>{
                 port = puerto_nh;
                 break;
             default:
-                return "--.--.--.--:--";
+                return ip.getHostName();
         }
 
-        return String.format("%s:%d", ip, port);
+        return String.format("%s:%d", ip.getHostName(), port);
     }
 
 
-    /**
-     * Se evalúan las direcciones IP de cada nodo, pero no los puertos definidos por cada uno
-     *
-     * @param otroNodo
-     * @return
-     */
+
     @Override
     public int compareTo(DireccionNodo otroNodo) {
-        return otroNodo.ip.compareTo(this.ip);
+        return otroNodo.ip.getHostName().compareTo(this.ip.getHostName());
     }
+
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+
+        DireccionNodo otroNodo = (DireccionNodo) obj;
+
+        return this.compareTo(otroNodo) == 0;
+    }
+
+
+    @Override
+    public int hashCode() {
+        String ipSinPuntos = this.ip.getHostName().replace(".", "");
+
+        return Integer.parseInt(ipSinPuntos);
+    }
+
 }

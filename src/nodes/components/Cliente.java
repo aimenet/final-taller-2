@@ -89,9 +89,11 @@ public abstract class Cliente implements Runnable {
 	protected boolean establecerConexion(String ip, Integer puerto) {
 		if (this.conexionEstablecida)
 			this.terminarConexion();
-
+		// TODO 2020-09-10: esto es para debuggear en la misma máquina, no tengo que especificar ip+port locales si esto
+		//                  corriera en prod
 		try {
-			this.conexionConNodo = new ConexionTcp(ip, puerto);
+			//this.conexionConNodo = new ConexionTcp(ip, puerto); // prod
+			this.conexionConNodo = new ConexionTcp(ip, puerto, atributos.getDireccion(null), 0); // debug
 			this.conexionEstablecida = true;
 		} catch (IOException e) {
 			System.out.printf("[Cli %s] No se pudo establecer conexión con el servidor", this.id);

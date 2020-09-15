@@ -1,4 +1,5 @@
 package commons;
+import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Scanner;
@@ -43,6 +44,16 @@ public class ConexionTcp /*implements  InterfazConexion*/ {
 //		System.out.println(String.format("*** Socket conectando <%s> con <%s>", origen, destino));
 	}
 
+
+	public ConexionTcp(String hostIp, Integer hostPuerto, String localIp, Integer localPuerto) throws IOException {
+		// Este lo voy a usar para debug más que nada
+
+		InetAddress localAddress = InetAddress.getByName(localIp);
+
+		sock = new Socket(hostIp, hostPuerto, localAddress, localPuerto);
+		buffSalida = new ObjectOutputStream(sock.getOutputStream());
+		buffEntrada = new ObjectInputStream(sock.getInputStream());
+	}
 
 	public Object enviarConRta(Serializable carga){
 		Object respuesta;

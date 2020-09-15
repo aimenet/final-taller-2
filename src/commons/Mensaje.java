@@ -1,5 +1,8 @@
 package commons;
+import commons.structs.DireccionNodo;
+
 import java.io.Serializable;
+import java.net.InetAddress;
 
 /**Unidad de datos intercambiada entre Cliente (Nodo Hoja) y Servidor (Nodo Central).
  * Posee un código entero que indica la acción a realizar y una carga que por ahora es un String.
@@ -13,7 +16,7 @@ public class Mensaje implements Serializable {
 	/*-----------*/
 	private Integer codigo, ttl;
 	private Object carga;
-	private String emisor;
+	private DireccionNodo emisor;
 	
 	// Usados por mensajes que se envían entre NCs
 	private String origen, ncEmisor, recepcionRta;
@@ -23,26 +26,9 @@ public class Mensaje implements Serializable {
 	/* Métodos */
 	/*---------*/
 //  Constructor básico: enviado desde Hoja a NC con consulta ¿y desde H a H para descarga?
-	public Mensaje(String idEmisor, String direccionRta, Integer codigo, Object carga){
-		this.emisor = idEmisor;
-		this.recepcionRta = direccionRta;
-		this.codigo = codigo;
-		this.carga = carga;
-		
-		this.ttl = 1;
-		this.origen = null;
-		this.ncEmisor = null;
-	}
-	
-	// Constructor básico (deprecated): enviado desde Hoja a NC
 
-	/**
-	 *
-	 * @param emisor
-	 * @param codigo
-	 * @param carga
-	 */
-	public Mensaje(String emisor, Integer codigo, Object carga){
+
+	public Mensaje(DireccionNodo emisor, Integer codigo, Object carga) {
 		this.emisor = emisor;
 		this.codigo = codigo;
 		this.carga = carga;
@@ -51,7 +37,27 @@ public class Mensaje implements Serializable {
 		this.origen = null;
 		this.ncEmisor = null;
 	}
-	
+
+	// Getters.
+	// -------------------------------------------
+	public Integer getCodigo() {return codigo;}
+
+	public DireccionNodo getEmisor() {return emisor;}
+
+	// 2020-09-11: lo mato hasta que llegue su turno
+	/*
+	public Mensaje(String idEmisor, String direccionRta, Integer codigo, Object carga){
+		this.emisor = idEmisor;
+		this.recepcionRta = direccionRta;
+		this.codigo = codigo;
+		this.carga = carga;
+
+		this.ttl = 1;
+		this.origen = null;
+		this.ncEmisor = null;
+	}
+
+
 	// Constructor usado por NC
 	public Mensaje(String emisor, Integer codigo, Integer ttl, Object carga){
 		this.emisor = emisor;
@@ -87,15 +93,8 @@ public class Mensaje implements Serializable {
 	public void decrementarTTL(){
 		ttl -= 1;
 	}
-	
-	//Getters.
-	public String getEmisor(){
-		return emisor;
-	}
-	
-	public Integer getCodigo(){
-		return codigo;
-	}
+
+
 	
 	public Integer getTTL(){
 		return ttl;
@@ -141,4 +140,7 @@ public class Mensaje implements Serializable {
 		else
 			return (getCodigo().toString() + " - <" + getCarga().toString() + ">");
 	}
+
+
+	 */
 }

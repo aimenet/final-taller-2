@@ -1,5 +1,6 @@
 package nodes.components;
 
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -95,22 +96,18 @@ public class Atributos {
 
 	
 	// Direcciones de red
-	public void setDireccion(String ip) {
+	public void setDireccion(InetAddress ip) {
 		direccion.ip = ip;
 	}
 	
-	public String getDireccion(String puerto) {
-		return direccion.get(puerto);
-	}
+	public DireccionNodo getDireccion() {return direccion;}
 
-	
 	// Getters grales.
 	public Object getLockCola(String cola) {
 		synchronized(locksColas) {
 			return locksColas.get(cola);
 		}
 	}
-	
 
 } //Fin clase
 

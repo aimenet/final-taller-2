@@ -12,6 +12,7 @@ import commons.Codigos;
 import commons.Mensaje;
 import commons.Tarea;
 import commons.Tupla2;
+import commons.structs.DireccionNodo;
 import org.apache.commons.io.input.ObservableInputStream;
 
 /**
@@ -28,6 +29,8 @@ public class ConsultorNA_NA implements Consultor {
 	/* --------- */
 	// De cada instancia
 	private AtributosAcceso atributos = new AtributosAcceso();
+	private ObjectInputStream buffEntrada;
+	private ObjectOutputStream buffSalida;
 	private Socket sock;
 	private WKAN_Funciones funciones = new WKAN_Funciones();
 	
@@ -39,6 +42,29 @@ public class ConsultorNA_NA implements Consultor {
 	/* -------- */
 	// Métodos que se usan para atender los distintos tipos de órdenes recibidas en una Tarea
 	// ---------------------------------------------------------------------------------------------------
+	private HashMap<String, Object> anuncioFnc(Mensaje mensaje) throws InterruptedException, IOException {
+		/*
+		* Un WKAN se anuncia a fin de ingresar a la red.
+		*
+		* mensaje: no tiene payload, lo importante es el emisor
+		* */
+
+		DireccionNodo anunciante = mensaje.getEmisor();
+
+		// Estos son comunes a todas las funciones
+		HashMap<String, Object> output = new HashMap<String, Object>();
+		output.put("callBackOnSuccess", false);
+		output.put("callBackOnFailure", false);
+		output.put("result", true);
+
+		System.out.printf("Recibido anuncio de WKAN en %s ", anunciante.ip.getHostName());
+		this.buffSalida.writeObject(new Mensaje(this.atributos.getDireccion(), Codigos.OK, null));
+		System.out.printf("[CONFIRMADO]\n");
+		this.atributos.activarNodo(anunciante);
+
+		return output;
+	}
+
 	private HashMap<String, Object> retransmisionSolicitudNcsNh(HashMap<String, Object> params) throws InterruptedException {
 		// Método en el que se retransmite a un WKAN random un mensaje emitido por un NH solicitando NCs a los
 		// que conectarse.
@@ -134,25 +160,24 @@ public class ConsultorNA_NA implements Consultor {
 		Mensaje mensaje;
 		boolean terminar = false;
 		ObjectInputStream buffEntrada;
-		ObjectOutputStream buffSalida;
+		//ObjectOutputStream buffSalida;
 		String ipDestino;
 		String strAux;
 		
 		try {
 			// Instanciación de los manejadores del buffer.
-			buffSalida = new ObjectOutputStream(sock.getOutputStream());
+			this.buffSalida = new ObjectOutputStream(sock.getOutputStream());
 			buffEntrada = new ObjectInputStream(sock.getInputStream());
 			
 			// Bucle principal de atención al cliente. Finalizará cuando este indica que cerrará la conexión
+
 			while(!terminar){
 				mensaje = (Mensaje) buffEntrada.readObject();
-				
+
+				// 2020-07-25 todo este switch debería ser como el de ClienteNA_NC.java que es mucho más claro (o el de algún Consultor que haya hecho mś prolijo)
 				switch(mensaje.getCodigo()){
 					case Codigos.NA_NA_POST_SALUDO:
-						System.out.printf("Recibido anuncio de WKAN en %s ", mensaje.getEmisor());
-						buffSalida.writeObject(new Mensaje(null, Codigos.OK, null));
-						System.out.printf("[CONFIRMADO]\n");
-						this.atributos.activarNodo(mensaje.getEmisor());
+						this.anuncioFnc(mensaje);
 						break;
 					case Codigos.NA_NA_POST_ANUNCIO_ACTIVOS:
 						System.out.printf("Recibido listado de WKAN en %s", mensaje.getEmisor());
@@ -162,7 +187,8 @@ public class ConsultorNA_NA implements Consultor {
 						// TODO: oportunidad de mejora
 						confirmados.remove(this.atributos.getDireccion("acceso"));
 						for (String nodo : confirmados)
-							this.atributos.activarNodo(nodo);
+							//Volveme
+							//this.atributos.activarNodo(nodo);
 						
 						System.out.printf(" [ACTUALIZADO]\n");
 						break;

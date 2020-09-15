@@ -9,6 +9,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import commons.Tarea;
+import commons.structs.DireccionNodo;
 import nodes.components.AtributosAcceso;
 
 public class Standalone {
@@ -84,7 +85,20 @@ public class Standalone {
 
 
 	public static void main(String[] args) {
-		System.out.println(Math.pow(3,2));
+		HashMap<DireccionNodo, Integer> lista = new HashMap<DireccionNodo, Integer>();
+
+		DireccionNodo dir1 = new DireccionNodo("127.0.0.1");
+		DireccionNodo dir2 = new DireccionNodo("127.0.0.2");
+
+		lista.put(dir1, 0);
+		lista.put(dir2, 3);
+
+		System.out.println("DBG 1");
+
+		lista.put(new DireccionNodo("127.0.0.1"), 5);
+		lista.put(new DireccionNodo("127.0.0.3"), 1);
+
+		System.out.println("DBG 2");
 	}
 }
 

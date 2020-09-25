@@ -2,6 +2,8 @@ package nodes;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Properties;
@@ -43,7 +45,7 @@ public class NodoAccesoBienConocido {
     private ArrayList<String> wkanIniciales;
     
 	//TODO: éste creo que va a ser el único Nodo que al final recibirá archivo de configuración
-	public NodoAccesoBienConocido(String archivoConfiguracion){
+	public NodoAccesoBienConocido(String archivoConfiguracion) throws UnknownHostException {
 		Integer aux_puerto;
 		String aux_ip;
 		
@@ -83,7 +85,7 @@ public class NodoAccesoBienConocido {
 		// Carga de atributos del NABC
 		// ---------------------------
 		atributos.setKeepaliveNodoVecino(Integer.parseInt(config.getProperty("keepalive_nodo_vecino")));
-		atributos.setDireccion(config.getProperty("ip"));
+		atributos.setDireccion(InetAddress.getByName(config.getProperty("ip")));
 		
 		// NABC conocidos inicialmente
 		for (Object key : config.keySet()) {

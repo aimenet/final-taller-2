@@ -103,45 +103,6 @@ public class ClienteNA_NA extends Cliente {
 		return output;
 	}
 
-	private HashMap<String, Object> informarWKANsFnc() throws InterruptedException {
-		/*
-		 * Dispara una serie de tareas (una por nodo activo) para informar el estado actual de la red (al menos la
-		 * conocida por este nodo)
-		 *
-		 * params: {}
-		 *
-		 * */
-
-		HashMap<String, Object> output = new HashMap<String, Object>();
-
-		// Estos son comunes a todas las funciones
-		output.put("callBackOnSuccess", false);
-		output.put("callBackOnFailure", false);
-		output.put("result", true);
-
-		LinkedList<DireccionNodo> nodosActivos = new LinkedList<DireccionNodo>();
-		Tupla2<DireccionNodo, LinkedList<DireccionNodo>> nodoAInformar;
-		Integer contador = 0;
-
-		System.out.printf("Consumidor %s: ejecutando INFORMAR_WKANS\n", this.id);
-
-		for (Entry<DireccionNodo, Integer> me : ((AtributosAcceso) this.atributos).getNodos().entrySet()) {
-			// Sólo informa a aquellos nodos que se sabe con certeza que están activos
-			if (me.getValue() == ((AtributosAcceso) this.atributos).keepaliveNodoVecino)
-				nodosActivos.add(me.getKey());
-		}
-
-		for (DireccionNodo nodo : nodosActivos) {
-			nodoAInformar = new Tupla2<DireccionNodo, LinkedList<DireccionNodo>>(nodo, nodosActivos);
-			atributos.encolar("salida", new Tarea(00, "INFORMAR_CONOCIDOS", nodoAInformar));
-			contador += 1;
-		}
-
-		System.out.printf("Consumidor %s: disparadas %s tareas de INFORMAR_CONOCIDOS\n", this.id, contador);
-
-		return output;
-	}
-
 	private HashMap<String, Object> informarConocidosFnc(HashMap<String, Object> params) {
 		/*
 		 * Se informa a un WKAN determinado, el listado de todos los WKANs (activos) conocidos hasta el momento
@@ -184,6 +145,45 @@ public class ClienteNA_NA extends Cliente {
 			((AtributosAcceso) this.atributos).setKeepaliveNodo((DireccionNodo) params.get("direccion"), status);
 			System.out.printf(" [FALLIDO]\n");
 		}
+
+		return output;
+	}
+
+	private HashMap<String, Object> informarWKANsFnc() throws InterruptedException {
+		/*
+		 * Dispara una serie de tareas (una por nodo activo) para informar el estado actual de la red (al menos la
+		 * conocida por este nodo)
+		 *
+		 * params: {}
+		 *
+		 * */
+
+		HashMap<String, Object> output = new HashMap<String, Object>();
+
+		// Estos son comunes a todas las funciones
+		output.put("callBackOnSuccess", false);
+		output.put("callBackOnFailure", false);
+		output.put("result", true);
+
+		LinkedList<DireccionNodo> nodosActivos = new LinkedList<DireccionNodo>();
+		Tupla2<DireccionNodo, LinkedList<DireccionNodo>> nodoAInformar;
+		Integer contador = 0;
+
+		System.out.printf("Consumidor %s: ejecutando INFORMAR_WKANS\n", this.id);
+
+		for (Entry<DireccionNodo, Integer> me : ((AtributosAcceso) this.atributos).getNodos().entrySet()) {
+			// Sólo informa a aquellos nodos que se sabe con certeza que están activos
+			if (me.getValue() == ((AtributosAcceso) this.atributos).keepaliveNodoVecino)
+				nodosActivos.add(me.getKey());
+		}
+
+		for (DireccionNodo nodo : nodosActivos) {
+			nodoAInformar = new Tupla2<DireccionNodo, LinkedList<DireccionNodo>>(nodo, nodosActivos);
+			atributos.encolar("salida", new Tarea(00, "INFORMAR_CONOCIDOS", nodoAInformar));
+			contador += 1;
+		}
+
+		System.out.printf("Consumidor %s: disparadas %s tareas de INFORMAR_CONOCIDOS\n", this.id, contador);
 
 		return output;
 	}
@@ -247,15 +247,26 @@ public class ClienteNA_NA extends Cliente {
 	}
 
 	private HashMap<String, Object> retransmitirSolicitudNcsNh(HashMap<String, Object> params) {
-		// Método en el que se retransmite a un WKAN random un mensaje emitido por un NH solicitando NCs a los
-		// que conectarse.
-		// Se elige aleatoriamente como medida (muy simple) de distribución equitativa de mensajes en la red
-
+		/**
+		 * Método en el que se retransmite a un WKAN random un mensaje emitido por un NH solicitando NCs a los
+		 * que conectarse.
+		 * Se elige aleatoriamente como medida (muy simple) de distribución equitativa de mensajes en la red.
+		 *
+		 * params: {
+		 *     "direccionNH_NA"
+		 * 	   "direccionNH_NC"
+		 * 	   "pendientes"
+		 * 	   "consultados"
+		 * 	   "saltos"
+		 *
+		 * }
+		 *
+		 */
+		DireccionNodo wkanDestino = null;
 		HashMap<String, Object> output = new HashMap<String, Object>();
 		HashMap<String, Object> payload = new HashMap<String, Object>();
 		Integer contador, saltos;
 		LinkedList<String> wkanConsultados;
-		String wkanDestino = null;
 
 
 		// Estos son comunes a todas las funciones
@@ -295,20 +306,24 @@ public class ClienteNA_NA extends Cliente {
 		System.out.printf("[Cli %s]\t", this.id);
 		// Si no conoce ningún WKAN (o fallaron todos los intentos de elegir uno no visitado) no hace nada.
 		if (wkanDestino != null) {
-			String ipDestino = wkanDestino.split(":")[0];
-			Integer puertoDestino = Integer.parseInt(wkanDestino.split(":")[1]);
-
 			System.out.printf("enviando solicitud de NCs para NH a %s", wkanDestino);
-			//if (this.establecerConexionConNodoAcceso(ipDestino, puertoDestino)) {
-			if (this.establecerConexion(ipDestino, puertoDestino)) {
-				//this.conexionConNodoAcceso.enviarSinRta(new Mensaje(this.atributos.getDireccion("acceso"),
-				this.conexionConNodo.enviarSinRta(new Mensaje(this.atributos.getDireccion(),
-						Codigos.NA_NA_POST_RETRANSMISION_NH_SOLICITUD_NC, payload));
+
+			if (this.establecerConexion(wkanDestino.ip.getHostName(), wkanDestino.puerto_na)) {
+				this.conexionConNodo.enviarSinRta(
+						new Mensaje(
+								this.atributos.getDireccion(),
+								Codigos.NA_NA_POST_RETRANSMISION_NH_SOLICITUD_NC,
+								payload
+						)
+				);
+
 				System.out.printf(" [COMPLETADO]\n");
 			} else {
 				Integer status = ((AtributosAcceso) this.atributos).getStatusNodo(wkanDestino);
 				status = status <= 0 ? 0 : status - 1;
-				//((AtributosAcceso) this.atributos).setKeepaliveNodo(wkanDestino, status);
+
+				((AtributosAcceso) this.atributos).setKeepaliveNodo(wkanDestino, status);
+
 				System.out.printf(" [FALLIDO]\n");
 			}
 		} else {
@@ -318,6 +333,92 @@ public class ClienteNA_NA extends Cliente {
 		return output;
 	}
 
+	private HashMap<String, Object> solicitarNCsVecinos(HashMap<String, Object> params) {
+		/**
+		 * Se aceptó un NC y ahora debe comenzar la transmisión del mensaje entre WKANs para solicitar NCs a los que
+		 * enlazar al recién integrado.
+		 *
+		 * El mensaje se envía de a un WKAN a la vez, elegido aleatoriamente, para no inundar la red.
+		 * Se definen una cantidad de saltos máxima (3 veces la cantidad de NCs a los que se conecta un NC) y se
+		 * registran los NABC por los que pasa el mensaje a fin de no duplicar la rta. Si el WKAN posee un NC que pueda
+		 * ser vecino del solicitante se lo informa directamente.
+		 * La rta del NC indicará si aún no completó la cantidad requerida de vecinos para que el WKAN retransmita el
+		 * mensaje o lo descarte, según corresponda.
+		 * Aquél WKAN que reciba el mensaje de forma repetida simplemente lo retransmitirá.
+		 *
+		 * params: {
+		 *     "ncDestino": DireccionNodo, la IP del WKAN al que conectarse
+		 *     "preparado": boolean, identifica que la solicitud vino de ???
+		 *     "consultados"
+		 *     "saltos"
+		 *     "ncsRestantes"
+		 * }
+		 *
+		 */
+
+		HashMap<String, Object> output = new HashMap<String, Object>();
+
+		// Estos son comunes a todas las funciones
+		output.put("callBackOnSuccess", false);
+		output.put("callBackOnFailure", false);
+		output.put("result", true);
+
+
+		DireccionNodo ncDestino = (DireccionNodo) params.get("ncDestino");
+		DireccionNodo wkanDestino = null;
+
+		// Armado del payload de la consulta (donde está toda la información de "control" para todo esto
+		// El payload puede tener distintos formatos, dependiendo de quién haya generado la tarea
+		if (!params.containsKey("preparado")) {
+			LinkedList<DireccionNodo> consultados = new LinkedList<DireccionNodo>();
+			consultados.add(atributos.getDireccion());
+
+			params = new HashMap<String, Object>();
+			params.put("consultados", consultados);
+			params.put("saltos", 9);
+			params.put("ncDestino", ncDestino);
+			params.put("ncsRestantes", 3); // TODO: esto no tiene que estar hardcodeado
+		}
+
+		// Valida que el WKAN elegido no haya sido consultado previamente
+		Integer contador = 5;
+		while (contador > 0) {
+			wkanDestino = ((AtributosAcceso) atributos).getRandomNABC();
+			if ( !((LinkedList<DireccionNodo>) params.get("consultados")).contains(wkanDestino) ) {
+				contador = 0;
+			} else {
+				wkanDestino = null;
+			}
+		}
+
+		System.out.printf("[Cli %s]\t", this.id);
+		// Si no conoce ningún WKAN (o fallaron todos los intentos de elegir uno no visitado) no hace nada.
+		if (wkanDestino != null) {
+			System.out.printf("enviando solicitud de vecinos para nuevo NC a %s", wkanDestino.ip.getHostName());
+
+			if (this.establecerConexion(wkanDestino.ip.getHostName(), wkanDestino.puerto_na)) {
+				this.conexionConNodo.enviarSinRta(
+						new Mensaje(
+								this.atributos.getDireccion(),
+								Codigos.NA_NA_POST_SOLICITUD_VECINOS_NC,
+								params
+						)
+				);
+
+				System.out.printf(" [COMPLETADO]\n");
+			} else {
+				Integer status = ((AtributosAcceso) this.atributos).getStatusNodo(wkanDestino);
+				status = status <= 0 ? 0 : status - 1;
+
+				((AtributosAcceso) this.atributos).setKeepaliveNodo(wkanDestino, status);
+				System.out.printf(" [FALLIDO]\n");
+			}
+		} else {
+			System.out.printf("no se encontró WKAN al que enviar solicitud de vecinos\n");
+		}
+
+		return output;
+	}
 
 	@Override
 	public HashMap<String, Comparable> procesarTarea(Tarea tarea) throws InterruptedException {
@@ -362,85 +463,15 @@ public class ClienteNA_NA extends Cliente {
 			case "RETRANSMITIR_ANUNCIO_NC":
 				hashmapPayload = new HashMap<String, Object>();
 				hashmapPayload.put("nc_pendiente", (DireccionNodo) tarea.getPayload());
-	
+
 				this.retransmitirAnuncioNCFnc(hashmapPayload);
-				
+
 				break;
 			case "SOLICITAR_NCS_VECINOS":
-				// Se aceptó un NC y ahora debe comenzar la transmisión del mensaje entre WKANs
-				// para solicitar
-				// NCs a los que enlazar al recién integrado.
-	
-				// El mensaje se envía de a un WKAN a la vez, elegido aleatoriamente, para no
-				// inundar la red.
-				// Se definen una cantidad de saltos máxima (3 veces la cantidad de NCs a los
-				// que se conecta un NC)
-				// y se registran los NABC por los que pasa el mensaje a fin de no duplicar la
-				// rta.
-				// Si el WKAN posee un NC que pueda ser vecino del solicitante se lo informa
-				// directamente.
-				// La rta del NC indicará si aún no completó la cantidad requerida de vecinos
-				// para que el WKAN
-				// retransmita el mensaje o lo descarte, según corresponda.
-				// Aquél WKAN que reciba el mensaje de forma repetida simplemente lo
-				// retransmitirá.
-				hashmapPayload = (HashMap<String, Object>) tarea.getPayload();
-				ncDestino = (String) hashmapPayload.get("ncDestino");
-				wkanDestino = null;
-				
-				// Armado del payload de la consulta (donde está toda la información de "control" para todo esto
-				// El payload puede tener distintos formatos, dependiendo de quién haya generado la tarea
-				if (!hashmapPayload.containsKey("preparado")) {
-					strList = new LinkedList<String>();
-					strList.add(atributos.getDireccion().ip.getHostName());
-	
-					hashmapPayload = new HashMap<String, Object>();
-					hashmapPayload.put("consultados", strList);
-					hashmapPayload.put("saltos", 9);
-					hashmapPayload.put("ncDestino", ncDestino);
-					hashmapPayload.put("ncsRestantes", 3); // TODO: esto no tiene que estar hardcodeado
-				}
-				
-				// Valida que el WKAN elegido no haya sido consultado previamente
-				contador = 5;
-				while (contador > 0) {
-					wkanDestino = ((AtributosAcceso) atributos).getRandomNABC();
-					if ( !((LinkedList<String>) hashmapPayload.get("consultados")).contains(wkanDestino) ) {
-						contador = 0;
-					} else {
-						wkanDestino = null;
-					}
-				}
-		
-				System.out.printf("[Cli %s]\t", this.id);
-				// Si no conoce ningún WKAN (o fallaron todos los intentos de elegir uno no visitado) no hace nada.
-				if (wkanDestino != null) {
-					ipDestino = wkanDestino.split(":")[0];
-					puertoDestino = Integer.parseInt(wkanDestino.split(":")[1]);
-		
-					System.out.printf("enviando solicitud de vecinos para nuevo NC a %s", wkanDestino);
-					//if (this.establecerConexionConNodoAcceso(ipDestino, puertoDestino)) {
-					if (this.establecerConexion(ipDestino, puertoDestino)) {
-						//this.conexionConNodoAcceso.enviarSinRta(new Mensaje(this.atributos.getDireccion("acceso"),
-						this.conexionConNodo.enviarSinRta(new Mensaje(this.atributos.getDireccion(),
-								Codigos.NA_NA_POST_SOLICITUD_VECINOS_NC, hashmapPayload));
-						System.out.printf(" [COMPLETADO]\n");
-					} else {
-						status = ((AtributosAcceso) this.atributos).getStatusNodo(wkanDestino);
-						status = status <= 0 ? 0 : status - 1;
+				this.solicitarNCsVecinos((HashMap<String, Object>) tarea.getPayload());
 
-						//VOLVEME
-						//((AtributosAcceso) this.atributos).setKeepaliveNodo(wkanDestino, status);
-						System.out.printf(" [FALLIDO]\n");
-					}
-				} else {
-					System.out.printf("no se encontró WKAN al que enviar solicitud de vecinos\n");
-				}
 				break;
 			case "RETRANSMITIR_SOLICITUD_NCS_NH":
-				// Retransmite un pedido de NCs emitido por un NH a otros WKANs. Estos últimos nodos se escogen
-				// aleatoriamente como medida rudimentaria de balancear la distribución de nodos en la red
-
 				this.retransmitirSolicitudNcsNh((HashMap<String, Object>) tarea.getPayload());
 
 				break;
@@ -448,35 +479,6 @@ public class ClienteNA_NA extends Cliente {
 		return salida;
 	}
 
-/*	private boolean establecerConexionConNodoAcceso(String ip, Integer puerto) {
-		if (this.conexionEstablecida)
-			this.terminarConexionConNodoAcceso();
 
-		try {
-			this.conexionConNodoAcceso = new ConexionTcp(ip, puerto);
-			this.conexionEstablecida = true;
-		} catch (IOException e) {
-			System.out.println("No se pudo establecer conexión con el servidor");
-			conexionEstablecida = false;
-		}
-
-		return this.conexionEstablecida;
-	}
-
-	private boolean terminarConexionConNodoAcceso() {
-		if (this.conexionEstablecida) {
-			this.conexionConNodoAcceso.cerrar();
-			this.conexionEstablecida = false;
-		}
-
-		return this.conexionEstablecida;
-	}
-*/
 }
 
-/**
- * [2019-10-19] En las pruebas que hice hasta ahora sólo está consumiendo uno de
- * los threads consumidor, no sé por qué el notifyall() de los métodos de
- * encolado/desencolado de tareas pareciera despertar siempre al mismo (por más
- * que use retardos aleatorios para evitarlo)
- */

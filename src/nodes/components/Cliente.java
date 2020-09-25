@@ -93,7 +93,7 @@ public abstract class Cliente implements Runnable {
 		//                  corriera en prod
 		try {
 			//this.conexionConNodo = new ConexionTcp(ip, puerto); // prod
-			this.conexionConNodo = new ConexionTcp(ip, puerto, atributos.getDireccion(null), 0); // debug
+			this.conexionConNodo = new ConexionTcp(ip, puerto, atributos.getDireccion().ip.getHostName(), 0); // debug
 			this.conexionEstablecida = true;
 		} catch (IOException e) {
 			System.out.printf("[Cli %s] No se pudo establecer conexión con el servidor", this.id);

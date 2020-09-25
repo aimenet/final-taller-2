@@ -25,7 +25,7 @@ public class DireccionNodo implements Comparable<DireccionNodo>{
     }
 
 
-    public String get(String puerto) {
+    public String getUnaDireccion(String puerto) {
         Integer port;
 
         switch(puerto) {

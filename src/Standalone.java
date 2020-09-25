@@ -1,3 +1,5 @@
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -84,19 +86,19 @@ public class Standalone {
 	}
 
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws UnknownHostException {
 		HashMap<DireccionNodo, Integer> lista = new HashMap<DireccionNodo, Integer>();
 
-		DireccionNodo dir1 = new DireccionNodo("127.0.0.1");
-		DireccionNodo dir2 = new DireccionNodo("127.0.0.2");
+		DireccionNodo dir1 = new DireccionNodo(InetAddress.getByName("127.0.0.1"));
+		DireccionNodo dir2 = new DireccionNodo(InetAddress.getByName("127.0.0.2"));
 
 		lista.put(dir1, 0);
 		lista.put(dir2, 3);
 
 		System.out.println("DBG 1");
 
-		lista.put(new DireccionNodo("127.0.0.1"), 5);
-		lista.put(new DireccionNodo("127.0.0.3"), 1);
+		lista.put(new DireccionNodo(InetAddress.getByName("127.0.0.1")), 5);
+		lista.put(new DireccionNodo(InetAddress.getByName("127.0.0.3")), 1);
 
 		System.out.println("DBG 2");
 	}

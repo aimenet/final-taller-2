@@ -30,7 +30,7 @@ public class AtributosAcceso extends Atributos {
 	private static final Object lockNodos = new Object();
 	private static volatile HashMap<DireccionNodo, Integer> nodosAcceso = new HashMap<DireccionNodo, Integer>();
 	
-	private static volatile HashMap<String,HashMap<String, Comparable>> centrales = new HashMap<String,HashMap<String, Comparable>>();
+	private static volatile HashMap<DireccionNodo,HashMap<String, Comparable>> centrales = new HashMap<DireccionNodo,HashMap<String, Comparable>>();
 	
 	// Parámetros "operativos"
 	public static int keepaliveNC = 30;  // segundos -> TODO: debería venir de config
@@ -94,13 +94,12 @@ public class AtributosAcceso extends Atributos {
 	
 	
 	// Nodos Centrales
-	public HashMap nuevoCentral(String direccion_NA, String direccion_NC, String direccion_NH) {
+	// -----------------------------------------------------------------------------------------------------------------
+	public HashMap nuevoCentral(DireccionNodo central) {
 		HashMap<String, Comparable> nuevo =  new HashMap<String, Comparable>();
 		
 		// TODO: breve descripción de c/u
-		nuevo.put("direccion_NA", direccion_NA);
-		nuevo.put("direccion_NC", direccion_NC);
-		nuevo.put("direccion_NH", direccion_NH);
+		nuevo.put("direccion", central);
 		nuevo.put("hojas_max", 10);
 		nuevo.put("hojas_activas", 0);
 		nuevo.put("centrales_max", 6);
@@ -111,15 +110,15 @@ public class AtributosAcceso extends Atributos {
 		return nuevo;
 	}
 	
-	public void encolarCentral(HashMap nodo) {
-		centrales.put((String)nodo.get("direccion_NA"), nodo);
+	public void encolarCentral(HashMap<String, Comparable> nodo) {
+		centrales.put((DireccionNodo) nodo.get("direccion"), nodo);
 	}
 	
-	public void desencolarCentral(String direccion) {
+	public void desencolarCentral(DireccionNodo direccion) {
 		centrales.remove(direccion);
 	}
 	
-	public HashMap<String, HashMap<String, Comparable>> getCentrales() {
+	public HashMap<DireccionNodo, HashMap<String, Comparable>> getCentrales() {
 		return centrales;
 	}
 	

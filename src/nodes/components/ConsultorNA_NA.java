@@ -6,14 +6,12 @@ import java.net.Socket;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.Set;
 
 import commons.Codigos;
 import commons.Mensaje;
 import commons.Tarea;
 import commons.Tupla2;
 import commons.structs.DireccionNodo;
-import org.apache.commons.io.input.ObservableInputStream;
 
 /**
  * Consultor que corre en hilos generado por el Servidor de Nodos de Acceso. Es el
@@ -42,7 +40,7 @@ public class ConsultorNA_NA implements Consultor {
 	/* -------- */
 	// Métodos que se usan para atender los distintos tipos de órdenes recibidas en una Tarea
 	// ---------------------------------------------------------------------------------------------------
-	private HashMap<String, Object> anuncioFnc(Mensaje mensaje) throws InterruptedException, IOException {
+	private HashMap<String, Object> anuncioFnc(Mensaje mensaje) throws IOException {
 		/*
 		* Un WKAN se anuncia a fin de ingresar a la red.
 		*
@@ -65,10 +63,14 @@ public class ConsultorNA_NA implements Consultor {
 		return output;
 	}
 
-	private HashMap<String, Object> retransmisionSolicitudNcsNh(HashMap<String, Object> params) throws InterruptedException {
-		// Método en el que se retransmite a un WKAN random un mensaje emitido por un NH solicitando NCs a los
-		// que conectarse.
-		// Se elige aleatoriamente como medida (muy simple) de distribución equitativa de mensajes en la red
+	private HashMap<String, Object> anuncioActivosFnc(Mensaje mensaje) {
+		/*
+		 * Un WKAN envía listado de Nodos (wkan) conocidos
+		 *
+		 * Payload del mensaje: LinkedList<DireccionNodo>
+		 * */
+
+		DireccionNodo anunciante = mensaje.getEmisor();
 
 		// Estos son comunes a todas las funciones
 		HashMap<String, Object> output = new HashMap<String, Object>();
@@ -76,14 +78,77 @@ public class ConsultorNA_NA implements Consultor {
 		output.put("callBackOnFailure", false);
 		output.put("result", true);
 
-		// Contenido de params
-		// {
-		// 	"direccionNH_NA": String,
-		// 	"direccionNH_NC": String,
-		// 	"pendientes": Integer,
-		// 	"consultados": LinkedList<String>,
-		// 	"saltos": Integer
-		// 	}
+		System.out.printf("Recibido listado de WKAN en %s", mensaje.getEmisor());
+
+		LinkedList<DireccionNodo> confirmados = (LinkedList<DireccionNodo>) mensaje.getCarga();
+
+		confirmados.add(mensaje.getEmisor());
+		confirmados.remove(this.atributos.getDireccion());
+
+		// No sé si lo correcto es marcarlos como activos confiando en lo que diga otro nodo, pero en este momento
+		// a fines prácticos da igual
+		for (DireccionNodo nodo : confirmados)
+			this.atributos.activarNodo(nodo);
+
+		System.out.printf(" [ACTUALIZADO]\n");
+
+		return output;
+	}
+
+	private HashMap<String, Object> retransmisionAnuncioNCFnc(Mensaje mensaje) throws InterruptedException {
+		/*
+		* Anuncio (retransmitido por un WKAN sin capacidad de atenderlo) de un NC
+		*
+		* Payload del mensaje: {
+		*	"nc_pendiente": DireccionNodo,
+		* }
+		* */
+
+		// Estos son comunes a todas las funciones
+		HashMap<String, Object> output = new HashMap<String, Object>();
+		output.put("callBackOnSuccess", false);
+		output.put("callBackOnFailure", false);
+		output.put("result", true);
+
+		DireccionNodo nodo = (DireccionNodo) ((HashMap<String, Object>) mensaje.getCarga()).get("nc_pendiente");
+
+		Integer codigo = funciones.atenderAnuncioNC(nodo, false);
+
+		if (codigo == Codigos.OK) {
+			// Tarea donde se le informará al NC que este Nodo lo aceptará
+			System.out.printf("Aceptado NC %s. Comunicando\n", nodo.getUnaDireccion("acceso"));
+
+			atributos.encolar("centrales", new Tarea(00, "ANUNCIO-ACEPTADO", nodo));
+		} else if (codigo == Codigos.ACCEPTED) {
+			System.out.printf("Capacidad max NC alcanzada, rechazado NC %s\n", nodo.getUnaDireccion("acceso"));
+		}
+
+		return output;
+	}
+
+	private HashMap<String, Object> retransmisionSolicitudNCsNHFnc(Mensaje mensaje) throws InterruptedException {
+		/**
+		 * Método en el que se retransmite a un WKAN random un mensaje emitido por un NH solicitando NCs a los
+		 * que conectarse.
+		 *
+		 * Se elige aleatoriamente como medida (muy simple) de distribución equitativa de mensajes en la red.
+		 *
+		 * Payload del mensaje: {
+		 *     "direccionNH": DireccionNodo,
+		 *     "pendientes": Integer,
+		 *     "consultados": LinkedList<DireccionNodo>,
+		 *     "saltos": Integer
+		 * }
+		 *
+		 */
+
+		// Estos son comunes a todas las funciones
+		HashMap<String, Object> output = new HashMap<String, Object>();
+		output.put("callBackOnSuccess", false);
+		output.put("callBackOnFailure", false);
+		output.put("result", true);
+
+		HashMap<String, Object> params = (HashMap<String, Object>) mensaje.getCarga();
 
 		// -------------------------------------------------------------------------------------------------------------
 		// Esto que sigue es un copy paste de lo que hace ConsultorNA_NH.java -> unificarlo
@@ -94,22 +159,21 @@ public class ConsultorNA_NA implements Consultor {
 		Boolean forward = ((AtributosAcceso) atributos).getNodos().size() > 0;
 
 		// "Trae" el doble de lo requerido para aumentar las probabilidades de encontar un NC que no tenga ya al NH
-		LinkedList<HashMap<String, Comparable>> candidatos = funciones.getNCsConCapacidadNH(requeridos * 2,
-				                                                                            new HashSet<String>());
+		LinkedList<DireccionNodo> candidatos = funciones.getNCsConCapacidadNH(requeridos * 2, new HashSet<DireccionNodo>());
 
 		// Consulta a los NC si cuentan con el NH entre sus filas, quedándose con aquellos que no
 		ClienteNA_NC consultor = new ClienteNA_NC(99);
-		LinkedList<String> elegidos = new LinkedList<String>();
+		LinkedList<DireccionNodo> elegidos = new LinkedList<DireccionNodo>();
 
-		for (HashMap<String, Comparable> central : candidatos) {
+		for (DireccionNodo central : candidatos) {
 			HashMap<String, Comparable> payload = new HashMap<String, Comparable>();
-			payload.put("direccionNC", (String) central.get("direccion_NA"));
-			payload.put("direccionNH_NC", (String) params.get("direccionNH_NC"));
+			payload.put("direccionNC", central);
+			payload.put("direccionNH", (DireccionNodo) params.get("direccionNH"));
 
 			Tarea tarea = new Tarea("CAPACIDAD-ATENCION-NH", payload);
 
 			if ((Boolean) consultor.procesarTarea(tarea).get("status")) {
-				elegidos.add((String) central.get("direccion_NA"));
+				elegidos.add(central);
 
 				if (elegidos.size() >= requeridos)
 					break;
@@ -121,8 +185,8 @@ public class ConsultorNA_NA implements Consultor {
 
 		// retransmite la consulta a otro WKAN si corresponde
 		if (forward && (Integer) params.get("pendientes") > elegidos.size()) {
-			LinkedList<String> aux = (LinkedList<String>) params.get("consultados");
-			aux.add(atributos.getDireccion("acceso"));
+			LinkedList<DireccionNodo> aux = (LinkedList<DireccionNodo>) params.get("consultados");
+			aux.add(atributos.getDireccion());
 
 			params.put("consultados", aux);
 			params.put("pendientes", (Integer) params.get("pendientes") > elegidos.size());
@@ -133,11 +197,11 @@ public class ConsultorNA_NA implements Consultor {
 		// A cada NC elegido se le enviará la orden de establecer contacto con el NH
 		// -> es una ineficiencia no hacerlo al momento en que se le consulta la capacidad pero en esta primer versión
 		//    lo hago así deliveradamente para "modularizar" lo más posible (a costa de eficiencia)
-		for(String central : elegidos) {
-			HashMap<String, String> payload = new HashMap<String, String>();
+		for(DireccionNodo central : elegidos) {
+			HashMap<String, Object> payload = new HashMap<String, Object>();
 
 			payload.put("direccionNC", central);
-			payload.put("direccionNH_NC", (String) params.get("direccionNH_NC"));
+			payload.put("direccionNH_NC", (DireccionNodo) params.get("direccionNH"));
 
 			atributos.encolar("centrales", new Tarea(00, "ACEPTAR-NH", payload));
 		}
@@ -145,6 +209,69 @@ public class ConsultorNA_NA implements Consultor {
 		return output;
 	}
 
+	private HashMap<String, Object> solicitudVecinosNCFnc(Mensaje mensaje) throws InterruptedException {
+		/**
+		 * Evalua si algún NC posee capacidad de enlazarse a otro, a fin de comunicarlo al NC recientemente incorporado
+		 * a la red
+		 *
+		 * Payload del mensaje: {
+		 *     "ncDestino": DireccionNodo,
+		 * }
+		 *
+		 */
+
+		// Estos son comunes a todas las funciones
+		HashMap<String, Object> output = new HashMap<String, Object>();
+		output.put("callBackOnSuccess", false);
+		output.put("callBackOnFailure", false);
+		output.put("result", true);
+
+		HashMap<String, Object> diccionario = (HashMap<String, Object>) mensaje.getCarga();
+		HashMap<DireccionNodo, HashMap<String, Comparable>> centralesRegistrados = atributos.getCentrales();
+
+		// Registra en el diccionario enviado durante la solicitud que éste nodo ya ha sido consultado
+		diccionario.put("saltos", (Integer) diccionario.get("saltos") - 1);
+
+		LinkedList<DireccionNodo> confirmados = (LinkedList<DireccionNodo>) diccionario.get("consultados");
+		confirmados.add(atributos.getDireccion());
+
+		diccionario.put("consultados", confirmados);
+
+		for (DireccionNodo key : centralesRegistrados. keySet()) {
+			Integer activos = (int) centralesRegistrados.get(key).get("centrales_activos");
+			Integer maximos = (int) centralesRegistrados.get(key).get("centrales_max");
+
+			if ((boolean) centralesRegistrados.get(key).get("alive"))
+				if (activos < maximos) {
+					atributos.encolar(
+							"centrales",
+							new Tarea(
+									00,
+									"CONECTAR-NCS",
+									new Tupla2<DireccionNodo, DireccionNodo> (key, (DireccionNodo) diccionario.get("ncDestino"))
+							)
+					);
+
+					// Se marca el anuncio del NC vecino.
+					diccionario.put("ncsRestantes", (Integer) diccionario.get("ncsRestantes")-1);
+
+					// Marca especial en el diccionario para conocer que se originó acá
+					diccionario.put("preparado", true);
+					break;
+				}
+		}
+
+		// Si restan NCs por conectar se retransmite nuevamente el mensaje
+		if ((Integer) diccionario.get("ncsRestantes") > 0 && (Integer) diccionario.get("saltos") > 0) {
+			// marco para que se reutilice este diccionario en lugar de crear uno nuevo
+			diccionario.put("preparado", true);
+			atributos.encolar("salida", new Tarea(00, "SOLICITAR_NCS_VECINOS", diccionario));
+		}
+
+		System.out.println("Procesada solicitud de vecinos para NC [OK]");
+
+		return output;
+	}
 
 
 	@Override
@@ -180,94 +307,16 @@ public class ConsultorNA_NA implements Consultor {
 						this.anuncioFnc(mensaje);
 						break;
 					case Codigos.NA_NA_POST_ANUNCIO_ACTIVOS:
-						System.out.printf("Recibido listado de WKAN en %s", mensaje.getEmisor());
-						confirmados = (LinkedList<String>) mensaje.getCarga();
-						confirmados.add(mensaje.getEmisor());
-						
-						// TODO: oportunidad de mejora
-						confirmados.remove(this.atributos.getDireccion("acceso"));
-						for (String nodo : confirmados)
-							//Volveme
-							//this.atributos.activarNodo(nodo);
-						
-						System.out.printf(" [ACTUALIZADO]\n");
+						this.anuncioActivosFnc(mensaje);
 						break;
 					case Codigos.NA_NA_POST_RETRANSMISION_ANUNCIO_NC:
-						// Anuncio (retransmitido por un WKAN sin capacidad) de un NC
-						
-						/* carga = {"ncDestino_NA": ...,
-									"ncDestino_NC": ...} */
-
-						diccionario = (HashMap<String, Object>) mensaje.getCarga();
-						codigo = funciones.atenderAnuncioNC((String) diccionario.get("ncDestino_NA"), 
-															(String) diccionario.get("ncDestino_NC"),
-															(String) diccionario.get("ncDestino_NH"),
-															false);
-						
-						if (codigo == Codigos.OK) {
-							// Acá tengo que conectarme con el servidor de WKAN del NC que se anunció e informarle
-							// que yo lo acepto.
-							System.out.printf("Aceptado NC %s. Comunicando\n", (String) diccionario.get("ncDestino_NA"));	
-							atributos.encolar("centrales", new Tarea(00, "ANUNCIO-ACEPTADO", (String) diccionario.get("ncDestino_NA")));
-						} else if (codigo == Codigos.ACCEPTED) {
-							System.out.printf("Capacidad max NC alcanzada, rechazado NC %s\n", (String) diccionario.get("ncDestino_NA"));
-						}
+						this.retransmisionAnuncioNCFnc(mensaje);
 						break;
-				case Codigos.NA_NA_POST_SOLICITUD_VECINOS_NC:
-						/* Evaluar si algún NC posee capacidad de enlazarse 
-						 * a otro NC para comunicarlo con el recientemente incorporado a la red*/
-						diccionario = (HashMap<String, Object>) mensaje.getCarga();
-						centralesRegistrados = atributos.getCentrales();
-						
-						/* Acordate que en diccionarios tengo: 
-						 * {...
-						 * 	"ncDestino": la dirección del NC que pidió vecinos, 
-						 *               donde atiende WKAN y en la que le voy a decir cuál NC va a ser su vecino
-						 * ...} 
-						 */
-						
-						// Registra en el diccionario enviado durante la solicitud que éste nodo ya ha sido consultado
-						diccionario.put("saltos", (Integer) diccionario.get("saltos")-1);
-						confirmados = (LinkedList<String>) diccionario.get("consultados");
-						confirmados.add(atributos.getDireccion("acceso"));
-						diccionario.put("consultados", confirmados);
-						
-						for (String key : centralesRegistrados.keySet()) {
-							Integer activos = (int)centralesRegistrados.get(key).get("centrales_activos");
-							Integer maximos = (int) centralesRegistrados.get(key).get("centrales_max");
-							strAux = (String) centralesRegistrados.get(key).get("direccion_NC");
-							// Esta dirección es la del NC que será vecino del solicitante
-							
-							if ((boolean) centralesRegistrados.get(key).get("alive"))
-								if (activos < maximos) {
-									atributos.encolar("centrales", 
-										new Tarea(
-											00, 
-											"CONECTAR-NCS", 
-											new Tupla2<String, String>(strAux, (String) diccionario.get("ncDestino"))
-									    )
-									);
-
-									// Se marca el anuncio del NC vecino.
-									diccionario.put("ncsRestantes", (Integer) diccionario.get("ncsRestantes")-1);
-									// Marca especial en el diccionario para conocer que se originó acá
-									diccionario.put("preparado", true);
-									break;
-								}
-						}
-						
-						// Si restan NCs por conectar se retransmite nuevamente el mensaje
-						if ((Integer) diccionario.get("ncsRestantes") > 0 && (Integer) diccionario.get("saltos") > 0) {
-							// marco para que se reutilice este diccionario en lugar de crear uno nuevo
-							diccionario.put("preparado", true);
-							atributos.encolar("salida", new Tarea(00, "SOLICITAR_NCS_VECINOS", diccionario));
-						}
-						
-						System.out.println("Procesada solicitud de vecinos para NC [OK]");
+					case Codigos.NA_NA_POST_SOLICITUD_VECINOS_NC:
+						this.solicitudVecinosNCFnc(mensaje);
 						break;
 					case Codigos.NA_NA_POST_RETRANSMISION_NH_SOLICITUD_NC:
-						// 2020-07-25 esto tendría que ser como CienteNA_NC.java
-						this.retransmisionSolicitudNcsNh((HashMap<String, Object>) mensaje.getCarga());
+						this.retransmisionSolicitudNCsNHFnc(mensaje);
 						break;
 					default:
 						System.out.printf("\tAnuncio de nodo %s: %s\n", sockToString(), mensaje.getCarga());

@@ -1,6 +1,7 @@
 package nodes.components;
 
 import java.io.IOException;
+import java.nio.file.DirectoryIteratorException;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map.Entry;
@@ -8,6 +9,7 @@ import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
 
+import commons.structs.DireccionNodo;
 import my_exceptions.ManualInterruptException;
 import commons.Codigos;
 import commons.ConexionTcp;
@@ -51,73 +53,131 @@ public class ClienteNA_NC extends Cliente {
 	// ---------------------------------------------------------------------------------------------------
 	// TODO: hacer una clase, interfaz o algo así
 	private HashMap<String, Object> anuncioAceptadoFnc(HashMap<String, Object> params){
+		/**
+		 * Le indica a un NC que fue aceptado en la red, siendo éste el WKAN que lo administrará.
+		 *
+		 * params: {
+		 *     "direccionNC": DireccionNodo,
+		 * }
+		 *
+		 */
 		HashMap<String, Object> output = new HashMap<String, Object>();
 		
 		// Estos son comunes a todas las funciones
 		output.put("callBackOnSuccess", false);
 		output.put("callBackOnFailure", true);
-		
-		// Asumo que va a salir todo bien
 		output.put("result", true);
+
+		DireccionNodo nodo = (DireccionNodo) params.get("direccionNC");
 		
 		if (params.containsKey("callbackOnFailure") && (Boolean) params.get("callbackOnFailure")) {
 			// No se pudo informar al NC. Se lo descarta
-			((AtributosAcceso) atributos).desencolarCentral((String) params.get("direccionNC"));
+			((AtributosAcceso) atributos).desencolarCentral(nodo);
 			
 			System.out.print("\nConsumidor " + this.idConsumidor + ": ");
-			System.out.printf("falló aununcio aceptación a NC %s. Descartado\n", (String) params.get("direccionNC"));
+			System.out.printf("falló aununcio aceptación a NC %s. Descartado\n", nodo.ip.getHostName());
 		} else {
 			// Código "normal" que se ejecuta cuando sí se conecta al NC
-			Mensaje saludo = new Mensaje(this.atributos.getDireccion("centrales"), 
-					                     Codigos.NA_NC_POST_ANUNCIO_ACEPTADO, null);
+			Mensaje saludo = new Mensaje(
+					this.atributos.getDireccion(),
+					Codigos.NA_NC_POST_ANUNCIO_ACEPTADO,
+					null
+			);
+
 			this.conexionConNodo.enviarSinRta(saludo);
-			System.out.printf("Consumidor %s: anunciada aceptación a NC %s\n", this.idConsumidor, (String) params.get("direccionNC"));
+
+			System.out.printf("Consumidor %s: ", this.idConsumidor);
+			System.out.printf("anunciada aceptación a NC %s\n", nodo.ip.getHostName());
 		}
 		
 		return output;
 	}
 	
-	private HashMap<String, Object> conectarNcsFnc(HashMap<String, Object> params){
+	private HashMap<String, Object> conectarNcsFnc(HashMap<String, Object> params) {
+		/**
+		 * Se informará la dirección de un NC (manejado por este nodo) al NC recientemente incorporado a la red.
+		 *
+		 * params: {
+		 * 	"direccionNcNuevo": DireccionNodo. El NC recientemente ingresado a la red, quién solicita NCs vecinos
+		 * 	"direccionNcVecino": DireccionNodo. El NC que será vecino del nuevo
+		 * }
+		 *
+		 */
 		HashMap<String, Object> output = new HashMap<String, Object>();
-		
+
+		DireccionNodo nodoNuevo = (DireccionNodo) params.get("direccionNcNuevo");
+		DireccionNodo nodoVecino = (DireccionNodo) params.get("direccionNcVecino");
+
 		// Estos son comunes a todas las funciones
 		output.put("callBackOnSuccess", false);
 		output.put("callBackOnFailure", false);
-		
 		output.put("result", true);
-		Mensaje msj = new Mensaje(this.atributos.getDireccion("centrales"), 
-							      Codigos.NA_NC_POST_NC_VECINO, 
-							      (String) params.get("direccionNC"));
-		this.conexionConNodo.enviarSinRta(msj);
+
+		this.conexionConNodo.enviarSinRta(
+				new Mensaje(
+						this.atributos.getDireccion(),
+						Codigos.NA_NC_POST_NC_VECINO,
+						nodoVecino
+				)
+		);
 		
 		System.out.printf("[Cli %s]\t", this.idConsumidor);
-		System.out.printf("anunciado NC vecino (%s) a ", (String) params.get("direccionNcVecino"));
-		System.out.printf("%s\n", (String) params.get("direccionNcNuevo"));
+		System.out.printf("anunciado NC vecino (%s) a ", nodoVecino.ip.getHostName());
+		System.out.printf("%s\n", nodoNuevo.ip.getHostName());
 		
 		return output;
 	}
 
 	private HashMap<String, Object> consultaCapacidadNHFnc(HashMap<String, Object> params) {
+		/**
+		 * Consulta a un NC si tiene capacidad para recibir a un NH.
+		 * Además se verifica que dicho NH no esté registrado en el NC.
+		 *
+		 * params = {
+		 *     "direccionNH": DireccionNodo, el NH ingresante a la red
+		 *     "direccionNC": DireccionNodo, el NC que atenderá al NH
+		 * }
+		 */
 		HashMap<String, Object> output = new HashMap<String, Object>();
-		
+
+		DireccionNodo nodo = (DireccionNodo) params.get("direccionNH");
+
 		// Estos son comunes a todas las funciones
 		output.put("callBackOnSuccess", false);
 		output.put("callBackOnFailure", false);
 		output.put("result", true);
 
-		Mensaje msj = new Mensaje(this.atributos.getDireccion("centrales"), 
-							      Codigos.NA_NC_POST_CAPACIDAD_NH,
-				                  (String) params.get("direccionNH_NC"));
-		msj = (Mensaje) this.conexionConNodo.enviarConRta(msj);
+		Mensaje msj = (Mensaje) this.conexionConNodo.enviarConRta(
+				new Mensaje(
+						this.atributos.getDireccion(),
+						Codigos.NA_NC_POST_CAPACIDAD_NH,
+						nodo
+				)
+		);
+
 		output.put("status", (boolean) msj.getCarga());
 
 		if (msj.getCodigo() != Codigos.OK)
 			output.put("result", false);
 
+		// Podría hacer un print para verificar
+
 		return output;
 	}
 
+
+
+
 	private HashMap<String, Object> aceptarNHFnc(HashMap<String, Object> params) {
+		/**
+		 * La finalidad de esta tarea es simplemente ordearle al NC que se anuncie ante el NH que solicitó NCs
+		 * por ende basta con informar su dirección, más nada.
+		 *
+		 * params = {
+		 *     "direccionNH": DireccionNodo
+		 *     "direccionNC": DireccionNodo
+		 * }
+		 */
 		HashMap<String, Object> output = new HashMap<String, Object>();
 
 		// Estos son comunes a todas las funciones
@@ -125,16 +185,19 @@ public class ClienteNA_NC extends Cliente {
 		output.put("callBackOnFailure", false);
 		output.put("result", true);
 
-		// La finalidad de esta tarea es simplemente ordearle al NC que se anuncie ante el NH que solicitó NCs
-		// por ende basta con informar su dirección, más nada
+		DireccionNodo nodoCentral = (DireccionNodo) params.get("direccionNC");
+		DireccionNodo nodoHoja = (DireccionNodo) params.get("direccionNH");
 
-		Mensaje msj = new Mensaje(this.atributos.getDireccion("centrales"),
-				Codigos.NA_NC_POST_ACEPTAR_NH,
-				(String) params.get("direccionNH_NC"));
-		this.conexionConNodo.enviarSinRta(msj);
+		this.conexionConNodo.enviarSinRta(
+				new Mensaje(
+						this.atributos.getDireccion(),
+						Codigos.NA_NC_POST_ACEPTAR_NH,
+						nodoHoja
+				)
+		);
 
-		System.out.print("[Cli  " + this.idConsumidor + "] Informado a NC " + (String) params.get("direccionNC"));
-		System.out.println(" que debe aceptar al NH " + (String) params.get("direccionNH_NC"));
+		System.out.print("[Cli  " + this.idConsumidor + "] Informado a NC " + nodoCentral.ip.getHostName());
+		System.out.println(" que debe aceptar al NH " + nodoHoja.ip.getHostName());
 
 		return output;
 	}
@@ -143,6 +206,7 @@ public class ClienteNA_NC extends Cliente {
 	@Override
 	protected HashMap<String, Comparable> procesarTarea(Tarea tarea) throws InterruptedException {
 		boolean flag;
+		DireccionNodo direccion;
 		Function<HashMap<String, Object>, HashMap<String, Object>> method;
 		HashMap<String,Object> diccionario;
 		HashMap<String, Comparable> diccionario2;
@@ -167,8 +231,8 @@ public class ClienteNA_NC extends Cliente {
 		switch(tarea.getName()){
 			case "ANUNCIO-ACEPTADO":
 				// Le indica a un NC que fue aceptado en la red, siendo éste el WKAN que lo administrará
-				ipNcDestino = ((String) tarea.getPayload()).split(":")[0];
-				puertoNcDestino = Integer.parseInt(((String) tarea.getPayload()).split(":")[1]);
+				ipNcDestino = ((DireccionNodo) tarea.getPayload()).ip.getHostName();
+				puertoNcDestino = ((DireccionNodo) tarea.getPayload()).puerto_nc;
 				method = this::anuncioAceptadoFnc;
 				diccionario = new HashMap<String, Object>();
 				diccionario.put("direccionNC", tarea.getPayload());
@@ -176,34 +240,46 @@ public class ClienteNA_NC extends Cliente {
 			case "CONECTAR-NCS":
 				// Se informará la dirección de un NC (manejado por este nodo) al NC recientemente incorporado a la red
 				
-				// payload = Tupla de strings. El primero es la dirección servidor de NC del NC que será
-				//           vecino del solicitante. El segundo es la dirección servidor de WKAN del NC
-				//           que solicita los vecinos 
-				
-				generico = (Tupla2<String,String>) tarea.getPayload();
-				auxStr = (String) ((Tupla2<String,String>) generico).getSegundo();
-				ipNcDestino = auxStr.split(":")[0];
-				puertoNcDestino = Integer.parseInt(auxStr.split(":")[1]);
+				// payload = Tupla de strings. El primero es la dirección del NC que será vecino del solicitante.
+				//           El segundo es la dirección del NC que solicita los vecinos
+
 				diccionario = new HashMap<String, Object>();
-				diccionario.put("direccionNcNuevo", auxStr); 
-				diccionario.put("direccionNcVecino", (String) ((Tupla2<String,String>) generico).getPrimero());
+
+				// NC nuevo en la red (quien solicita vecinos)
+				direccion = ((Tupla2<DireccionNodo, DireccionNodo>) tarea.getPayload()).getSegundo();
+				ipNcDestino = direccion.ip.getHostName();
+				puertoNcDestino = direccion.puerto_na;
+				diccionario.put("direccionNcNuevo", direccion);
+
+				// NC existente que será vecino del nuevo
+				direccion = ((Tupla2<DireccionNodo, DireccionNodo>) tarea.getPayload()).getPrimero();
+				diccionario.put("direccionNcVecino", direccion);
+
 				method = this::conectarNcsFnc;
+
 				break;
 			case "CAPACIDAD-ATENCION-NH":
 				// Consulta a un NC si tiene capacidad para recibir a un NH. Además se verifica que dicho NH
 				// no esté registrado en el NC
-				
+
+				// TODO 2020-09-27: revisar que la key del diccionario del payload, referida a la hoja, sea direccionNH
+
 				diccionario = (HashMap<String, Object>) tarea.getPayload();
-				ipNcDestino = ((String) diccionario.get("direccionNC")).split(":")[0];
-				puertoNcDestino = Integer.parseInt(((String) diccionario.get("direccionNC")).split(":")[1]);
+				direccion = (DireccionNodo) diccionario.get("direccionNC");
+				ipNcDestino = direccion.ip.getHostName();
+				puertoNcDestino = direccion.puerto_na;
 				method = this::consultaCapacidadNHFnc;
 				break;
 			case "ACEPTAR-NH":
-				// El WKAN indica que este nodo debe anunciarse ante un NH a fin de establecer conexión
+				// El WKAN le indica a un NC bajo su supervisión que debe anunciarse ante un NH a fin de establecer
+				// conexión
+
+				// TODO 2020-09-27: revisar que las key del diccionario del payload sean direccionNC y direccionNH
 
 				diccionario = (HashMap<String, Object>) tarea.getPayload();
-				ipNcDestino = ((String) diccionario.get("direccionNC")).split(":")[0];
-				puertoNcDestino = Integer.parseInt(((String) diccionario.get("direccionNC")).split(":")[1]);
+				direccion = (DireccionNodo) diccionario.get("direccionNC");
+				ipNcDestino = direccion.ip.getHostName();
+				puertoNcDestino = direccion.puerto_na;
 				method = this::aceptarNHFnc;
 				break;
 		}
@@ -225,7 +301,7 @@ public class ClienteNA_NC extends Cliente {
 			method.apply(diccionario);
 
 		this.conexionConNodo.enviarSinRta(
-				new Mensaje(this.atributos.getDireccion("centrales"), Codigos.CONNECTION_END, null));
+				new Mensaje(this.atributos.getDireccion(), Codigos.CONNECTION_END, null));
 		this.terminarConexion();
 		System.out.println("[Cli  " + this.idConsumidor + "] arrancando de nuevo inmediatamente");
 		

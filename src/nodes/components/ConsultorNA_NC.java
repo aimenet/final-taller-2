@@ -13,19 +13,85 @@ import java.util.Map.Entry;
 import commons.Codigos;
 import commons.Mensaje;
 import commons.Tarea;
+import commons.structs.DireccionNodo;
 
 public class ConsultorNA_NC implements Consultor {
 	// De cada instancia
 	private AtributosAcceso atributos = new AtributosAcceso();
+	private ObjectInputStream buffEntrada;
+	private ObjectOutputStream buffSalida;
 	private Socket sock;
 	private WKAN_Funciones funciones = new WKAN_Funciones();
-	
-	
-	@Override
-	public void run() {
-		this.atender();	
+
+
+	// Procesamiento de peticiones
+	// -----------------------------------------------------------------------------------------------------------------
+	private HashMap<String, Object> anuncioFnc(DireccionNodo anunciante) {
+		/**
+		 * Anuncio de un NC que acaba de ingresar a la red
+		 *
+		 */
+
+		// Estos son comunes a todas las funciones
+		HashMap<String, Object> output = new HashMap<String, Object>();
+		output.put("callBackOnSuccess", false);
+		output.put("callBackOnFailure", false);
+		output.put("result", true);
+
+		System.out.printf("Recibido anuncio de NC en %s\n", anunciante.ip.getHostName());
+
+		Integer codigo = null;
+		try {
+			codigo = funciones.atenderAnuncioNC(anunciante, true);
+		} catch (InterruptedException e) {
+			// A fines prácticos, está bien la retransmisión en tanto el código ACCEPTED no se use para otra cosa
+			codigo = Codigos.ACCEPTED;
+		}
+
+		try {
+			buffSalida.writeObject(new Mensaje(null, codigo, null));
+		} catch (IOException e) {
+			// TODO 2020-09-27: ¿hacer algo?
+		}
+
+		if (codigo == Codigos.OK) {
+			System.out.printf("Aceptado NC %s\n", anunciante.ip.getHostName());
+		} else if (codigo == Codigos.ACCEPTED) {
+			System.out.printf("Capacidad max NC alcanzada, ");
+			System.out.printf("retransmitiendo anuncio de NC %s\n", anunciante.ip.getHostName());
+		}
+
+		return output;
 	}
-	
+
+	private HashMap<String, Object> keepAliveFnc(DireccionNodo anunciante) {
+		/**
+		 * El NC informa que está activo. No debería llegar un mensaje de un NC no registrado ya que esto debería ser
+		 * posterior al anuncio.
+		 *
+		 */
+
+		// Estos son comunes a todas las funciones
+		HashMap<String, Object> output = new HashMap<String, Object>();
+		output.put("callBackOnSuccess", false);
+		output.put("callBackOnFailure", false);
+		output.put("result", true);
+
+		System.out.printf("[Con NC] Recibido keepalive de NC %s", anunciante.ip.getHostName());
+
+		HashMap<String, Comparable> diccionario = ((AtributosAcceso) this.atributos).getCentrales().get(anunciante);
+
+		if (diccionario == null) {
+			System.out.println(" [ERROR] (NC desconocido)");
+		} else {
+			// TODO 2020-09-27: "diccionario" es una referencia?
+			diccionario.put("alive", true);
+			diccionario.put("timestamp", new Timestamp(System.currentTimeMillis()));
+			System.out.println(" [OK]");
+		}
+
+		return output;
+	}
 
 	@Override
 	public void atender() {
@@ -33,8 +99,6 @@ public class ConsultorNA_NC implements Consultor {
 		boolean terminar = false;
 		HashMap<String, Comparable> diccionario;
 		Integer codigo;
-		ObjectInputStream buffEntrada;
-		ObjectOutputStream buffSalida;
 		Timestamp auxTimestamp;
 		
 		try {
@@ -59,39 +123,12 @@ public class ConsultorNA_NC implements Consultor {
 					  	              código de tarea,
 					  	              diccionario con direcciones servidor del NC)*/
 						
-						System.out.printf("Recibido anuncio de NC en %s\n", mensaje.getEmisor());
-						
-						diccionario = (HashMap<String, Comparable>) mensaje.getCarga();
-						
-						codigo = funciones.atenderAnuncioNC(mensaje.getEmisor(), 
-															(String) diccionario.get("direccionNC_NC"),
-															(String) diccionario.get("direccionNC_NH"),
-															true);
-						buffSalida.writeObject(new Mensaje(null, codigo, null));
-						
-						if (codigo == Codigos.OK) {
-							System.out.printf("Aceptado NC %s\n", (String) mensaje.getEmisor());	
-						} else if (codigo == Codigos.ACCEPTED) {
-							System.out.printf("Capacidad max NC alcanzada, "); 
-							System.out.printf("retransmitiendo anuncio de NC %s\n", mensaje.getEmisor());
-						}
-						
+						this.anuncioFnc(mensaje.getEmisor());
 						terminar = true;
 						break;
 					case Codigos.NC_NA_POST_KEEPALIVE:
-						// El NC informa que está activo. No debería llegar un mensaje de un NC no registrado ya que esto debería ser posterior
-						// al anuncio
-						System.out.printf("[Con NC] Recibido keepalive de NC %s", mensaje.getEmisor());
-						
-						diccionario = ((AtributosAcceso) this.atributos).getCentrales().get(mensaje.getEmisor());
-						
-						if (diccionario == null) {
-							System.out.println(" [ERROR] (NC desconocido)");
-						} else {
-							diccionario.put("alive", true);
-							diccionario.put("timestamp", new Timestamp(System.currentTimeMillis()));
-							System.out.println(" [OK]");
-						}
+						// El NC informa que está activo
+						this.keepAliveFnc(mensaje.getEmisor());
 
 						terminar = true;
 						break;
@@ -103,12 +140,18 @@ public class ConsultorNA_NC implements Consultor {
 			
 			sock.close();
 			System.out.printf("-> Conexión con %s finalizada\n", sockToString());
-		} catch (IOException | ClassNotFoundException | InterruptedException e) {
+		} catch (IOException | ClassNotFoundException e) {
 			//IOException -> buffer de salida (se cae el Cliente y el Servidor espera la recepción de un mensaje).
 			//ClassNotFoundException -> buffer de entrada.
 			// TODO: hacer algo en caso de error
 			e.printStackTrace();
 		}
+	}
+
+
+	@Override
+	public void run() {
+		this.atender();
 	}
 
 

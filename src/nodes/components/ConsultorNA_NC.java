@@ -6,14 +6,10 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.sql.Timestamp;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Map.Entry;
 
 import commons.Codigos;
 import commons.Mensaje;
-import commons.Tarea;
-import commons.structs.DireccionNodo;
+import commons.DireccionNodo;
 
 public class ConsultorNA_NC implements Consultor {
 	// De cada instancia

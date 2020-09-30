@@ -1,8 +1,8 @@
-import nodes.NodoAccesoBienConocido;;
+import nodes.NodoAccesoBienConocido;;import java.net.UnknownHostException;
 
 public class EjecutableWKAN {
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws UnknownHostException {
 		String configFile;
 		
 		/* El único parámetro que recibe es el path (absoluto) del archivo de configuración */

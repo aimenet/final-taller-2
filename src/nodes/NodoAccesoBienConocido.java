@@ -7,7 +7,10 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Properties;
+
+import commons.Constantes;
 import commons.Tarea;
+import commons.DireccionNodo;
 import nodes.components.AtributosAcceso;
 import nodes.components.ClienteNA_NA;
 import nodes.components.ClienteNA_NC;
@@ -34,15 +37,15 @@ import nodes.components.WorkerNA_Interno;
  * @author rodrigo
  */
 public class NodoAccesoBienConocido {
+	private ArrayList<DireccionNodo> wkanIniciales;
+	private ArrayList<Thread> clientThreads;
+	private ArrayList<Thread> serverThreads;
 	private AtributosAcceso atributos;
+	private HashMap<String, Runnable> clients;
+	private HashMap<String,Servidor> servers;
 	private Integer id, maxClientes;
 	private Properties config;
 	private Servidor servidorHojas, servidorCentrales, servidorAcceso;
-	private HashMap<String,Servidor> servers;
-	private ArrayList<Thread> serverThreads;
-	private HashMap<String, Runnable> clients;
-	private ArrayList<Thread> clientThreads;
-    private ArrayList<String> wkanIniciales;
     
 	//TODO: éste creo que va a ser el único Nodo que al final recibirá archivo de configuración
 	public NodoAccesoBienConocido(String archivoConfiguracion) throws UnknownHostException {
@@ -64,19 +67,25 @@ public class NodoAccesoBienConocido {
 		clientThreads = new ArrayList<Thread>();
 		servers = new HashMap<String, Servidor>();
 		serverThreads = new ArrayList<Thread>();
-		wkanIniciales = new ArrayList<String>();
+		wkanIniciales = new ArrayList<DireccionNodo>();
 		
 		// Definición de servidores -> moverlo a método si crece mucho
 		// ------------------------
-		servers.put("NABC", new Servidor(config.getProperty("ip"),
-				                         Integer.parseInt(config.getProperty("puerto_na")),
-				                         config.getProperty("nombre")+": Bien Conocidos", ConsultorNA_NA.class));
-		servers.put("CENTRALES", new Servidor(config.getProperty("ip"),
-				                              Integer.parseInt(config.getProperty("puerto_nc")),
-				                              config.getProperty("nombre")+": Centrales", ConsultorNA_NC.class));
-		servers.put("HOJAS", new Servidor(config.getProperty("ip"),
-				                          Integer.parseInt(config.getProperty("puerto_nh")),
-				                          config.getProperty("nombre")+": Hojas", ConsultorNA_NH.class));
+		servers.put("NABC", new Servidor(
+				config.getProperty("ip"),
+				Constantes.PUERTO_NA,
+				config.getProperty("nombre")+": Bien Conocidos", ConsultorNA_NA.class
+		));
+		servers.put("CENTRALES", new Servidor(
+				config.getProperty("ip"),
+				Constantes.PUERTO_NC,
+				config.getProperty("nombre")+": Centrales", ConsultorNA_NC.class
+		));
+		servers.put("HOJAS", new Servidor(
+				config.getProperty("ip"),
+				Constantes.PUERTO_NH,
+				config.getProperty("nombre")+": Hojas", ConsultorNA_NH.class
+		));
 		
 		for (Servidor server : servers.values()) {
 			serverThreads.add(new Thread(server));
@@ -85,17 +94,22 @@ public class NodoAccesoBienConocido {
 		// Carga de atributos del NABC
 		// ---------------------------
 		atributos.setKeepaliveNodoVecino(Integer.parseInt(config.getProperty("keepalive_nodo_vecino")));
+
+		// 2020-09-30 Esto puede tirar una excepción UnknownHostException. Por ahora dejo que explote, porque supongo
+		// que en un entorno real no cargaría así la IP (ni siquiera sé si cargaría la IP)
 		atributos.setDireccion(InetAddress.getByName(config.getProperty("ip")));
-		
+
+
 		// NABC conocidos inicialmente
 		for (Object key : config.keySet()) {
 			String clave = (String) key;
-			if ((clave).startsWith("wkan_"))
-				this.wkanIniciales.add(config.getProperty(clave));
+			if ((clave).startsWith("wkan_")) {
+				InetAddress dir = InetAddress.getByName(config.getProperty(clave));
+				this.wkanIniciales.add(new DireccionNodo(dir));
+			}
 		}
 		if (this.wkanIniciales.size() > 0)
-			//Volveme
-			//atributos.addNodos(wkanIniciales);
+			atributos.addNodos(wkanIniciales);
 		
 		// Inicialización de las colas donde se cargarán las "tareas" 
 		atributos.setNombreColas(new String[] {"salida","centrales","interna"});

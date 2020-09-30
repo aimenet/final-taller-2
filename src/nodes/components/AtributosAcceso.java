@@ -1,6 +1,6 @@
 package nodes.components;
 
-import commons.structs.DireccionNodo;
+import commons.DireccionNodo;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;

@@ -1,18 +1,11 @@
 package nodes.components;
 
-import java.io.IOException;
-import java.nio.file.DirectoryIteratorException;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map.Entry;
-import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
 
-import commons.structs.DireccionNodo;
-import my_exceptions.ManualInterruptException;
+import commons.DireccionNodo;
 import commons.Codigos;
-import commons.ConexionTcp;
 import commons.Mensaje;
 import commons.Tarea;
 import commons.Tupla2;

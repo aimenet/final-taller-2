@@ -4,47 +4,106 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
-import java.sql.Timestamp;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Set;
+import java.util.*;
 
 import commons.Codigos;
 import commons.Mensaje;
 import commons.Tarea;
+import commons.DireccionNodo;
 
 public class ConsultorNA_NH implements Consultor {
 	// De cada instancia
 	private AtributosAcceso atributos = new AtributosAcceso();
+	private ObjectInputStream buffEntrada;
+	private ObjectOutputStream buffSalida;
 	private Socket sock;
 	private WKAN_Funciones funciones = new WKAN_Funciones();
-	
-	
-	@Override
-	public void run() {
-		this.atender();	
+
+
+	// Atención de requests
+	// -----------------------------------------------------------------------------------------------------------------
+	private HashMap<String, Object> solicitudNCsFnc(
+			DireccionNodo nodoHoja,
+			Integer solicitados,
+			HashSet<DireccionNodo> excepciones) {
+		/**
+		 * Un NH que acaba de ingresar a la red solicita NCs a los que conectarse.
+		 *
+		 * nodoHoja: el NH que solitita NCs a los que conectarse
+		 * solicitados: la cantidad de NCs que necesita
+		 * excepciones: conjunto de NCs que el NH ya conoce y se deben ignorar
+		 *
+		 */
+
+		// Estos son comunes a todas las funciones
+		HashMap<String, Object> output = new HashMap<String, Object>();
+		output.put("callBackOnSuccess", false);
+		output.put("callBackOnFailure", false);
+		output.put("result", true);
+
+		System.out.printf("[Con NH] Solicitud de %s NCs por parte de NH en %s ", nodoHoja.ip.getHostName());
+
+		// Obtrención de NCs que pueden recibir a la H: si no existen más WKANs en la red entonces buscará entre sus
+		// NCs la cantidad solicitada, sino escogerá sólo 1 (y retransmitirá la consulta)
+		Integer cantidad = ((AtributosAcceso) atributos).getNodos().size() > 0 ? 1 : solicitados;
+
+		// "Trae" el doble de lo requerido para aumentar las probabilidades de encontar un NC que no tenga ya al NH
+		List<DireccionNodo> candidatos = funciones.getNCsConCapacidadNH(
+				solicitados * 2,
+				excepciones);
+
+		// Nótese que este nodo puede no manejar tantos NCs como los solicitados, pero si no existen otros WKANs en la
+		// red, estos serán los únicos NCs existentes por lo que no podrá informar más que dicha cantidad (obviamente)
+		List<DireccionNodo> elegidos = candidatos.subList(
+				0,
+				candidatos.size() >= cantidad ? cantidad : candidatos.size()
+		);
+
+		try {
+			buffSalida.writeObject(new Mensaje(atributos.getDireccion(), Codigos.OK, elegidos));
+		} catch (IOException e) {
+			// No hago nada, el NH seguirá sin concer NCs y volverá a enviar la solicitud
+			System.out.println("[ERROR en envío de mensaje a NH]");
+			output.put("result", false);
+
+			return output;
+		}
+
+		System.out.println("[OK]");
+		System.out.printf("[Con NH] Informados %s NCs a Hoja %s\n", elegidos.size(), nodoHoja.ip.getHostName());
+
+		// Si no se cubrió la cantidad requerida de NCs encola la tarea para retransmitir la solicitud a otro WKAN
+		if (solicitados - cantidad > 0) {
+			if (((AtributosAcceso) atributos).getNodos().size() > 0) {
+				HashMap<String,Object> payload = new HashMap<String,Object>();
+				payload.put("pendientes", elegidos.size() - solicitados);
+				payload.put("direccionNH", nodoHoja);
+				payload.put("excepciones", excepciones);
+
+				try {
+					atributos.encolar("salida", new Tarea("RETRANSMITIR_SOLICITUD_NCS_NH", payload));
+					System.out.printf("[Con NH] Encolada retransmisión de solicitud de ");
+					System.out.printf("NH %s\n", nodoHoja.ip.getHostName());
+				} catch (InterruptedException e) {
+					// No hago nada, el NH seguirá sin concer NCs y volverá a enviar la solicitud, pero al menos la rta
+					// de este WKAN le llegó a la Hoja
+
+					System.out.printf("[Con NH] Falló retransmisión de solicitud de ");
+					System.out.printf("NH %s\n", nodoHoja.ip.getHostName());
+				}
+			}
+		}
+
+		return output;
 	}
-	
+
 
 	@Override
 	public void atender() {
 		Mensaje mensaje;
 		boolean terminar = false;
-		ClienteNA_NC consultor;
 		HashMap<String, Comparable> diccionario;
-		HashMap<String, Comparable> diccionario2;
-		Integer auxInt;
-		Integer auxInt2;
-		Integer codigo;
-		LinkedList<String> auxLstStr;
-		LinkedList<String> auxLstStr2;
-		LinkedList<HashMap<String, Comparable>> auxLstHsh;
-		ObjectInputStream buffEntrada;
-		ObjectOutputStream buffSalida;
-		String auxStr;
-		Tarea tarea;
-		Timestamp auxTimestamp;
+
 		
 		try {
 			// Instanciación de los manejadores del buffer.
@@ -61,69 +120,45 @@ public class ConsultorNA_NH implements Consultor {
 						
 						/* Mensaje = (dirección del NH para atender WKAN, 
 						 *            código de tarea,
-						 *            {'direccionNH_NC: xxx,
-						 *            'direccionNH_NA': xxx,
-						 *            'pendientes': xxx}
+						 *            {'direccionNH: DireccionNodo,
+						 *            'pendientes': Integer,
+						 *            'conocidos': HashSet<DireccionNodo>
+						 *            }
 						 *            )
 						 */
 						diccionario = (HashMap<String, Comparable>) mensaje.getCarga();
+
+						this.solicitudNCsFnc(
+								mensaje.getEmisor(),
+								Integer.parseInt((String) diccionario.get("pendientes")),
+								(HashSet<DireccionNodo>) diccionario.get("conocidos")
+						);
 						
-						System.out.printf("[Con NH] Solicitud de %s NCs por parte de NH en %s ", diccionario.get("pendientes"), mensaje.getEmisor());
-
-						// Obtrención de NCs que pueden recibir a la H: si no existen más WKANs en la red entonces buscará entre sus NCs la
-						// cantidad solicitada, sino escogerá sólo 1 (y retransmitirá la consulta)
-						auxInt = ((AtributosAcceso) atributos).getNodos().size() > 0 ? 1 : (Integer) diccionario.get("pendientes");
-
-						// TODO: actualizar con la lista de excepciones que viene en dict
-						// "Trae" el doble de lo requerido para aumentar las probabilidades de encontar un NC que no tenga ya al NH
-						auxLstHsh = funciones.getNCsConCapacidadNH(auxInt * 2,
-								                                   (HashSet<String>) diccionario.get("conocidos"));
-
-						// TODO: Asegurarme que no esté vacío y toda la bola
-						auxLstStr2 = new LinkedList<String>();
-
-						for (int i=0; i<auxLstHsh.size(); i++){
-							auxLstStr2.add((String) auxLstHsh.get(i).get("direccion_NH"));
-
-							if (i >= auxInt)
-								break;
-						}
-
-						buffSalida.writeObject(new Mensaje(atributos.getDireccion("hojas"), Codigos.OK, auxLstStr2));
-						
-						System.out.println("[OK]");
-						System.out.printf("[Con NH] Informados %s NCs a Hoja %s\n", auxLstStr2.size(), mensaje.getEmisor());
-						
-						// Si no se cubrió la cantidad requerida de NCs encola la tarea para retransmitir la solicitud a otro WKAN
-						auxInt2 = (Integer) ((HashMap<String, Comparable>) mensaje.getCarga()).get("pendientes");
-						if ((auxInt2 - auxInt > 0) || (auxLstStr2.size() < auxInt)) {
-							if (((AtributosAcceso) atributos).getNodos().size() > 0) {
-								diccionario.put("pendientes", (Integer) diccionario.get("pendientes") - auxInt);								
-								atributos.encolar("salida", new Tarea("RETRANSMITIR_SOLICITUD_NCS_NH", diccionario));
-								
-								System.out.printf("[Con NH] Encolada retransmisión de solicitud de NH %s\n", mensaje.getEmisor());
-							}
-						}
-						
-						//terminar = true;
+						//terminar = true;  // Y si mejor lo dejo en True para que la comunicación sea sólo de 1 mensaje? Tengo que cambiarlo desde el cliente también
 						break;
 					case Codigos.CONNECTION_END:
 						terminar = true;
 						break;
 					default:
-						System.out.printf("[Con NH] Recibido mensaje de %s: %s\n",  mensaje.getEmisor(), mensaje.getCarga());
+						System.out.printf("[Con NH] Recibido mensaje de %s: ",  mensaje.getEmisor().ip.getHostName());
+						System.out.printf("%s\n",  mensaje.getCarga());
 						break;
 				}
 			}
 			
 			sock.close();
 			System.out.printf("-> Conexión con %s finalizada\n", sockToString());
-		} catch (IOException | ClassNotFoundException | InterruptedException e) {
-			//IOException -> buffer de salida (se cae el Cliente y el Servidor espera la recepción de un mensaje).
+		} catch (IOException | ClassNotFoundException e) {
 			//ClassNotFoundException -> buffer de entrada.
 			// TODO: hacer algo en caso de error
 			e.printStackTrace();
 		}
+	}
+
+
+	@Override
+	public void run() {
+		this.atender();
 	}
 
 

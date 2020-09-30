@@ -1,15 +1,12 @@
 package nodes.components;
 
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map.Entry;
-import java.util.Random;
 
-import commons.structs.DireccionNodo;
-import my_exceptions.ManualInterruptException;
+import commons.DireccionNodo;
 import commons.Codigos;
 import commons.ConexionTcp;
 import commons.Mensaje;

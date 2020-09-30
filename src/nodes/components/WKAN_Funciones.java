@@ -1,12 +1,10 @@
 package nodes.components;
 
 import java.util.*;
-import java.util.Map.Entry;
 
 import commons.Codigos;
-import commons.Mensaje;
 import commons.Tarea;
-import commons.structs.DireccionNodo;
+import commons.DireccionNodo;
 
 /** 
  * Clase que engloba funciones, algoritmos y similares, propios de un WKAN y que son utilizado por más
@@ -72,11 +70,15 @@ public class WKAN_Funciones {
 		}
 	}
 
-	public LinkedList<DireccionNodo> getNCsConCapacidadNH(Integer cantidad, Set<DireccionNodo> excepciones) {
-		/* Método que devuelve un listado (de la cantidad requerida) de NCs que son capaces de recibir a un NH.
-		*
-		*  Se excluyen los NCs indicados en el conjunto excepciones
-		* */
+	public List<DireccionNodo> getNCsConCapacidadNH(Integer cantidad, Set<DireccionNodo> excepciones) {
+		/**
+		 * Método que devuelve un listado (de la cantidad requerida) de NCs que son capaces de recibir a un NH.
+		 *
+		 * Se excluyen los NCs indicados en el conjunto excepciones.
+		 *
+		 * Puede devolver lista vacía
+		 *
+		 */
 
 		LinkedList<DireccionNodo> lista = new LinkedList<DireccionNodo>();
 		List<DireccionNodo> shuffled;

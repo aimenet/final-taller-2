@@ -1,8 +1,6 @@
 package commons;
-import commons.structs.DireccionNodo;
 
 import java.io.Serializable;
-import java.net.InetAddress;
 
 /**Unidad de datos intercambiada entre Cliente (Nodo Hoja) y Servidor (Nodo Central).
  * Posee un código entero que indica la acción a realizar y una carga que por ahora es un String.

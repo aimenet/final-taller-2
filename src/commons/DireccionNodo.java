@@ -1,10 +1,9 @@
-package commons.structs;
+package commons;
 
-import commons.Constantes;
-
+import java.io.Serializable;
 import java.net.InetAddress;
 
-public class DireccionNodo implements Comparable<DireccionNodo>{
+public class DireccionNodo implements Comparable<DireccionNodo>, Serializable {
     public InetAddress ip;
     public Integer puerto_na;
     public Integer puerto_nc;
@@ -23,7 +22,6 @@ public class DireccionNodo implements Comparable<DireccionNodo>{
         this.puerto_nc = Constantes.PUERTO_NC;
         this.puerto_nh = Constantes.PUERTO_NH;
     }
-
 
     public String getUnaDireccion(String puerto) {
         Integer port;

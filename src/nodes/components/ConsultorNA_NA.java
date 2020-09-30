@@ -6,12 +6,13 @@ import java.net.Socket;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 
 import commons.Codigos;
 import commons.Mensaje;
 import commons.Tarea;
 import commons.Tupla2;
-import commons.structs.DireccionNodo;
+import commons.DireccionNodo;
 
 /**
  * Consultor que corre en hilos generado por el Servidor de Nodos de Acceso. Es el
@@ -159,7 +160,7 @@ public class ConsultorNA_NA implements Consultor {
 		Boolean forward = ((AtributosAcceso) atributos).getNodos().size() > 0;
 
 		// "Trae" el doble de lo requerido para aumentar las probabilidades de encontar un NC que no tenga ya al NH
-		LinkedList<DireccionNodo> candidatos = funciones.getNCsConCapacidadNH(requeridos * 2, new HashSet<DireccionNodo>());
+		List<DireccionNodo> candidatos = funciones.getNCsConCapacidadNH(requeridos * 2, new HashSet<DireccionNodo>());
 
 		// Consulta a los NC si cuentan con el NH entre sus filas, quedándose con aquellos que no
 		ClienteNA_NC consultor = new ClienteNA_NC(99);

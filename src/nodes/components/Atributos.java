@@ -3,11 +3,9 @@ package nodes.components;
 import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map;
 
 import commons.Tarea;
-import commons.structs.DireccionNodo;
+import commons.DireccionNodo;
 
 
 /**

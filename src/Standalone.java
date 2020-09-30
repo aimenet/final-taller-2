@@ -1,18 +1,9 @@
-import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.sql.Timestamp;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-
-import commons.Tarea;
-import commons.structs.DireccionNodo;
-import nodes.components.AtributosAcceso;
 
 public class Standalone {
 
@@ -87,20 +78,19 @@ public class Standalone {
 
 
 	public static void main(String[] args) throws UnknownHostException {
-		HashMap<DireccionNodo, Integer> lista = new HashMap<DireccionNodo, Integer>();
+		LinkedList<Integer> lista = new LinkedList<Integer>();
 
-		DireccionNodo dir1 = new DireccionNodo(InetAddress.getByName("127.0.0.1"));
-		DireccionNodo dir2 = new DireccionNodo(InetAddress.getByName("127.0.0.2"));
+		lista.add(15);
+		lista.add(3);
+		lista.add(28);
 
-		lista.put(dir1, 0);
-		lista.put(dir2, 3);
+		System.out.println(lista.toString());
+		List<Integer> sublista = lista.subList(0, 2);
 
-		System.out.println("DBG 1");
+		System.out.println(sublista.toString());
 
-		lista.put(new DireccionNodo(InetAddress.getByName("127.0.0.1")), 5);
-		lista.put(new DireccionNodo(InetAddress.getByName("127.0.0.3")), 1);
-
-		System.out.println("DBG 2");
+		lista = new LinkedList<Integer>();
+		System.out.println(lista.subList(0,0));
 	}
 }
 

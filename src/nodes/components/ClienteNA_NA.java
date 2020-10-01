@@ -48,21 +48,16 @@ public class ClienteNA_NA extends Cliente {
 
 	// Métodos que se usan para atender los distintos tipos de órdenes recibidas en una Tarea
 	// ---------------------------------------------------------------------------------------------------
-	private HashMap<String, Object> anuncioFnc(HashMap<String, Object> params) throws UnknownHostException {
-		/*
-		* Se "presenta" ante otro NABC (comunicando su dirección) a fin de ingresar a la red
-		*
-		* params: {
-		* 	"direccion": String, la IP del WKAN al que conectarse
-		* }
-		*
-		* */
+	private HashMap<String, Object> anuncioFnc(DireccionNodo destino) throws UnknownHostException {
+		/**
+		 *
+		 * Se "presenta" ante otro NABC (comunicando su dirección) a fin de ingresar a la red
+		 *
+		 */
 
 		HashMap<String, Object> output = new HashMap<String, Object>();
 
 		// Estos son comunes a todas las funciones
-		output.put("callBackOnSuccess", false);
-		output.put("callBackOnFailure", false);
 		output.put("result", true);
 
 		System.out.printf("Consumidor %s: ejecutando ANUNCIO\n", this.id);
@@ -74,7 +69,6 @@ public class ClienteNA_NA extends Cliente {
 		Integer contador = 0;
 		Integer intentos = 3;
 		Boolean success = false;
-		DireccionNodo destino = new DireccionNodo(InetAddress.getByName((String) params.get("direccion")));
 
 		while ((contador < intentos) && (!success)) {
 			if (this.establecerConexion(destino.ip.getHostName(), destino.puerto_na)) {
@@ -120,7 +114,7 @@ public class ClienteNA_NA extends Cliente {
 		output.put("result", true);
 
 		// Envía a un WKAN el listado de los nodos que tiene certeza están estrictamente activos
-		System.out.printf("Consumidor %s: ejecutando INFORMAR_CONOCIDOS as", this.id);
+		System.out.printf("Consumidor %s: ejecutando INFORMAR_CONOCIDOS a WKAN ", this.id);
 		System.out.printf(" %s", ((DireccionNodo) params.get("direccion")).ip.getHostName());
 
 		String ipDestino = ((DireccionNodo) params.get("direccion")).ip.getHostName();
@@ -435,11 +429,8 @@ public class ClienteNA_NA extends Cliente {
 		// 2020-07-25 todo este switch debería ser como el de ClienteNA_NC.java que es mucho más claro
 		switch (tarea.getName()) {
 			case "ANUNCIO":
-				hashmapPayload = new HashMap<String, Object>();
-				hashmapPayload.put("direccion", (String) tarea.getPayload());
-
 				try {
-					this.anuncioFnc(hashmapPayload);
+					this.anuncioFnc((DireccionNodo) tarea.getPayload());
 				} catch (UnknownHostException e) {
 					// No hago nada, si llegara a ser el único WKAN al que estoy conectado, la verificación que se hace
 					// en el loop ppal de NodoAccesoBienConocido se encargaría de disparar nuevamente la tarea

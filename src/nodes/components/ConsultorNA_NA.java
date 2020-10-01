@@ -79,7 +79,7 @@ public class ConsultorNA_NA implements Consultor {
 		output.put("callBackOnFailure", false);
 		output.put("result", true);
 
-		System.out.printf("Recibido listado de WKAN en %s", mensaje.getEmisor());
+		System.out.printf("Recibido listado de WKAN en %s", mensaje.getEmisor().ip.getHostName());
 
 		LinkedList<DireccionNodo> confirmados = (LinkedList<DireccionNodo>) mensaje.getCarga();
 

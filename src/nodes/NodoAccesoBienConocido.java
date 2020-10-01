@@ -170,14 +170,13 @@ public class NodoAccesoBienConocido {
 			hilo.start();
 		
 		// Anuncio en la red para darse a conocer
-		//Volveme
-		/*for (String ip : atributos.getNodos().keySet()) {
+		for (DireccionNodo ip : atributos.getNodos().keySet()) {
 			try {
 				atributos.encolar("salida", new Tarea(00, "ANUNCIO", ip));
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
-		}*/
+		}
 		
 		System.out.println("Terminé de poner en marcha el nodo de acceso");
 		

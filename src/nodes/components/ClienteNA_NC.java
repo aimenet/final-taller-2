@@ -158,9 +158,6 @@ public class ClienteNA_NC extends Cliente {
 		return output;
 	}
 
-
-
-
 	private HashMap<String, Object> aceptarNHFnc(HashMap<String, Object> params) {
 		/**
 		 * La finalidad de esta tarea es simplemente ordearle al NC que se anuncie ante el NH que solicitó NCs
@@ -197,26 +194,19 @@ public class ClienteNA_NC extends Cliente {
 
 
 	@Override
-	protected HashMap<String, Comparable> procesarTarea(Tarea tarea) throws InterruptedException {
-		boolean flag;
+	protected HashMap<String, Comparable> procesarTarea(Tarea tarea) {
 		DireccionNodo direccion;
 		Function<HashMap<String, Object>, HashMap<String, Object>> method;
 		HashMap<String,Object> diccionario;
 		HashMap<String, Comparable> diccionario2;
-		HashMap<String, Comparable> salida;
-		Integer contador=0; 
+		Integer contador=0;
 		Integer intentos=3; 
 		Integer puertoNcDestino;
-		Integer status=0;
-		Object generico;
-		Object lock;
-		String auxStr;
 		String ipNcDestino;
 		
 		// Inicializaciones de cortesía
 		method = null;
 		diccionario = null;
-		salida = null;
 		
 		ipNcDestino = null;
 		puertoNcDestino = null;

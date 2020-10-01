@@ -117,7 +117,7 @@ public class ConsultorNA_NC implements Consultor {
 					case Codigos.NC_NA_POST_ANUNCIO:
 						/* Mensaje = (dirección del NC para atender WKAN,
 					  	              código de tarea,
-					  	              diccionario con direcciones servidor del NC)*/
+					  	              null)*/
 						
 						this.anuncioFnc(mensaje.getEmisor());
 						terminar = true;

@@ -49,11 +49,12 @@ public class AtributosCentral extends Atributos {
 	private static volatile HashMap<String,ArrayList<CredImagen>> indiceImagenes = new HashMap<String,ArrayList<CredImagen>>();
 	
 	// WKANs
-	private static volatile String wkanAsignado;
-	private static volatile Timestamp ultimoIntentoConexionWKAN;
 	private static final int timeoutEsperaAnuncioWKAN = 60;
 	public static int keepaliveWKAN = 20;  // segundos -> TODO: debería venir de config
-	
+	private static volatile Boolean aceptacionWKAN;
+	private static volatile String wkanAsignado;
+	private static volatile Timestamp ultimoIntentoConexionWKAN;
+
 	
 	// Nodos Centrales
 	private static final Object lockIndiceCentrales = new Object();

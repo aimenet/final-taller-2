@@ -99,7 +99,6 @@ public class NodoAccesoBienConocido {
 		// que en un entorno real no cargaría así la IP (ni siquiera sé si cargaría la IP)
 		atributos.setDireccion(InetAddress.getByName(config.getProperty("ip")));
 
-
 		// NABC conocidos inicialmente
 		for (Object key : config.keySet()) {
 			String clave = (String) key;

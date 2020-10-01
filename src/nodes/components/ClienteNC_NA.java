@@ -5,12 +5,9 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map.Entry;
 import java.util.Random;
+
+import commons.*;
 import my_exceptions.ManualInterruptException;
-import commons.Codigos;
-import commons.ConexionTcp;
-import commons.Mensaje;
-import commons.Tarea;
-import commons.Tupla2;
 
 /**
  * Una de las instancias que compone la "faceta" Cliente de un Nodo Central. Es la encargada de 
@@ -37,6 +34,65 @@ public class ClienteNC_NA extends Cliente {
 		super(idConsumidor, "acceso");  // la cola de la que consume debería recibirla como parámetro?
 		this.atributos = new AtributosCentral();  // <atributos> está declarado en Cliente
 	}
+
+
+	private Boolean anuncioWKANFnc(DireccionNodo wkan) {
+		/**
+		 * Se "presenta" ante un NABC (comunicando su IP) a fin de ingresar a la red.
+		 *
+		 */
+		Boolean output = false;
+
+		System.out.printf("[Con %s] Ejecutando ANUNCIO-WKAN\n", this.id);
+
+		Boolean success = false;
+		Integer contador = 0;
+		Integer intentos = 3;
+
+		while ((contador < intentos) && (!success)) {
+			if (this.establecerConexionConNodoAcceso(wkan.ip.getHostAddress(), wkan.puerto_nc)) {
+				System.out.printf("Anunciando a WKAN %s", wkan.ip.getHostName());
+
+				Mensaje saludo = new Mensaje(
+						this.atributos.getDireccion(),
+						Codigos.NC_NA_POST_ANUNCIO,
+						null
+				);
+				Mensaje respuesta = (Mensaje) this.conexionConNodoAcceso.enviarConRta(saludo);
+
+				if (respuesta.getCodigo() == Codigos.OK) {
+					System.out.printf(" [OK]\n");
+				} else if (respuesta.getCodigo() == Codigos.ACCEPTED) {
+					// el wkan no tiene capacidad para aceptarme pero retransmitió la consulta.
+					System.out.printf(" [ERROR]\n");
+					System.out.println("Iniciando espera de aceptación");
+				}
+
+				// Cualquiera haya sido la respuesta, termina el bucle
+				success = true;
+
+			} else {
+				contador += 1;
+				continue;
+			}
+		}
+
+		if (!success) {
+			// No pudo establecerse conexión. Se encola una tarea de reintento
+			System.out.print("\n[Con " + this.id + "]: ");
+			System.out.println("falló aununcio a WKAN " + wkan.ip.getHostName());
+
+			// Marca el timestamp de último intento de acceso para reintentar si expira sin haber podido anunciarse
+			((AtributosCentral) atributos).marcarIntentoConexionWKAN();
+
+			// TODO: necesito una cola temporal donde haya tareas con delay. El hilo que la controle debe
+			// estar revisando constantemente cuando expire el delay de alguna tarea para encolarla en la cola
+			// definitiva
+		}
+
+		return output;
+	}
+
 
 	@Override
 	public HashMap<String, Comparable> procesarTarea(Tarea tarea) throws InterruptedException {

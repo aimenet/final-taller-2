@@ -14,24 +14,17 @@ package nodes;
  *
  */
 
-import java.io.File;
 import java.io.FileInputStream;
-import java.io.InputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Properties;
-import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
 import commons.Tarea;
 import nodes.components.AtributosCentral;
-import nodes.components.ClienteNA_NA;
-import nodes.components.ClienteNA_NC;
 import nodes.components.ClienteNC_NA;
 import nodes.components.ClienteNC_NC;
 import nodes.components.ConsultorNC_H;
@@ -40,12 +33,9 @@ import nodes.components.ConsultorNC_NC;
 import nodes.components.Servidor;
 
 
-
-public class NodoCentral /*implements Runnable*/ {
+public class NodoCentral {
 	private AtributosCentral atributos;
 	private Properties config;
-	private Servidor servidorHojas, servidorCentrales;
-	private Thread hiloServidorHojas, hiloServidorCentrales;
 	
 	private ArrayList<Thread> clientThreads;
 	private ArrayList<Thread> serverThreads;
@@ -53,7 +43,7 @@ public class NodoCentral /*implements Runnable*/ {
 	private HashMap<String,Servidor> servers;
 	
 	
-	public NodoCentral(String archivoConfiguracion){
+	public NodoCentral(String archivoConfiguracion) throws UnknownHostException {
 		try {
 			config = new Properties();
 			config.load( new FileInputStream(archivoConfiguracion) );
@@ -71,9 +61,11 @@ public class NodoCentral /*implements Runnable*/ {
 		
 		// Carga de atributos del NC
 		atributos = new AtributosCentral();
-		
-		atributos.setDireccion(config.getProperty("ip"));
-		
+
+		// 2020-09-30 Esto puede tirar una excepción UnknownHostException. Por ahora dejo que explote, porque supongo
+		// que en un entorno real no cargaría así la IP (ni siquiera sé si cargaría la IP)
+		atributos.setDireccion(InetAddress.getByName(config.getProperty("ip")));
+
 		// Punto de acceso a la red
 		atributos.setWKANAsignado(config.getProperty("wkan"));
 		
@@ -86,18 +78,24 @@ public class NodoCentral /*implements Runnable*/ {
 		atributos.setColas();
 		
 		// Servidores
-		this.servers.put("hojas", new Servidor(config.getProperty("ip"),
-				                               Integer.parseInt(config.getProperty("puerto_nh")),
-				                               config.getProperty("nombre")+": Hojas",
-				                               ConsultorNC_H.class));
-		this.servers.put("centrales", new Servidor(config.getProperty("ip"),
-				                                   Integer.parseInt(config.getProperty("puerto_nc")),
-										           config.getProperty("nombre")+": Centrales",
-										           ConsultorNC_NC.class));
-		this.servers.put("acceso", new Servidor(config.getProperty("ip"),
-				                                Integer.parseInt(config.getProperty("puerto_na")),
-		                                        config.getProperty("nombre")+": Acceso",
-		                                        ConsultorNC_NA.class));
+		this.servers.put("hojas", new Servidor(
+				atributos.getDireccion().ip.getHostAddress(),
+				atributos.getDireccion().puerto_nh,
+				config.getProperty("nombre")+": Hojas",
+				ConsultorNC_H.class
+		));
+		this.servers.put("centrales", new Servidor(
+				atributos.getDireccion().ip.getHostAddress(),
+				atributos.getDireccion().puerto_nc,
+				config.getProperty("nombre")+": Centrales",
+				ConsultorNC_NC.class
+		));
+		this.servers.put("acceso", new Servidor(
+				atributos.getDireccion().ip.getHostAddress(),
+				atributos.getDireccion().puerto_na,
+				config.getProperty("nombre")+": Acceso",
+		        ConsultorNC_NA.class
+		));
 		
 		for (Servidor server : servers.values()) {
 			serverThreads.add(new Thread(server));
@@ -107,8 +105,8 @@ public class NodoCentral /*implements Runnable*/ {
 		// 1 para conectarse al WKAN que sirve de pto de entrada a la red
 		// 3 (def. por el archivo de configuración) para interactuar con los NCs a los que se conectará
 		while (this.clients.size() < Integer.parseInt(this.config.getProperty("centrales")))
-			this.clients.put("NC-"+Integer.toString(this.clients.size()), new ClienteNC_NC(this.clients.size()));
-		this.clients.put("NC-"+Integer.toString(this.clients.size()), new ClienteNC_NA(this.clients.size()));
+			this.clients.put("NC-" + Integer.toString(this.clients.size()), new ClienteNC_NC(this.clients.size()));
+		this.clients.put("NC-" + Integer.toString(this.clients.size()), new ClienteNC_NA(this.clients.size()));
 		
 		// Hacer otro bucle para esto no creo que sea lo mejor
 		for (String cliente : this.clients.keySet())
@@ -134,7 +132,6 @@ public class NodoCentral /*implements Runnable*/ {
 	
 	public void ponerEnMarcha() {
 		boolean terminar = false;
-		Tarea tarea;
 		
 		// Inicio de los hilos clientes y servidores
 		for (Thread hilo : serverThreads)
@@ -157,6 +154,8 @@ public class NodoCentral /*implements Runnable*/ {
 		// Loop donde se administran ciertas tareas que ejecuta periódicamente el nodo
 		// Claramente esto es quick and dirty y funca porque hay una tarea periódica
 		while(!terminar) {
+			// TODO 2020-10-01: reenviar anuncio a WKAN si sigo afuera de la red
+
 			// Dispara tarea de envío de keepalive a WKAN
 			try {
 				Thread.sleep(TimeUnit.MILLISECONDS.convert(atributos.keepaliveWKAN, TimeUnit.SECONDS));

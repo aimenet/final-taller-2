@@ -1,6 +1,8 @@
 package nodes.components;
 
 import java.io.IOException;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map.Entry;
@@ -22,21 +24,18 @@ import my_exceptions.ManualInterruptException;
 
 public class ClienteNC_NA extends Cliente {
 	// Atributos
-	// =========
-	private ConexionTcp conexionConNodoAcceso;
-	private boolean conexionEstablecida;
-	public String idAsignadoNA, tipoConsumidor;
+	// -----------------------------------------------------------------------------------------------------------------
 
 
 	// Métodos
-	// =======
+	// -----------------------------------------------------------------------------------------------------------------
 	public ClienteNC_NA(int idConsumidor) {
 		super(idConsumidor, "acceso");  // la cola de la que consume debería recibirla como parámetro?
 		this.atributos = new AtributosCentral();  // <atributos> está declarado en Cliente
 	}
 
 
-	private Boolean anuncioWKANFnc(DireccionNodo wkan) {
+	private Boolean anuncioFnc(DireccionNodo wkan) {
 		/**
 		 * Se "presenta" ante un NABC (comunicando su IP) a fin de ingresar a la red.
 		 *
@@ -50,7 +49,7 @@ public class ClienteNC_NA extends Cliente {
 		Integer intentos = 3;
 
 		while ((contador < intentos) && (!success)) {
-			if (this.establecerConexionConNodoAcceso(wkan.ip.getHostAddress(), wkan.puerto_nc)) {
+			if (this.establecerConexion(wkan.ip.getHostAddress(), wkan.puerto_nc)) {
 				System.out.printf("Anunciando a WKAN %s", wkan.ip.getHostName());
 
 				Mensaje saludo = new Mensaje(
@@ -58,10 +57,11 @@ public class ClienteNC_NA extends Cliente {
 						Codigos.NC_NA_POST_ANUNCIO,
 						null
 				);
-				Mensaje respuesta = (Mensaje) this.conexionConNodoAcceso.enviarConRta(saludo);
+				Mensaje respuesta = (Mensaje) this.conexionConNodo.enviarConRta(saludo);
 
 				if (respuesta.getCodigo() == Codigos.OK) {
 					System.out.printf(" [OK]\n");
+					((AtributosCentral) atributos).marcarIntentoConexionWKAN(true);
 				} else if (respuesta.getCodigo() == Codigos.ACCEPTED) {
 					// el wkan no tiene capacidad para aceptarme pero retransmitió la consulta.
 					System.out.printf(" [ERROR]\n");
@@ -78,12 +78,11 @@ public class ClienteNC_NA extends Cliente {
 		}
 
 		if (!success) {
-			// No pudo establecerse conexión. Se encola una tarea de reintento
 			System.out.print("\n[Con " + this.id + "]: ");
 			System.out.println("falló aununcio a WKAN " + wkan.ip.getHostName());
 
 			// Marca el timestamp de último intento de acceso para reintentar si expira sin haber podido anunciarse
-			((AtributosCentral) atributos).marcarIntentoConexionWKAN();
+			((AtributosCentral) atributos).marcarIntentoConexionWKAN(false);
 
 			// TODO: necesito una cola temporal donde haya tareas con delay. El hilo que la controle debe
 			// estar revisando constantemente cuando expire el delay de alguna tarea para encolarla en la cola
@@ -94,135 +93,96 @@ public class ClienteNC_NA extends Cliente {
 	}
 
 
+	private Boolean checkAnuncioFnc() {
+		/**
+		 * Evalúa si el nodo ingresó a la red, para reenviar el anuncio al WKAN en caso contrario.
+		 *
+		 */
+		Boolean output = false;
+		DireccionNodo wkan = ((AtributosCentral) atributos).getWKANAsignado();
+
+		System.out.printf("[Cli WKAN %s] ", this.id);
+		System.out.printf("Checkeando anuncio ante WKAN: ");
+
+		if (!((AtributosCentral) atributos).getAceptadoPorWKAN()){
+			Integer espera = ((AtributosCentral) atributos).getTimeoutEsperaAnuncioWKAN();  // segundos
+			Timestamp ultimoIntento = ((AtributosCentral) atributos).getUltimoIntentoConexionWKAN();
+
+			if(ultimoIntento.compareTo(new Timestamp(System.currentTimeMillis() - espera * 1000)) <= 0) {
+				try {
+					atributos.encolar("acceso", new Tarea(00,"ANUNCIO_WKAN", wkan));
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+
+		}
+
+		output = true;
+		return output;
+	}
+
+
+	private Boolean keepAliveFnc() {
+		/**
+		 * Se informa al WKAN que este nodo está "vivo"
+		 *
+		 */
+		Boolean output = false;
+		DireccionNodo wkan = ((AtributosCentral) atributos).getWKANAsignado();
+
+		System.out.printf("[Cli WKAN %s] ", this.id);
+		System.out.printf("Envío keepalive WKAN %s ", wkan.ip.getHostName());
+
+		if (this.establecerConexion(wkan.ip.getHostAddress(), wkan.puerto_nc)) {
+			Mensaje saludo = new Mensaje(this.atributos.getDireccion(),
+					Codigos.NC_NA_POST_KEEPALIVE,
+					null
+			);
+
+			this.conexionConNodo.enviarSinRta(saludo);
+
+			output = true;
+
+			System.out.println("[OK]");
+		} else {
+			// Acá no le doy mucha vuelta porque esta es una tarea periódica
+			System.out.println("[ERROR]");
+		}
+
+		return output;
+	}
+
+
 	@Override
 	public HashMap<String, Comparable> procesarTarea(Tarea tarea) throws InterruptedException {
-		boolean success;
-		HashMap<String, Comparable> diccionario;
 		HashMap<String, Comparable> output;
-		Integer contador = 0; 
-		Integer intentos = 3;
-		Integer auxInt, puertoDestino;
-		Integer status = 0;
-		Object lock;
-		String auxStr, ipDestino;
-		
+
 		output = null;
 		
 		switch(tarea.getName()){
-			case "ANUNCIO-WKAN":
-				System.out.printf("Consumidor %s: ejecutando ANUNCIO-WKAN\n", this.id);
+			case "ANUNCIO_WKAN":
 				// Se "presenta" ante un NABC (comunicando su IP) a fin de ingresar a la red
-				contador = 0;
-				success = false;
-				ipDestino = ((String) tarea.getPayload()).split(":")[0];
-				puertoDestino = Integer.parseInt(((String) tarea.getPayload()).split(":")[1]);
-				
-				while ((contador < intentos) && (!success)) {
-					if (this.establecerConexionConNodoAcceso(ipDestino, puertoDestino)) {
-						System.out.printf("Anunciando a WKAN %s", (String) tarea.getPayload());
-						
-						// Al WKAN le informará las direcciones de su servidor de: WKAN, NC y NH
-						diccionario = new HashMap<String, Comparable>();
-						diccionario.put("direccionNC_NA", this.atributos.getDireccion("acceso"));
-						diccionario.put("direccionNC_NC", this.atributos.getDireccion("centrales"));
-						diccionario.put("direccionNC_NH", this.atributos.getDireccion("hojas"));
-						
-						// Si bien todos los WKAN deberían escuchar en el mismo puerto, para poder correr más de uno
-						// en local tengo que usar sí o sí distintos puertos
-						Mensaje saludo = new Mensaje(this.atributos.getDireccion("acceso"), 
-								                     Codigos.NC_NA_POST_ANUNCIO, 
-								                     diccionario);
-						Mensaje respuesta = (Mensaje) this.conexionConNodoAcceso.enviarConRta(saludo);
-						
-						if (respuesta.getCodigo() == Codigos.OK) {
-							System.out.printf(" [OK]\n");
-						} else if (respuesta.getCodigo() == Codigos.ACCEPTED) {
-							// el wkan no tiene capacidad para aceptarme pero retransmitió la consulta.
-							// Tengo que esperar que algún WKAN se comunique para decir que me aceptó
-							System.out.printf(" [ERROR]\n");
-							System.out.println("Iniciando espera de aceptación");
-						}
-						
-						// Cualquiera haya sido la respuesta, termina el bucle
-						success = true;
-						
-					} else {
-						contador += 1;
-						continue;
-					}
-				}
-				
-				if (!success) {
-					// No pudo establecerse conexión. Se encola una tarea de reintento
-					//atributos.encolar("salida", new Tarea(00, "REANUNCIO", (String) tarea.getPayload()));
-					System.out.print("\nConsumidor " + this.id + ": ");
-					System.out.println("falló 1er aununcio a WKAN " + (String) tarea.getPayload());
-					
-					// Marca el timestamp de último intento de acceso para reintentar si expira sin haber
-					// podido ingresar a la red
-					((AtributosCentral) atributos).marcarIntentoConexionWKAN();
-					
-					// TODO: necesito una cola temporal donde haya tareas con delay. El hilo que la controle debe
-					// estar revisando constantemente cuando expire el delay de alguna tarea para encolarla en la cola
-					// definitiva
-					
-					// Esto queda truncado por ahora, el NC va a esperar que un WKAN se comunique para indicar que lo
-					// acepte, pero si eso no pasa no intentará más entrar a la red
-				}
+				this.anuncioFnc((DireccionNodo) tarea.getPayload());
 				
 				// TODO: terminar la conexión con WKAN
+				break;
+			case "CHECK_ANUNCIO":
+				// Verifica si es necesario reenviar el anuncio al WKAN pues aún no se ingresó a la red
+				this.checkAnuncioFnc();
+
 				break;
 			case "SEND_KEEPALIVE_WKAN":
 				// Tarea mediante la que se le informa al WKAN que este nodo está "vivo"
 				
-				ipDestino = ((AtributosCentral) atributos).getWKANAsignado().split(":")[0];
-				puertoDestino = Integer.parseInt(((AtributosCentral) atributos).getWKANAsignado().split(":")[1]);
-				
-				System.out.printf("[Cli WKAN %s] ", this.id);
-				System.out.printf("Envío keepalive WKAN %s ", ((AtributosCentral) atributos).getWKANAsignado());
-				
-				if (this.establecerConexionConNodoAcceso(ipDestino, puertoDestino)) {
-					Mensaje saludo = new Mensaje(this.atributos.getDireccion("acceso"), 
-							                     Codigos.NC_NA_POST_KEEPALIVE, 
-							                     this.atributos.getDireccion("centrales")); // innecesaria
-					this.conexionConNodoAcceso.enviarSinRta(saludo);
-					
-					System.out.println("[OK]");
-				} else {
-					// Acá no le doy mucha vuelta porque esta es una tarea periódica
-					System.out.println("[ERROR]");
-				}
+				this.keepAliveFnc();
+
 				break;
 		}
 		
-		this.terminarConexionConNodoAcceso();
+		this.terminarConexion();
 		
 		return output;
-	}
-	
-	
-	private boolean establecerConexionConNodoAcceso(String ip, Integer puerto){
-		if (this.conexionEstablecida)
-			this.terminarConexionConNodoAcceso();
-		
-		try {
-			this.conexionConNodoAcceso = new ConexionTcp(ip, puerto);
-			this.conexionEstablecida = true;
-		} catch (IOException e) {
-			System.out.println("No se pudo establecer conexión con el servidor");
-			conexionEstablecida = false;
-		}
-		
-		return this.conexionEstablecida;
-	}
-	
-	private boolean terminarConexionConNodoAcceso(){
-		if (this.conexionEstablecida) {
-			this.conexionConNodoAcceso.cerrar();
-			this.conexionEstablecida = false;
-		}
-		
-		return this.conexionEstablecida;
 	}
 }
 

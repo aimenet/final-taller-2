@@ -10,6 +10,7 @@ import java.sql.Timestamp;
 import java.util.*;
 import java.util.Base64.Encoder;
 
+import commons.DireccionNodo;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -45,14 +46,21 @@ public class AtributosCentral extends Atributos {
 	private static final Object lockIndiceImagenes = new Object();
 	private static final Object lockArchivoHojas = new Object();
 	private static final String pathArchivoHojas = Paths.get(System.getProperty("user.dir"),"config", "hojas_conectadas.json").toString();
-	private static volatile HashMap<String,String> indiceHojas = new HashMap<String,String>();
+	// TODO 2020-10-02: esto en memoria, es de juguete. Si me sobra tiempo meterle SQLite o lo que sea que se use en la
+	//  vida real para estos casos.
 	private static volatile HashMap<String,ArrayList<CredImagen>> indiceImagenes = new HashMap<String,ArrayList<CredImagen>>();
-	
+	// TODO 2020-10-02: por ahora, dado que no tengo otra necesidad, sólo guardo la dirección de los NH. Seguramente
+	//  cuando avance en las actualizaciones deba registrar otros datos y deva cambiar la lista enlazada por un
+	//  diccionario, un struct o algo de eso
+	//private static volatile HashMap<String,String> indiceHojas = new HashMap<String,String>();
+	private static volatile HashSet<DireccionNodo> indiceHojas = new HashSet<DireccionNodo>();
+
+
 	// WKANs
+	private static volatile Boolean aceptadoPorWKAN = false;
 	private static final int timeoutEsperaAnuncioWKAN = 60;
 	public static int keepaliveWKAN = 20;  // segundos -> TODO: debería venir de config
-	private static volatile Boolean aceptacionWKAN;
-	private static volatile String wkanAsignado;
+	private static volatile DireccionNodo wkanAsignado;
 	private static volatile Timestamp ultimoIntentoConexionWKAN;
 
 	
@@ -70,6 +78,8 @@ public class AtributosCentral extends Atributos {
 	// Algunas constantes
 	private static final int TOKEN_MAX_BYTES = 12;
 	private static final int TOKEN_MAX_LENGTH = 16;
+
+
 	// -> TOKEN_MAX_BYTES = 16 hace que el largo del token sea 22 caracteres. 
 	// -> TOKEN_MAX_BYTES = 12 hace que el largo del token sea 16 caracteres.
 	// -> TODO: entender por qué pasa esto y renombrar la CTE en consecuencia pues no es claro
@@ -77,8 +87,9 @@ public class AtributosCentral extends Atributos {
 
 	// Métodos
 	// =======
-	public String getHoja(String clave){
-		return indiceHojas.get(clave);
+	public DireccionNodo getHoja(DireccionNodo hoja){
+		// TODO 2020-10-02: es medio al pedo en tanto el índice de Hojas no guarde más data
+		return indiceHojas.contains(hoja) ? hoja : null;
 	}
 
 	public String getIDHoja(String direccion){
@@ -180,11 +191,27 @@ public class AtributosCentral extends Atributos {
 
 	// Métodos relacionados a WKAN
 	// -----------------------------------------------------------------------------------
-	public String getWKANAsignado() {return wkanAsignado;}
-	public void setWKANAsignado(String direccion) {wkanAsignado = direccion;}
-	public void marcarIntentoConexionWKAN() {
+	public DireccionNodo getWKANAsignado() {return wkanAsignado;}
+
+	public void setWKANAsignado(DireccionNodo direccion) {wkanAsignado = direccion;}
+
+	public void marcarIntentoConexionWKAN(Boolean aceptado) {
 		ultimoIntentoConexionWKAN = new Timestamp(new java.util.Date().getTime());
+		aceptadoPorWKAN = aceptado;
 	}
+
+	public static Boolean getAceptadoPorWKAN() {
+		return aceptadoPorWKAN;
+	}
+
+	public void setAceptadoPorWKAN(Boolean status) {
+		aceptadoPorWKAN = status;
+	}
+
+	public static Timestamp getUltimoIntentoConexionWKAN() {
+		return ultimoIntentoConexionWKAN;
+	}
+
 	public int getTimeoutEsperaAnuncioWKAN() {return timeoutEsperaAnuncioWKAN;}
 	
 	

@@ -144,7 +144,7 @@ public class NodoCentral {
 		// Nótese que no está hardcodeada la IP del WKAN así que este nodo tranquilamente podría estar concetado
 		// a más de un Nodo de Acceso
 		try {
-			atributos.encolar("acceso", new Tarea(00, "ANUNCIO-WKAN", atributos.getWKANAsignado()));
+			atributos.encolar("acceso", new Tarea(00, "ANUNCIO_WKAN", atributos.getWKANAsignado()));
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
@@ -154,7 +154,14 @@ public class NodoCentral {
 		// Loop donde se administran ciertas tareas que ejecuta periódicamente el nodo
 		// Claramente esto es quick and dirty y funca porque hay una tarea periódica
 		while(!terminar) {
-			// TODO 2020-10-01: reenviar anuncio a WKAN si sigo afuera de la red
+			// Tarea que determina si es necesario enviar anuncio a WKAN en caso de que aún no se ingresó a la red
+			try {
+				Thread.sleep(120000);
+				atributos.encolar("acceso", new Tarea(00, "CHECK_ANUNCIO", null));
+				System.out.println("[Core] Disparada tarea periódica: CHECK ANUNCIO para determinar ingreso a la red");
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 
 			// Dispara tarea de envío de keepalive a WKAN
 			try {

@@ -44,7 +44,11 @@ public class Mensaje implements Serializable {
 
 	public Object getCarga() {return carga;}
 
-	// 2020-09-11: lo mato hasta que llegue su turno
+	public String recepcionRta(){
+		return recepcionRta;
+	}
+
+    // 2020-09-11: lo mato hasta que llegue su turno
 	/*
 	public Mensaje(String idEmisor, String direccionRta, Integer codigo, Object carga){
 		this.emisor = idEmisor;
@@ -94,8 +98,6 @@ public class Mensaje implements Serializable {
 		ttl -= 1;
 	}
 
-
-	
 	public Integer getTTL(){
 		return ttl;
 	}
@@ -111,10 +113,7 @@ public class Mensaje implements Serializable {
 	public Object getNCEmisor(){
 		return ncEmisor;
 	}
-	
-	public String recepcionRta(){
-		return recepcionRta;
-	}
+
 	
 	//Setters.
 	private void setEmisor(String emisor){

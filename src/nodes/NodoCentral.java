@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
+import commons.DireccionNodo;
 import commons.Tarea;
 import nodes.components.AtributosCentral;
 import nodes.components.ClienteNC_NA;
@@ -67,7 +68,8 @@ public class NodoCentral {
 		atributos.setDireccion(InetAddress.getByName(config.getProperty("ip")));
 
 		// Punto de acceso a la red
-		atributos.setWKANAsignado(config.getProperty("wkan"));
+		InetAddress nodoAcceso = InetAddress.getByName(config.getProperty("wkan"));
+		atributos.setWKANAsignado(new DireccionNodo(nodoAcceso));
 		
 		// Cantidad de NC a los que debe conectarse
 		atributos.setMaxCentralesVecinos(Integer.parseInt(this.config.getProperty("centrales")));

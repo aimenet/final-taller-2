@@ -11,6 +11,7 @@ import java.util.*;
 import java.util.Base64.Encoder;
 
 import commons.DireccionNodo;
+import commons.structs.nc.NHIndexada;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -48,12 +49,8 @@ public class AtributosCentral extends Atributos {
 	private static final String pathArchivoHojas = Paths.get(System.getProperty("user.dir"),"config", "hojas_conectadas.json").toString();
 	// TODO 2020-10-02: esto en memoria, es de juguete. Si me sobra tiempo meterle SQLite o lo que sea que se use en la
 	//  vida real para estos casos.
-	private static volatile HashMap<String,ArrayList<CredImagen>> indiceImagenes = new HashMap<String,ArrayList<CredImagen>>();
-	// TODO 2020-10-02: por ahora, dado que no tengo otra necesidad, sólo guardo la dirección de los NH. Seguramente
-	//  cuando avance en las actualizaciones deba registrar otros datos y deva cambiar la lista enlazada por un
-	//  diccionario, un struct o algo de eso
-	//private static volatile HashMap<String,String> indiceHojas = new HashMap<String,String>();
-	private static volatile HashSet<DireccionNodo> indiceHojas = new HashSet<DireccionNodo>();
+	private static volatile HashMap<UUID,ArrayList<CredImagen>> indiceImagenes = new HashMap<UUID, ArrayList<CredImagen>>();
+	private static volatile HashMap<UUID, NHIndexada> indiceHojas = new HashMap<UUID, NHIndexada>();
 
 
 	// WKANs
@@ -78,33 +75,26 @@ public class AtributosCentral extends Atributos {
 	// Algunas constantes
 	private static final int TOKEN_MAX_BYTES = 12;
 	private static final int TOKEN_MAX_LENGTH = 16;
-
-
-	// -> TOKEN_MAX_BYTES = 16 hace que el largo del token sea 22 caracteres. 
-	// -> TOKEN_MAX_BYTES = 12 hace que el largo del token sea 16 caracteres.
-	// -> TODO: entender por qué pasa esto y renombrar la CTE en consecuencia pues no es claro
 	
 
 	// Métodos
 	// =======
-	public DireccionNodo getHoja(DireccionNodo hoja){
-		// TODO 2020-10-02: es medio al pedo en tanto el índice de Hojas no guarde más data
-		return indiceHojas.contains(hoja) ? hoja : null;
-	}
+	public NHIndexada getHoja(UUID hoja){return indiceHojas.get(hoja);}
 
-	public String getIDHoja(String direccion){
-		String idAsignado = null;
+	public UUID getIDHoja(DireccionNodo direccion){
+		UUID idAsignado = null;
 
-		for (Map.Entry<String, String> entry : indiceHojas.entrySet())
-			if (entry.getValue().equals(direccion)){
-				idAsignado = entry.getKey();
+		for (Map.Entry<UUID, NHIndexada> me : indiceHojas.entrySet()) {
+			if (me.getValue().getDireccion().equals(direccion)) {
+				idAsignado = me.getKey();
 				break;
 			}
+		}
 
 		return idAsignado;
 	}
 
-	public HashMap<String,String> getHojas() {return this.indiceHojas;}
+	public HashMap<UUID,NHIndexada> getHojas() {return this.indiceHojas;}
 
 	public String getCentral(Integer index){
 		return indiceCentrales.get(index);
@@ -118,7 +108,7 @@ public class AtributosCentral extends Atributos {
 		return indiceImagenes.get(clave);
 	}
 	
-	public void indexarImagenes(String idHoja, ArrayList<CredImagen> imagenes){
+	public void indexarImagenes(UUID idHoja, ArrayList<CredImagen> imagenes){
 		synchronized(lockIndiceImagenes){ indiceImagenes.put(idHoja, imagenes); }
 	}
 	
@@ -161,11 +151,11 @@ public class AtributosCentral extends Atributos {
 		return indiceImagenes.size();
 	}
 	
-	public void indexarHoja(String idHoja, String direcciones){
-		synchronized(lockIndiceHojas){ indiceHojas.put(idHoja, direcciones); }
+	public void indexarHoja(UUID idHoja, DireccionNodo direccion){
+		synchronized(lockIndiceHojas){ indiceHojas.put(idHoja, new NHIndexada(idHoja,direccion)); }
 	}
 	
-	public Set<String> getClavesIndiceHojas(){
+	public Set<UUID> getClavesIndiceHojas(){
 		return indiceHojas.keySet();
 	}
 	

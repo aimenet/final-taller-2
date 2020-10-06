@@ -133,7 +133,10 @@ En el marco de "2) WKAN: interacciones wkan <-> nc":
            todos los datos relevantes (id (uuid) asignado, lista de imágenes que tiene, último keepalive, etc) y después
            es fácil reemplazar eso en memoria por una BD o lo que sea.
 
-
+2020-10-06
+En el marco de "2) WKAN: interacciones wkan <-> nc":
+    Pospuse la actualización de ConsultorNC_NA
+    Actualicé en AtributosCentral lo referido a NHs
 
 
 

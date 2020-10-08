@@ -209,8 +209,27 @@ public class AtributosCentral extends Atributos {
 	// -----------------------------------------------------------------------------------
 	public void setMaxCentralesVecinos(Integer cantidad) {maxCentralesVecinos = cantidad;}
 	public Integer getMaxCentralesVecinos() {return maxCentralesVecinos;}
-	
-	
+
+
+	// Métodos relacionados a Nodos Hojas
+	// -----------------------------------------------------------------------------------
+	public Boolean hojaIndexada(DireccionNodo hoja) {
+		/* Evalúa la existencia de un NH en el índice, a partir de la dirección de esta */
+		Boolean existe = false;
+
+		// TODO 2020-10-08 - MEJORA: no le doy mucha vuelta a la performance, hago un for y chau
+		for (NHIndexada indexada : indiceHojas.values()) {
+			if (hoja.ip.equals(indexada.getDireccion().ip)) {
+				existe = true;
+				break;
+			}
+		}
+
+		return existe;
+	}
+
+
+
 	/**Evalúa si una consulta ya fue recibida previamente. Si existe y expiró actualiza el horario, en caso contrario la encola.
 	 * Código de salida: 0_ La consulta existe y está vigente
 	 *                   1_ La consulta existe, no está vigente y fue actualizada

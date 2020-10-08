@@ -4,15 +4,13 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import commons.Codigos;
 import commons.DireccionNodo;
 import commons.Mensaje;
 import commons.Tarea;
+import commons.structs.nc.NHIndexada;
 
 public class ConsultorNC_NA implements Consultor {
 	// De cada instancia
@@ -25,11 +23,7 @@ public class ConsultorNC_NA implements Consultor {
 	
 	@Override
 	public void run() {
-		try {
-			this.atender();
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}	
+		this.atender();
 	}
 	
 
@@ -79,32 +73,72 @@ public class ConsultorNC_NA implements Consultor {
 		}
 	}
 
-	private void consultaCapacidadFnc(DireccionNodo wkan, DireccionNodo nodoHoja) {
+	private void consultaCapacidadFnc(DireccionNodo wkan, DireccionNodo nodoHoja) throws IOException {
 		/**
-		 * Evalúa la capacidad de aceptar un nuevo NH, siempre que no se encuentre ya registrado
+		 * Evalúa la capacidad de aceptar un nuevo NH, siempre que no se encuentre ya registrado.
 		 *
 		 */
 
 		System.out.printf("[Con WKAN] ");
 		System.out.printf("WKAN %s consulta capacidad aceptación ", wkan.ip.getHostName());
-		System.out.printf("NH %s\n", (String) nodoHoja.ip.getHostName());
+		System.out.printf("NH %s", (String) nodoHoja.ip.getHostName());
 
-		Boolean capacidad = !((HashMap<String,String>) atributos.getHojas()).values().contains(nodoHoja);
-		auxBol = auxBol && (((HashMap<String,String>) atributos.getHojas()).values().size() < this.atributos.getNHCapacity());
-		auxObj = auxBol ? Codigos.OK : Codigos.ACCEPTED;
+		Boolean aceptar = false;
+		Integer codFinal = Codigos.ACCEPTED;
 
-		buffSalida.writeObject(new Mensaje(atributos.getDireccion("acceso"), (Integer) auxObj, auxBol));
+		if ((((HashMap<UUID, NHIndexada>) atributos.getHojas()).values().size() < this.atributos.getNHCapacity())) {
+			if (!atributos.hojaIndexada(nodoHoja)) {
+				aceptar = true;
+				codFinal = Codigos.OK;
+			}
+		}
+
+		buffSalida.writeObject(new Mensaje(atributos.getDireccion(), codFinal, aceptar));
+
+		System.out.printf("\t[%s]", aceptar ? "ACEPTAR" : "RECHAZAR");
 	}
 
+	private void aceptarNHFnc(DireccionNodo wkan, DireccionNodo nodoHoja) {
+		/* WKAN informa NH ante el que anununciarse */
+
+		System.out.printf("[Con WKAN] ");
+		System.out.printf("WKAN %s informó dirección de NH ", wkan.ip.getHostName());
+		System.out.printf("%s ante el que anunciarse\n", nodoHoja.ip.getHostName());
+
+		// 2020-08-01:
+		// Este nodo informará su dirección a la Hoja y nada más. La H se anunciará tal como lo haría
+		// si un WKAN hubiera sido quien le proporcionara la dirección del NC.
+		// Esto si bien es ineficiente y genera más tráfico en la red, me gusta pues me permite
+		// "encapsular" y atomizar los distintos intercambios que se dan en la red, facilitando la
+		// comprensión a futuro y "segmentando" en caso de debuggeo
+
+		// Como es de las pocas actividades en las que el NC se conectará a un NH, levanto "on demand"
+		// el cliente para tal fin (en lugar de encolar y tener un cliente consultando en todo momento)
+		Tarea tarea = new Tarea(00, "INFORMAR-DIRECCION-A-NH", nodoHoja);
+		ClienteNC_NH anunciante = new ClienteNC_NH(99);
+
+		HashMap<String, Comparable> resultado = null;
+		try {
+			resultado = anunciante.procesarTarea(tarea);
+		} catch (InterruptedException e) {
+			resultado = new HashMap<String, Comparable>();
+			resultado.put("status", false);
+		}
+
+		System.out.printf("[Con WKAN] ");
+		System.out.printf("Enviada dirección a NH %s\t", nodoHoja.ip.getHostName());
+
+		if ((Boolean) resultado.get("status"))
+			System.out.printf("[COMPLETADO]\n");
+		else
+			System.out.printf("[ERROR]\n");
+	}
+
+
 	@Override
-	public void atender() throws InterruptedException {
+	public void atender() {
 		Mensaje mensaje;
-		boolean auxBol;
 		boolean terminar = false;
-		HashMap<String, Comparable> compDict;
-		Object auxObj;
-		String auxStr;
-		Tarea tarea;
 		
 		try {
 			// Instanciación de los manejadores del buffer.
@@ -130,42 +164,12 @@ public class ConsultorNC_NA implements Consultor {
 						break;
 					case Codigos.NA_NC_POST_CAPACIDAD_NH:
 						// Evalúa la capacidad de aceptar un nuevo NH, siempre que no se encuentre ya registrado
-						auxStr = (String) mensaje.getCarga();
-
-						auxBol = !((HashMap<String,String>) atributos.getHojas()).values().contains(auxStr);
-						auxBol = auxBol && (((HashMap<String,String>) atributos.getHojas()).values().size() < this.atributos.getNHCapacity());
-						auxObj = auxBol ? Codigos.OK : Codigos.ACCEPTED;
-
-						buffSalida.writeObject(new Mensaje(atributos.getDireccion("acceso"), (Integer) auxObj, auxBol));
+						this.consultaCapacidadFnc(mensaje.getEmisor(), (DireccionNodo) mensaje.getCarga());
 						//terminar = true;
 						break;
 					case Codigos.NA_NC_POST_ACEPTAR_NH:
 						// WKAN informa NH ante el que anununciarse
-						System.out.printf("[Con WKAN] ");
-						System.out.printf("WKAN %s informó dirección de NH ", mensaje.getEmisor());
-						System.out.printf("%s ante el que anunciarse\n", (String) mensaje.getCarga());
-
-						// 2020-08-01:
-						// Este nodo informará su dirección a la Hoja y nada más. La H se anunciará tal como lo haría
-						// si un WKAN hubiera sido quien le proporcionara la dirección del NC.
-						// Esto si bien es ineficiente y genera más tráfico en la red, me gusta pues me permite
-						// "encapsular" y atomizar los distintos intercambios que se dan en la red, facilitando la
-						// comprensión a futuro y "segmentando" en caso de debuggeo
-
-						// Como es de las pocas actividades en las que el NC se conectará a un NH, levanto "on demand"
-						// el cliente para tal fin (en lugar de encolar y tener un cliente consultando en todo momento)
-						tarea = new Tarea(00, "INFORMAR-DIRECCION-A-NH", (String) mensaje.getCarga());
-						ClienteNC_NH anunciante = new ClienteNC_NH(99);
-						compDict = anunciante.procesarTarea(tarea);
-
-						System.out.printf("[Con WKAN] ");
-						System.out.printf("Enviada dirección a NH %s\t", (String) mensaje.getCarga());
-
-						if ((Boolean) compDict.get("status"))
-							System.out.printf("[COMPLETADO]\n");
-						else
-							System.out.printf("[ERROR]\n");
-
+						this.aceptarNHFnc(mensaje.getEmisor(), (DireccionNodo) mensaje.getCarga());
 						break;
 					case Codigos.CONNECTION_END:
 						terminar = true;

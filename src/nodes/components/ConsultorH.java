@@ -1,4 +1,5 @@
 package nodes.components;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -64,8 +65,8 @@ public class ConsultorH implements Consultor{
 		}
 		
 		try {
-			buffSalida.writeObject(new Mensaje(null,10,similares));
-			buffSalida.writeObject(new Mensaje(null,10,variables.getDireccion("hojas")));
+			buffSalida.writeObject(new Mensaje(variables.getDireccion(), 10, similares));
+			buffSalida.writeObject(new Mensaje(variables.getDireccion(),10, variables.getDireccion()));
 		} catch (IOException e) {
 			e.printStackTrace();
 			return false;
@@ -74,7 +75,7 @@ public class ConsultorH implements Consultor{
 		return true;
 	}
 
-	/** Método donde se reciba la respuesta (de un NC) a una consulta realizada. Se encola la misma
+	/** Método donde se recibe la respuesta (de un NC) a una consulta realizada. Se encola la misma
 	 * para su futuro procesamiento. 
 	 * La carga del mensaje es una tupla de dos elementos: 1) la imagen dada como referencia por la H solicitante
 	 * 2) un diccionario. key->dirección de la H con imágenes similares, value->las imágene similares 
@@ -90,12 +91,12 @@ public class ConsultorH implements Consultor{
 	 * 
 	 * */
 	public boolean respuestaNodoCentral(Mensaje msj){
-		HashMap<String, CredImagen[]> similares;
+		HashMap<DireccionNodo, CredImagen[]> similares;
 		CredImagen referencia;
-		Tupla2<CredImagen,HashMap<String, CredImagen[]>> rta;
+		Tupla2<CredImagen,HashMap<DireccionNodo, CredImagen[]>> rta;
 		
 		// Obtención de imágenes similares recibidas como respuesta
-		rta = (Tupla2<CredImagen,HashMap<String, CredImagen[]>>) msj.getCarga();
+		rta = (Tupla2<CredImagen,HashMap<DireccionNodo, CredImagen[]>>) msj.getCarga();
 		referencia = rta.getPrimero();
 		similares = rta.getSegundo();
 		
@@ -118,47 +119,46 @@ public class ConsultorH implements Consultor{
 	public boolean enviarImagen(Mensaje msj){
 		boolean exito = false;
 		ConexionTcp conexionTmp;
-		CredImagen solicitada;
-		Imagen img;
 		Integer descargada, intentos;
 		Mensaje respuesta;
-		String direccionRta, enviada;
 
 
-		// 
-		solicitada = (CredImagen) msj.getCarga();
-		direccionRta = msj.recepcionRta();
+		CredImagen solicitada = (CredImagen) msj.getCarga();
+		DireccionNodo direccionRta = msj.recepcionRta();
+		Imagen img = variables.getImagen(solicitada.getNombre());
 		
-		System.out.println("\n\tRecibida consulta de: " + sock.getInetAddress().toString() + 
-				":" + sock.getPort());
+		System.out.println("\n\tRecibida consulta de: " + msj.getEmisor().ip.getHostName());
 		System.out.println("\t-> " + solicitada.getNombre());
-		
-		img = variables.getImagen(solicitada.getNombre());
-		
+
 		try {
-			conexionTmp = new ConexionTcp(direccionRta.split(":")[0], Integer.parseInt(direccionRta.split(":")[1]));
+			conexionTmp = new ConexionTcp(direccionRta.ip.getHostAddress(), direccionRta.puerto_nh);
 		} catch (IOException e) {
-			System.out.println("No se pudo establecer conexión con el Nodo Hoja para envío de imagen solicitada");
+			System.out.printf("No se pudo establecer conexión con el Nodo Hoja {} ", direccionRta.ip.getHostName());
+			System.out.println("para envío de imagen solicitada");
 			return false;
 		}
-		
-		// TODO: Imagen tiene que ser serializable sino estoy al horno (01/03/2018)
-		
+
 		// Envío de imagen solicitada. Intentará un número fijo de veces, en caso de que ocurra un problema en la H
 		// destino que le impidiera encolar la descarga
 		intentos = 0;
 		while(intentos < INTENTOS_TX_IMG){
-			//respuesta = (Mensaje) conexionTmp.enviarConRta(new Mensaje(0,22,img.getNombre()));
-			respuesta = (Mensaje) conexionTmp.enviarConRta(new Mensaje("0",22,img));
+			respuesta = (Mensaje) conexionTmp.enviarConRta(
+					new Mensaje(
+							variables.getDireccion(),
+							Codigos.NH_NH_POST_IMAGEN,
+							img
+					)
+			);
+
 			descargada = (Integer) respuesta.getCarga();
 			
 			if(descargada==0){
-				System.out.println("Enviada imagen " +img.getNombre()+" a "+direccionRta+" con éxito");
+				System.out.println("Enviada imagen " +img.getNombre()+" a "+direccionRta.ip.getHostName()+" con éxito");
 				exito = true;
 				break;
 			} else {
 				intentos++;
-				System.out.println("Intentos de envío de " +img.getNombre()+ " a " +direccionRta+ ": " +intentos);
+				System.out.println("Intentos de envío de " +img.getNombre()+ " a " +direccionRta.ip.getHostName()+ ": " +intentos);
 			}
 		}
 		
@@ -209,10 +209,10 @@ public class ConsultorH implements Consultor{
 		amount -= ((AtributosHoja) this.variables).getCentrales().size();
 
 		if (amount > 0) {
-			((AtributosHoja) variables).encolarCentral((String) msj.getCarga(), null);
+			((AtributosHoja) variables).encolarCentral(msj.getEmisor(), null);
 
 			payload = new HashMap<String, Object>();
-			payload.put("direccionNC", (String) msj.getCarga());
+			payload.put("direccionNC", msj.getEmisor());
 
 			try {
 				variables.encolar("salida", new Tarea("ESTABLECER_CONEXION_NC", payload));
@@ -241,13 +241,13 @@ public class ConsultorH implements Consultor{
 				
 				switch(mensaje.getCodigo()){
 				// Consultas desde un Nodo Central
-				case 10:
+				case Codigos.NC_NH_POST_CONSULTA:
 					consultaNodoCentral(mensaje);
 					terminar = true;
 					break;
 				
 				// Rta (de NC) a consulta realizada
-				case 11:
+				case Codigos.NC_NH_POST_RTA_A_CONSULTA:
 					System.out.println("<ConsultorH> Rta (de NC) a consulta realizada");
 					respuestaNodoCentral(mensaje);
 					terminar = true;
@@ -255,21 +255,19 @@ public class ConsultorH implements Consultor{
 
 				// TODO: ver si mantengo el cierre de la conexión después de cada intercambio o lo dejo a criterio del usuario.
 				// Consultas desde un Nodo Hoja.
-				case 21:
+				case Codigos.NH_NH_GET_IMAGEN:
 					// Solicitud de descarga
 					enviarImagen(mensaje);
 					terminar=true;
 					break;
-				case 22:
+				case Codigos.NH_NH_POST_IMAGEN:
 					// Recepción de imagen descargada
 					recibirImagen(mensaje);
 					terminar=true;
 					break;
 				case Codigos.NC_NH_POST_ANUNCIO:
 					// Un NC anuncia su dirección pues tiene capacidad de recibir NHs
-
 					recibirDirNC(mensaje);
-
 					break;
 				case 20:
 					// Cierre de conexión

@@ -1,10 +1,7 @@
 package nodes.components;
 import java.util.*;
 
-import commons.CredImagen;
-import commons.Imagen;
-import commons.Tarea;
-import commons.Tupla2;
+import commons.*;
 import commons.structs.nh.ParametrosConexionNC;
 import commons.structs.nh.SolicitudNCs;
 
@@ -34,7 +31,10 @@ public class AtributosHoja extends Atributos {
 	// Respuestas recibidas (a queries)
 	private static final Object lockRtas = new Object();
 	private static volatile ArrayList< HashMap<String,CredImagen[]> > colaRespuestas = new ArrayList<HashMap<String,CredImagen[]>>(); // Deprecated
-	private static volatile HashMap<String,HashMap<String,CredImagen[]>> nuevaColaRespuestas = new HashMap<String,HashMap<String,CredImagen[]>>();
+
+	// TODO 2020-11-10: usar el nombre de la imagen como key es una estupidez, 2 imágenes iguales con distinto nombre
+	//                  van a ser 2 imágenes distintas para el sistema (duplicando el esfuerzo de búsqueda)
+	private static volatile HashMap<String,HashMap<DireccionNodo,CredImagen[]>> nuevaColaRespuestas = new HashMap<String,HashMap<DireccionNodo,CredImagen[]>>();
 	
 	// Otras colas
 	private static volatile ArrayList<Object> colaTxHistorica = new ArrayList<Object>();
@@ -45,9 +45,10 @@ public class AtributosHoja extends Atributos {
 	
 	// Relativos a NCs
 	private static Integer cantCentrales;
-	private static LinkedList<String> direccionesNCs = new LinkedList<String>();
+	// TODO 2020-11-10: tiene sentido la lista direccionesNCs siendo dichas direcciones las keys del hash centrales?
+	private static LinkedList<DireccionNodo> direccionesNCs = new LinkedList<DireccionNodo>();
 	private static LinkedList<String> idsHojas = new LinkedList<String>();
-	private static HashMap<String, ParametrosConexionNC> centrales = new HashMap<String, ParametrosConexionNC>();
+	private static HashMap<DireccionNodo, ParametrosConexionNC> centrales = new HashMap<DireccionNodo, ParametrosConexionNC>();
 
 	// Constantes
 	private static final Integer MAX_COLA_TX = 100;
@@ -77,7 +78,7 @@ public class AtributosHoja extends Atributos {
 		return cantCentrales;
 	}
 
-	public static HashMap<String, ParametrosConexionNC> getCentrales() {return centrales;}
+	public static HashMap<DireccionNodo, ParametrosConexionNC> getCentrales() {return centrales;}
 
 	public static void setCantCentrales(Integer cantCentrales) {
 		AtributosHoja.cantCentrales = cantCentrales;
@@ -88,11 +89,8 @@ public class AtributosHoja extends Atributos {
 	 * @param direccion  IP del NC
 	 * @param idAsignado por el NC a la Hoja
 	 */
-	public static void encolarCentral(String direccion, String idAsignado) {
+	public static void encolarCentral(DireccionNodo direccion, UUID idAsignado) {
 		/* Método que almacena los parámetros relacionados a la conexión (establecida o por establecer) dirección de un NC al que está (o debe estar) conectado la Hoja */
-
-		// 2020-08-19: al fijar los puertos voy a guardar sólo la IP de los NCs
-		direccion = direccion.split(":")[0];
 
 		if (!centrales.containsKey(direccion))
 				centrales.put(direccion, new ParametrosConexionNC(direccion, idAsignado));
@@ -100,7 +98,7 @@ public class AtributosHoja extends Atributos {
 			centrales.get(direccion).idAsignado = idAsignado;
 	}
 
-	public void setId(String nc, String token) {
+	public void setId(DireccionNodo nc, UUID token) {
 		/* Almacena un ID otorgado por un NC a fin de identificarlo */
 
 		if (centrales.containsKey(nc))
@@ -115,7 +113,7 @@ public class AtributosHoja extends Atributos {
 	 * @param direccionNC dirección (sin puerto) del NC
 	 * @return ID asignado
 	 */
-	public String getId(String direccionNC) {
+	public UUID getId(DireccionNodo direccionNC) {
 		if (centrales.containsKey(direccionNC))
 			return centrales.get(direccionNC).idAsignado;
 		else
@@ -200,15 +198,15 @@ public class AtributosHoja extends Atributos {
 		}
 	}
 	
-	public boolean almacenarRta(CredImagen query, HashMap<String,CredImagen[]>  respuesta){
+	public boolean almacenarRta(CredImagen query, HashMap<DireccionNodo,CredImagen[]>  respuesta){
 		
 		synchronized (lockRtas) {
 			if(!nuevaColaRespuestas.containsKey(query.getNombre())){
-				nuevaColaRespuestas.put(query.getNombre(), new HashMap<String,CredImagen[]>());
+				nuevaColaRespuestas.put(query.getNombre(), new HashMap<DireccionNodo,CredImagen[]>());
 			}
 			
 			// Agrego listado de H que no tenía en el diccionario y sobreescribo las que sí tenía
-			for(String clave : respuesta.keySet()){
+			for(DireccionNodo clave : respuesta.keySet()){
 				nuevaColaRespuestas.get(query.getNombre()).put(clave, respuesta.get(clave));
 			}  
 			return true;
@@ -218,7 +216,7 @@ public class AtributosHoja extends Atributos {
 	
 	// Getters
 	// -------	
-	public LinkedList<String> getDireccionesNCs(){ 
+	public LinkedList<DireccionNodo> getDireccionesNCs(){
 		return this.direccionesNCs;
 	}
 	
@@ -240,11 +238,11 @@ public class AtributosHoja extends Atributos {
 		}
 	}
 		
-	public HashMap<String, HashMap<String, CredImagen[]>> getColaRtas(){
+	public HashMap<String, HashMap<DireccionNodo, CredImagen[]>> getColaRtas(){
 		return this.nuevaColaRespuestas;
 	}
 	
-	public HashMap<String, CredImagen[]> getUnaRta(CredImagen query){
+	public HashMap<DireccionNodo, CredImagen[]> getUnaRta(CredImagen query){
 		return nuevaColaRespuestas.get(query.getNombre());
 	}
 	

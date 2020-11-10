@@ -63,7 +63,8 @@ public class AtributosCentral extends Atributos {
 	
 	// Nodos Centrales
 	private static final Object lockIndiceCentrales = new Object();
-	private static volatile ArrayList<String> indiceCentrales = new ArrayList<String>();
+	// TODO 2020-11-06: por qué es una lista enlazada y no un hash?
+	private static volatile ArrayList<DireccionNodo> indiceCentrales = new ArrayList<DireccionNodo>();
 	private static volatile Integer maxCentralesVecinos;
 	
 	// Últimas consultas recibidas para evitar duplicar respuestas. En la primer fila de la matriz se guardan
@@ -96,15 +97,15 @@ public class AtributosCentral extends Atributos {
 
 	public HashMap<UUID,NHIndexada> getHojas() {return this.indiceHojas;}
 
-	public String getCentral(Integer index){
+	public DireccionNodo getCentral(Integer index){
 		return indiceCentrales.get(index);
 	}
 	
-	public ArrayList<String> getCentrales(){
+	public ArrayList<DireccionNodo> getCentrales(){
 		return indiceCentrales;
 	}
 	
-	public ArrayList<CredImagen> getImagenes(String clave){
+	public ArrayList<CredImagen> getImagenes(UUID clave){
 		return indiceImagenes.get(clave);
 	}
 	
@@ -112,8 +113,8 @@ public class AtributosCentral extends Atributos {
 		synchronized(lockIndiceImagenes){ indiceImagenes.put(idHoja, imagenes); }
 	}
 	
-	public String[] getClavesIndiceImagenes(){
-		return indiceImagenes.keySet().toArray(new String[0]);
+	public UUID[] getClavesIndiceImagenes(){
+		return indiceImagenes.keySet().toArray(new UUID[0]);
 	}
 	
 	public Integer getIncrementarIdHoja(){
@@ -159,7 +160,7 @@ public class AtributosCentral extends Atributos {
 		return indiceHojas.keySet();
 	}
 	
-	public void indexarCentral(String direccion){
+	public void indexarCentral(DireccionNodo direccion){
 		indiceCentrales.add(direccion);
 	}
 
@@ -253,10 +254,10 @@ public class AtributosCentral extends Atributos {
 		synchronized (lockUltimasConsultas) {	
 			for(int i=0; i<ultimasConsultas.length; i++){
 				// Para facilitar la lectura del código lo hago así
-				String hojaEmisora = msj.recepcionRta();
+				DireccionNodo hojaEmisora = msj.recepcionRta();
 				CredImagen credencial = (CredImagen) msj.getCarga();
 				if( ultimasConsultas[0][i] != null ) {
-					String cmp1 = (String) ((Mensaje) ultimasConsultas[0][i]).recepcionRta();
+					DireccionNodo cmp1 = (DireccionNodo) ((Mensaje) ultimasConsultas[0][i]).recepcionRta();
 					CredImagen cmp2 = (CredImagen) ((Mensaje) ultimasConsultas[0][i]).getCarga(); 
 					Timestamp horaMsj = (Timestamp)ultimasConsultas[1][i];
 					

@@ -22,12 +22,17 @@ public class Codigos {
 	public static final int NA_NC_POST_CAPACIDAD_NH = 64;
 	public static final int NA_NC_POST_ACEPTAR_NH = 65;
 
-	// Usados entre NCs y NHs
-	public static final int NC_NH_POST_ANUNCIO = 80;
-
 	// Usados entre Hs y WKANs
 	public static final int NH_NA_POST_SOLICITUD_NCS = 70;
-	
+
+	// Usados entre NCs y NHs
+	public static final int NC_NH_POST_CONSULTA = 10;
+	public static final int NC_NH_POST_RTA_A_CONSULTA = 11;
+	public static final int NC_NH_POST_ANUNCIO = 80;
+
+	// Usados entre NHs y NHs
+	public static final int NH_NH_GET_IMAGEN = 21;
+	public static final int NH_NH_POST_IMAGEN = 22;
 	
 	// Generales
 	public static final int OK = 200;

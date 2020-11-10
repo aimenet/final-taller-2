@@ -6,13 +6,11 @@ import java.net.Socket;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
-import commons.Codigos;
-import commons.ConexionTcp;
-import commons.CredImagen;
-import commons.Mensaje;
-import commons.Tupla2;
+import commons.*;
+import commons.structs.nc.NHIndexada;
 
 /**
  * Consultor que corre en cada uno de los hilos generado por el Servidor de los Nodos Centrales. Es el
@@ -27,21 +25,15 @@ import commons.Tupla2;
  *
  */
 public class ConsultorNC_NC implements Consultor {
-	/* --------- */
-	/* Atributos */
-	/* --------- */
-	// De cada instancia
-	private Socket sock;
+	// Atributos
+	// -----------------------------------------------------------------------------------------------------------------
 	private AtributosCentral atributos = new AtributosCentral();
-	
-	// De la clase
-	
-	
-	/* --------------- */
-	/* Métodos Propios */
-	/* --------------- */
-	//public ConsultorNC_NC(){}
+	private ObjectInputStream buffEntrada;
+	private ObjectOutputStream buffSalida;
+	private Socket sock;
 
+	// Métodos Propios
+	// -----------------------------------------------------------------------------------------------------------------
 
 	/**
 	 * Método en el que se recibe de otro Nodo Central una retransmisión de consulta, se solicitan imágenes
@@ -56,19 +48,14 @@ public class ConsultorNC_NC implements Consultor {
 	 * @param msj
 	 * @return
 	 */
-	private boolean recibirConsulta(ObjectInputStream entrada, ObjectOutputStream salida,
-			Mensaje msj){
+	private boolean recibirConsulta(ObjectInputStream entrada, ObjectOutputStream salida, Mensaje msj){
 		CredImagen modelo;
-		CountDownLatch latch=null, latchCentrales=null;
-		HashMap<String, CredImagen[]> resultado;
 		Integer codigoConsultaEncolada;
-		String direccionNodoActual;
-		Tupla2<CredImagen, HashMap<String, CredImagen[]>> respuesta;
 		
 		
 		// Se evalúa si la consulta no fue recibida previamente (en una determinada ventana de tiempo). En caso
 		// contrario se procesa la (retransmisión de) consulta
-		codigoConsultaEncolada = atributos.consultaDuplicada(msj);
+		codigoConsultaEncolada = atributos.consultaDuplicada(msj); // TODO: revisar
 		switch(codigoConsultaEncolada) {
 			case 0:
 				System.out.println("<ConsultorNC_NC> Ya tengo una consulta igual encolada");
@@ -80,34 +67,36 @@ public class ConsultorNC_NC implements Consultor {
 				System.out.println("<ConsultorNC_NC> No tengo una consulta igual (la encolé)");
 				break;
 			default:
-				System.out.println("<ConsultorNC_NC> No tengo una consulta igual (no la encolé)"); // Acá nunca debería llegar
+				// Acá nunca debería llegar
+				System.out.println("<ConsultorNC_NC> No tengo una consulta igual (no la encolé)");
 				break;
 		}
 		
 		// Imagen modelo (query)
 		modelo = (CredImagen) msj.getCarga();
-		
-		/*System.out.println("\tRecibida consulta de: " + sock.getInetAddress().toString() + 
-				":" + sock.getPort());
-		System.out.println("\t-> " + modelo.getNombre());
-		
-		System.out.println("Enviar rta a Hoja " + msj.recepcionRta());*/
-		
+
 		// Pueden usarse varios criterios para paralelizar: un hilo por núcleo del CPU, uno por hoja conectada
 		//(el elegido), un número empírico fijo, etc
 		int cantHilos = atributos.getTamanioIndiceImagenes();;
-		latch = new CountDownLatch(cantHilos);
+		CountDownLatch latch = new CountDownLatch(cantHilos);
 		HashConcurrente similares = new HashConcurrente();
-		
-		// TODO: antes de buscar tengo que verificar que no me haya llegado la misma consulta desde otro lado
-		
-		String[] hojasConImagenes =  (String[]) atributos.getClavesIndiceImagenes();
+
+		UUID[] hojasConImagenes =  (UUID[]) atributos.getClavesIndiceImagenes();
+
 		for(int i=0; i<cantHilos; i++){
-			String destino = atributos.getHoja(hojasConImagenes[i]).split(";")[1];
+			DireccionNodo destino = ((NHIndexada) atributos.getHoja(hojasConImagenes[i])).getDireccion();
 			
-			Worker trabajador = new Worker(hojasConImagenes[i], similares, modelo,
-					atributos.getImagenes(hojasConImagenes[i]), latch,
-					destino.split(":")[0], destino.split(":")[1],1,"Hoja");
+			ConsultorNC_Worker trabajador = new ConsultorNC_Worker(
+					hojasConImagenes[i],
+					similares,
+					modelo,
+					atributos.getImagenes(hojasConImagenes[i]),
+					latch,
+					destino,
+					1,
+					"Hoja"
+			);
+
 			new Thread( trabajador ).start();
 			
 			System.out.println("<ConcultorNC_NC.java> Worker consultando a Hoja " + destino);
@@ -116,18 +105,34 @@ public class ConsultorNC_NC implements Consultor {
 		// Si el TTL lo permite retransmite el mensaje a los NC a los que está conectado
 		if(msj.getTTL() > 0){
 			cantHilos =  atributos.getCentrales().size();
-			direccionNodoActual = atributos.getDireccion("centrales");
-			latchCentrales = new CountDownLatch(cantHilos);
+			DireccionNodo direccionNodoActual = atributos.getDireccion();
+			CountDownLatch latchCentrales = new CountDownLatch(cantHilos);
+
 			for(int i=0; i<cantHilos; i++){
-				String destino = atributos.getCentral(i);
+				// TODO 2020-11-06: debería ser random el NC elegido, para balancear carga
+				DireccionNodo destino = atributos.getCentral(i);
 				
-				System.out.println(String.format("%s vs null vs %s vs %s", destino,msj.getNCEmisor(),msj.getOrigen()));
+				System.out.println(
+						String.format(
+								"%s vs null vs %s vs %s",
+								destino,msj.getNCEmisor().ip.getHostName(),
+								msj.getOrigen().ip.getHostName()
+						)
+				);
 				
-				if ( (destino != null) && (!destino.equals(msj.getNCEmisor())) && (!destino.equals(msj.getOrigen())) ) {
-					Worker trabajador = new Worker(Integer.toString(i), similares, modelo,
-							new ArrayList<CredImagen>(), latchCentrales,
-							destino.split(":")[0], destino.split(":")[1], 3, "Central",
-							(String)msj.getOrigen(), direccionNodoActual, msj.recepcionRta());
+				if ((destino != null) && (!destino.equals(msj.getNCEmisor())) && (!destino.equals(msj.getOrigen()))) {
+					ConsultorNC_Worker trabajador = new ConsultorNC_Worker(
+							UUID.randomUUID(),
+							similares,
+							modelo,
+							new ArrayList<CredImagen>(),
+							latchCentrales,
+							destino,
+							3,
+							"Central",
+							msj.getOrigen(),
+							direccionNodoActual,
+							msj.recepcionRta());
 				
 					new Thread( trabajador ).start();
 					
@@ -142,17 +147,15 @@ public class ConsultorNC_NC implements Consultor {
 
 		}
 		
-		
 		// Barrera donde se espera por la respuesta de todas las hojas
 		boolean error = false;
 		try {
-			//if(latchCentrales != null)
-			//	latchCentrales.await();
 			latch.await();
 		} catch (InterruptedException e1) {
 			error = true;
 		}
-		
+
+		HashMap<DireccionNodo, CredImagen[]> resultado = new HashMap<DireccionNodo, CredImagen[]>();
 		if(error){
 			System.out.println("<ConsultorNC_NC.java> OJO!! hubo un error");
 			return false;
@@ -161,20 +164,17 @@ public class ConsultorNC_NC implements Consultor {
 		}
 
 		// Envío de respuesta a la Hoja solicitante
-		/*try {
-			salida.writeObject(new Mensaje(null,31,resultado));
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}*/
-		// Envío de respuesta a la Hoja solicitante
 		try {
-			//salida.writeObject(new Mensaje(null,4,resultado));
 			// Conexión tmp con Hoja solicitante
-			ConexionTcp conexionTmp = new ConexionTcp(msj.recepcionRta().split(":")[0],
-													  Integer.parseInt(msj.recepcionRta().split(":")[1]));
+			ConexionTcp conexionTmp = new ConexionTcp(
+					msj.recepcionRta().ip.getHostAddress(),
+					msj.recepcionRta().puerto_nh
+			);
+
 			// Podría agregar la dirección del NC para que la H sepa de donde vino la rta.
-			respuesta = new Tupla2<CredImagen, HashMap<String, CredImagen[]>>(modelo,resultado);
+			Tupla2<CredImagen, HashMap<DireccionNodo, CredImagen[]>> respuesta;
+			respuesta = new Tupla2<CredImagen, HashMap<DireccionNodo, CredImagen[]>>(modelo,resultado);
+
 			conexionTmp.enviarSinRta((new Mensaje(null,11,respuesta)));
 			conexionTmp.cerrar();
 		} catch (IOException e) {
@@ -198,18 +198,35 @@ public class ConsultorNC_NC implements Consultor {
 		
 		return true;
 	}
-	
-	
-	/* --------------------- */
-	/* Métodos de Interfaces */
-	/* --------------------- */
+
+	/**
+	 *
+	 * @param nodo: DireccionNodo
+	 */
+	private void recibirSaludo(DireccionNodo nodo) {
+		// TODO: [2019-11-30] por ahora acepto todos (yo soy su vecino, no ellos el mío) pero evaluar una
+		// lógica para controlarlo
+
+		// TODO 2020-10-20: antes le pasaba la direccion del NC que mandó el saludo, como emisor del mensaje. Ahora le
+		// pasé al constructor la dirección de este nodo. Revisarlo por las dudas
+		try {
+			this.buffSalida.writeObject(new Mensaje(atributos.getDireccion(), Codigos.OK, null));
+		} catch (IOException e) {
+			e.printStackTrace();
+			// Nótese que básicamente si falla no hago nada. Será responsabilidad del NC que se comunicó el reenvío
+			// del saludo
+		}
+		System.out.printf("[Con NC] aceptado saludo de nuevo NC (%s) en la red [OK]\n", nodo.ip.getHostName());
+	}
+
+
+	// Métodos de Interfaces
+	// -----------------------------------------------------------------------------------------------------------------
 	@Override
 	public void atender() {
 		Integer emisor;
 		Mensaje mensaje;
 		boolean terminar = false;
-		ObjectInputStream buffEntrada;
-		ObjectOutputStream buffSalida;
 		String auxStr;
 		
 		try {
@@ -224,15 +241,12 @@ public class ConsultorNC_NC implements Consultor {
 				switch(mensaje.getCodigo()){
 				case Codigos.NC_NC_POST_SALUDO:
 					// Un NC solicita que éste sea su vecino
-					// TODO: [2019-11-30] por ahora acepto todos (yo soy su vecino, no ellos el mío) pero evaluar una lógica para controlarlo
-					auxStr = mensaje.getEmisor();
-					buffSalida.writeObject(new Mensaje(auxStr, Codigos.OK, null));
-					System.out.printf("[Con NC] aceptado saludo de nuevo NC (%s) en la red [OK]\n", auxStr);
+					this.recibirSaludo(mensaje.getEmisor());
 					break;
 				case Codigos.NC_NC_POST_CONSULTA:
-					if(!recibirConsulta(buffEntrada,buffSalida,mensaje)) {
+					if(!recibirConsulta(buffEntrada,buffSalida,mensaje))
 						terminar=true;
-					}
+
 					break;
 				//case TERMINAR:
 				case Codigos.CONNECTION_END:
@@ -281,10 +295,3 @@ public class ConsultorNC_NC implements Consultor {
 
 
 } // Fin clase
-
-
-
-/* --------------------------------------------------------- */
-/* Clases auxiliares (debería moverlas a archivos separados) */
-/* --------------------------------------------------------- */
-

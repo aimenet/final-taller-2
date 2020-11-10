@@ -142,6 +142,46 @@ En el marco de "2) WKAN: interacciones wkan <-> nc":
 En el marco de "2) WKAN: interacciones wkan <-> nc":
     Terminé la actualización de ConsultorNC_NA (falta probar)
 
+2020-10-20
+Los 3 puntos antes definidos (WKAN: interacciones wkan <-> {wkan, nc, nh}) creo que están cubiertos, sin embargo debo
+terminar de repasar casi todos los componentes restantes porque hubo muchos cambios.
+
+Voy a listar los que sé (gracias a que no compila el código) que restan y los demás (en caso de existir) surgirán cuando
+complete la "Tabla de pruebas pendientes":
+    1) ConsultorNC_NC
+    2) ClienteNC_NC
+    3) ConsultorNC_H
+    4) ClienteNC_NH
+    5) ConsultorH
+    6) HojaCliente
+    7) NodoHoja
+    8) AtributosCentral
+
+Empecé a actualizar ConsultorNC_NC
+
+2020-11-03
+Seguí actualizando ConsultorNC_NC -> HashConcurrente + ConsultorNC_Worker (acá me quedé)
+
+2020-11-04
+Lo mismo que ayer.
+Me quedé en ConsultorNC_NC línea 152, pero pasé por alto la 113 para dejar esa modificación en AtributosCentrales para
+hoy a la noche o mañana
+
+2020-11-05 y 06
+Terminé lo que quedó del 2020-11-04.
+Actualicé con ClienteNC_NC -> Algo interesante, creo que antes de empezar este refactor general de DireccionNodo
+me había quedado trabajando en este mismo archivo, en conectarNcsFnc()
+
+[[[ Hay un comentario interesante en ClienteNC_NC que habla sobre qué hacer para que no se despierte siemprem al
+ mismo hilo ante la llegada de una nueva tarea a la cola ]]]
+
+2020-11-10
+Actualicé ClienteNC_NH
+Actualicé ConsultorH
+Actualicé AtributosHoja (seguramente surjan correcciones cuando haga las pruebas finales)
+
+
+
 
 
 Tabla de pruebas pendientes

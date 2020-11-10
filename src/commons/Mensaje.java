@@ -17,15 +17,12 @@ public class Mensaje implements Serializable {
 	private DireccionNodo emisor;
 	
 	// Usados por mensajes que se envían entre NCs
-	private String origen, ncEmisor, recepcionRta;
+	private DireccionNodo origen, ncEmisor, recepcionRta;
 	
-	
-	/*---------*/
-	/* Métodos */
-	/*---------*/
-//  Constructor básico: enviado desde Hoja a NC con consulta ¿y desde H a H para descarga?
 
-
+	// Métodos
+	// -----------------------------------------------------------------------------------------------------------------
+	/** Constructor básico (general) */
 	public Mensaje(DireccionNodo emisor, Integer codigo, Object carga) {
 		this.emisor = emisor;
 		this.codigo = codigo;
@@ -36,15 +33,33 @@ public class Mensaje implements Serializable {
 		this.ncEmisor = null;
 	}
 
+	/** Constructor usado por NC para retransmitir consulta a otro NC */
+	public Mensaje(DireccionNodo emisor, DireccionNodo origen, DireccionNodo ncEmisor, Integer codigo, Integer ttl,
+				   Object carga, DireccionNodo direccionRta){
+		this.emisor = emisor;
+		this.origen = origen;
+		this.codigo = codigo;
+		this.ttl = ttl;
+		this.carga = carga;
+		this.ncEmisor = ncEmisor;
+		this.recepcionRta = direccionRta;
+	}
+
 	// Getters.
 	// -------------------------------------------
+	public Object getCarga() {return carga;}
+
 	public Integer getCodigo() {return codigo;}
 
 	public DireccionNodo getEmisor() {return emisor;}
 
-	public Object getCarga() {return carga;}
+	public DireccionNodo getNCEmisor() {return ncEmisor;}
 
-	public String recepcionRta(){
+	public DireccionNodo getOrigen() {return origen;}
+
+	public Integer getTTL() {return ttl;}
+
+	public DireccionNodo recepcionRta(){
 		return recepcionRta;
 	}
 
@@ -82,38 +97,14 @@ public class Mensaje implements Serializable {
 		this.carga = carga;
 		this.ncEmisor = ncEmisor;
 	}
-	
-	// Constructor usado por NC para retransmitir consulta a otro NC
-	public Mensaje(String emisor, String origen, String ncEmisor, Integer codigo, Integer ttl, Object carga, String direccionRta){
-		this.emisor = emisor;
-		this.origen = origen;
-		this.codigo = codigo;
-		this.ttl = ttl;
-		this.carga = carga;
-		this.ncEmisor = ncEmisor;
-		this.recepcionRta = direccionRta;
-	}
 
 	public void decrementarTTL(){
 		ttl -= 1;
-	}
-
-	public Integer getTTL(){
-		return ttl;
 	}
 	
 	public Object getCarga(){
 		return carga;
 	}
-	
-	public Object getOrigen(){
-		return origen;
-	}
-	
-	public Object getNCEmisor(){
-		return ncEmisor;
-	}
-
 	
 	//Setters.
 	private void setEmisor(String emisor){

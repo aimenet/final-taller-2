@@ -1,12 +1,8 @@
 package nodes.components;
 
 import commons.*;
-import my_exceptions.ManualInterruptException;
 
-import java.io.IOException;
 import java.util.HashMap;
-import java.util.Random;
-import java.util.concurrent.Callable;
 import java.util.function.Function;
 
 /**
@@ -22,12 +18,12 @@ import java.util.function.Function;
 
 public class ClienteNC_NH extends Cliente {
 	// Atributos
-	// =========
+	// -----------------------------------------------------------------------------------------------------------------
 	public Integer idConsumidor;
 
 
 	// Métodos
-	// =======
+	// -----------------------------------------------------------------------------------------------------------------
 	public ClienteNC_NH(int idConsumidor) {
 		super(idConsumidor, "centrales");
 		this.atributos = new AtributosAcceso();
@@ -35,7 +31,7 @@ public class ClienteNC_NH extends Cliente {
 
 
 	// Métodos que se usan para atender los distintos tipos de órdenes recibidas en una Tarea
-	// ---------------------------------------------------------------------------------------------------
+	// --------------------------------------------------------------------------------------
 	// TODO: hacer una clase, interfaz o algo así
 	private HashMap<String, Object> anuncioDireccionANHFnc(HashMap<String, Object> params){
 		HashMap<String, Object> output = new HashMap<String, Object>();
@@ -45,9 +41,12 @@ public class ClienteNC_NH extends Cliente {
 		output.put("callBackOnFailure", false);
 		output.put("result", true);
 
-		Mensaje mensaje = new Mensaje(this.atributos.getDireccion("hojas"),
-				                      Codigos.NC_NH_POST_ANUNCIO,
-				                      this.atributos.getDireccion("hojas"));
+		Mensaje mensaje = new Mensaje(
+				this.atributos.getDireccion(),
+				Codigos.NC_NH_POST_ANUNCIO,
+				this.atributos.getDireccion()
+		);
+
 		this.conexionConNodo.enviarSinRta(mensaje);
 
 		return output;
@@ -55,15 +54,13 @@ public class ClienteNC_NH extends Cliente {
 
 
 	@Override
-	protected HashMap<String, Comparable> procesarTarea(Tarea tarea) throws InterruptedException {
+	protected HashMap<String, Comparable> procesarTarea(Tarea tarea) {
 		Function<HashMap<String, Object>, HashMap<String, Object>> method;
 		HashMap<String,Object> diccionario;
 		HashMap<String, Comparable> diccionario2;
-		Integer contador=0;
+		Integer contador;
 		Integer intentos=3;
 		Integer puertoNcDestino;
-		Object generico;
-		String auxStr;
 		String ipNcDestino;
 
 		// Inicializaciones de cortesía
@@ -102,7 +99,13 @@ public class ClienteNC_NH extends Cliente {
 			method.apply(diccionario);
 
 		this.conexionConNodo.enviarSinRta(
-				new Mensaje(this.atributos.getDireccion("hojas"), Codigos.CONNECTION_END, null));
+				new Mensaje(
+						this.atributos.getDireccion(),
+						Codigos.CONNECTION_END,
+						null
+				)
+		);
+
 		this.terminarConexion();
 		System.out.println("[Cli  " + this.idConsumidor + "] arrancando de nuevo inmediatamente");
 

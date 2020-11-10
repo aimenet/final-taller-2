@@ -8,12 +8,9 @@ import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
 
+import commons.*;
 import my_exceptions.ManualInterruptException;
-import commons.Codigos;
-import commons.ConexionTcp;
-import commons.Mensaje;
-import commons.Tarea;
-import commons.Tupla2;
+
 
 /**
  * Clase Cliente de un Nodo Central, encargada de la comunicación con otro NC.
@@ -26,9 +23,9 @@ import commons.Tupla2;
  * @since 2019-11-28
  */
 
-public class ClienteNC_NC implements Runnable {
+public class ClienteNC_NC extends Cliente {
 	// Atributos
-	// =========
+	// -----------------------------------------------------------------------------------------------------------------
 	private AtributosCentral atributos;
 	private Callable<HashMap<String, Object>> funcion;
 	private ConexionTcp conexionConNodoCentral;
@@ -38,31 +35,92 @@ public class ClienteNC_NC implements Runnable {
 
 
 	// Métodos
-	// =======
+	// -----------------------------------------------------------------------------------------------------------------
 	public ClienteNC_NC(int idConsumidor) {
+		super(idConsumidor, "salida");
 		this.atributos = new AtributosCentral();
-		this.idConsumidor = idConsumidor;
+	}
+
+	private HashMap<String, Object> anuncioVecinoFnc(HashMap<String, Object> params){
+		/**
+		 * params = {
+		 *     "direccionNC": DireccionNodo
+		 * }
+		 * */
+
+		HashMap<String, Object> output = new HashMap<String, Object>();
+		Mensaje enviado, recibido;
+
+		// Estos son comunes a todas las funciones
+		output.put("callBackOnSuccess", false);
+		output.put("callBackOnFailure", false);
+
+		// Asumo que va a salir todo bien
+		output.put("result", true);
+
+		enviado = new Mensaje(this.atributos.getDireccion(), Codigos.NC_NC_POST_SALUDO, null);
+		recibido = (Mensaje) this.conexionConNodoCentral.enviarConRta(enviado);
+
+		// Si el código no es OK (200), independientemente de por qué no se ha aceptado la "vinculación"
+		// no hago nada.
+		// TODO: hacer tarea periódica que controle si falta enlazarse a NCs y dispare tarea de pedidos de vecinos
+		// (hacer que esa tarea pida de a 1, así es más fácil)
+		System.out.printf("[Cli %s]\t", this.idConsumidor);
+		System.out.printf("registrado nuevo NC vecino: %s ", (String) params.get("direccionNC"));
+
+		if (recibido.getCodigo() == Codigos.OK) {
+			if (atributos.getCentrales().size() < atributos.getMaxCentralesVecinos()) {
+				atributos.indexarCentral((DireccionNodo) params.get("direccionNC"));
+				System.out.printf("[OK]\n");
+			} else {
+				System.out.printf("[OK pero sin capacidad]\n");
+			}
+		} else {
+			System.out.printf("[ERROR]\n");
+			System.out.println("No me aceptaron, acordate de hacer tarea periódica que pida un vecino nuevo");
+		}
+
+		return output;
+	}
+
+	private HashMap<String, Object> conectarNcsFnc(HashMap<String, Object> params){
+		/**
+		 * params = {
+		 *     "direccionNcVecino": DireccionNodo
+		 * }
+		 * */
+		HashMap<String, Object> output = new HashMap<String, Object>();
+
+		// Estos son comunes a todas las funciones
+		output.put("callBackOnSuccess", false);
+		output.put("callBackOnFailure", false);
+		output.put("result", true);
+
+		Mensaje msj = new Mensaje(
+				this.atributos.getDireccion(),
+				Codigos.NA_NC_POST_NC_VECINO,
+				(String) params.get("direccionNcVecino")
+		);
+		msj = (Mensaje) this.conexionConNodoCentral.enviarConRta(msj);
+
+		System.out.println("revisá params a ver cual es la dir que tenés que registrar");
+
+		System.out.printf("Consumidor %s: ", this.idConsumidor);
+		System.out.printf("registrado NC (%s) como vecino ", (String) params.get("direccionNcVecino"));
+
+		if (msj.getCodigo() == Codigos.OK) {
+			System.out.println("[COMPLETADO]");
+			atributos.indexarCentral((DireccionNodo) params.get("direccionNcVecino"));
+		} else {
+			System.out.println("[ERROR]");
+		}
+
+		System.out.println("revisá los NCs que tiene este registrado a ver qué tul");
+		return output;
 	}
 
 	@Override
-	public void run() {
-		boolean runFlag = true;
-		
-		while (runFlag) {
-			try{
-				consumir();
-			} catch (ManualInterruptException ex){
-				// Excepción para detener el hilo
-				ex.printStackTrace();
-				runFlag = false;
-			} catch (InterruptedException ex) {
-				ex.printStackTrace();
-			}
-		}
-	}
-	
-	
-	private void consumir() throws InterruptedException, ManualInterruptException {
+	protected HashMap<String, Comparable> procesarTarea(Tarea tarea) throws InterruptedException {
 		Function<HashMap<String, Object>, HashMap<String, Object>> method;
 		HashMap<String,Object> diccionario;
 		Integer contador=0; 
@@ -71,7 +129,6 @@ public class ClienteNC_NC implements Runnable {
 		Object generico;
 		String auxStr;
 		String ipNcDestino;
-		Tarea tarea = null;
 		
 		// Inicializaciones de cortesía
 		method = null;
@@ -106,7 +163,7 @@ public class ClienteNC_NC implements Runnable {
 		
 		contador = 0;
 		while (contador < intentos) {
-			if (this.establecerConexionConNodoCentral(ipNcDestino, puertoNcDestino)) {
+			if (this.establecerConexion(ipNcDestino, puertoNcDestino)) {
 				// Ahora llamo al método correspondiente para realizar la tarea (independientemente de cual sea)
 				diccionario = method.apply(diccionario);				
 				contador = intentos + 1;
@@ -121,106 +178,14 @@ public class ClienteNC_NC implements Runnable {
 			method.apply(diccionario);
 
 		this.conexionConNodoCentral.enviarSinRta(
-				new Mensaje(this.atributos.getDireccion("centrales"), Codigos.CONNECTION_END, null));
-		this.terminarConexionConNodoCentral();
+				new Mensaje(this.atributos.getDireccion(), Codigos.CONNECTION_END, null));
+		this.terminarConexion();
 		System.out.println("\nConsumidor " + this.idConsumidor + " arrancando de nuevo inmediatamente");
+
+		return null;  // 2020-11-06: o esto está mal o el método debería retornar void
 	}
-	
-	
-	// TODO: hacer una clase, interfaz o algo así
-	private HashMap<String, Object> anuncioVecinoFnc(HashMap<String, Object> params){
-		HashMap<String, Object> output = new HashMap<String, Object>();
-		Mensaje enviado, recibido;
-		
-		// Estos son comunes a todas las funciones
-		output.put("callBackOnSuccess", false);
-		output.put("callBackOnFailure", false);
-		
-		// Asumo que va a salir todo bien
-		output.put("result", true);
-		
-		enviado = new Mensaje(this.atributos.getDireccion("centrales"), Codigos.NC_NC_POST_SALUDO, null);
-		recibido = (Mensaje) this.conexionConNodoCentral.enviarConRta(enviado);
-		
-		// Si el código no es OK (200), independientemente de por qué no se ha aceptado la "vinculación"
-		// no hago nada.
-		// TODO: hacer tarea periódica que controle si falta enlazarse a NCs y dispare tarea de pedidos de vecinos
-		// (hacer que esa tarea pida de a 1, así es más fácil)
-		System.out.printf("[Cli %s]\t", this.idConsumidor);
-		System.out.printf("registrado nuevo NC vecino: %s ", (String) params.get("direccionNC"));
-		if (recibido.getCodigo() == Codigos.OK) {
-			if (atributos.getCentrales().size() < atributos.getMaxCentralesVecinos()) {
-				atributos.indexarCentral((String) params.get("direccionNC"));
-				System.out.printf("[OK]\n");
-			} else {
-				System.out.printf("[OK pero sin capacidad]\n");
-			}
-		} else {
-			System.out.printf("[ERROR]\n");
-			System.out.println("No me aceptaron, acordate de hacer tarea periódica que pida un vecino nuevo");
-		}
-		
-		return output;
-	}
-	
-	private HashMap<String, Object> conectarNcsFnc(HashMap<String, Object> params){
-		HashMap<String, Object> output = new HashMap<String, Object>();
-		
-		// Estos son comunes a todas las funciones
-		output.put("callBackOnSuccess", false);
-		output.put("callBackOnFailure", false);
-		
-		output.put("result", true);
-		Mensaje msj = new Mensaje(this.atributos.getDireccion("centrales"), 
-							      Codigos.NA_NC_POST_NC_VECINO, 
-							      (String) params.get("direccionNcVecino"));
-		msj = (Mensaje) this.conexionConNodoCentral.enviarConRta(msj);
-		
-		System.out.println("revisá params a ver cual es la dir que tenés que registrar");
-		
-		System.out.printf("Consumidor %s: ", this.idConsumidor);
-		System.out.printf("registrado NC (%s) como vecino ", (String) params.get("direccionNcVecino"));
-		
-		if (msj.getCodigo() == Codigos.OK) {
-			System.out.println("[COMPLETADO]");
-			atributos.indexarCentral((String) params.get("direccionNcVecino"));
-		} else {
-			System.out.println("[ERROR]");
-		}
-		
-		System.out.println("revisá los NCs que tiene este registrado a ver qué tul");
-		return output;
-	}
-	
-	
-	// TODO: generalizar, porque lo usan todos los Clientes (y sería bueno tenerlo en los Consultores para conexiones
-	//       rápidas)
-	// Ojo, es una encapsulación de una encapsulación (ConexionTcp) así que podría prescindir de esto
-	// porque en realidad nunca uso las "cosas extras" que hace.
-	private boolean establecerConexionConNodoCentral(String ip, Integer puerto){
-		if (this.conexionEstablecida)
-			this.terminarConexionConNodoCentral();
-		
-		try {
-			this.conexionConNodoCentral = new ConexionTcp(ip, puerto);
-			this.conexionEstablecida = true;
-		} catch (IOException e) {
-			System.out.println("No se pudo establecer conexión con el servidor del NC");
-			conexionEstablecida = false;
-		}
-		
-		return this.conexionEstablecida;
-	}
-	
-	
-	private boolean terminarConexionConNodoCentral(){
-		if (this.conexionEstablecida) {
-			this.conexionConNodoCentral.cerrar();
-			this.conexionEstablecida = false;
-		}
-		
-		return this.conexionEstablecida;
-	}
+
+
 }
 
 /**

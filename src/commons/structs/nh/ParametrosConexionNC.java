@@ -1,5 +1,7 @@
 package commons.structs.nh;
 
+import commons.DireccionNodo;
+
 import java.time.Instant;
 import java.util.UUID;
 
@@ -13,15 +15,15 @@ import java.util.UUID;
 
 
 public class ParametrosConexionNC {
-    public String idAsignado;  // el ID que el NC le asigna a la Hoja
-    public String direccion;
+    public UUID idAsignado;  // el ID que el NC le asigna a la Hoja
+    public DireccionNodo direccion;
 
     /**
      * @param direccion
      * @param idAsignado
      *
      * */
-    public ParametrosConexionNC(String direccion, String idAsignado) {
+    public ParametrosConexionNC(DireccionNodo direccion, UUID idAsignado) {
         this.direccion = direccion;
         this.idAsignado = idAsignado;
     }

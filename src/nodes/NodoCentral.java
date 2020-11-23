@@ -173,6 +173,8 @@ public class NodoCentral {
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
+
+			// TODO 2020-11-23: revisar y revivir threads caídos
 		}
 	}
 	

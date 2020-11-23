@@ -5,6 +5,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -17,17 +19,7 @@ import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 import commons.Tarea;
-import nodes.components.AtributosAcceso;
-import nodes.components.AtributosHoja;
-import nodes.components.ClienteNA_NA;
-import nodes.components.ClienteNA_NC;
-import nodes.components.ConsultorH;
-import nodes.components.ConsultorNA_NA;
-import nodes.components.ConsultorNA_NC;
-import nodes.components.ControladorHoja;
-import nodes.components.ClienteNH_Gral;
-import nodes.components.Servidor;
-import nodes.components.WorkerNA_Interno;
+import nodes.components.*;
 
 /**
  * Nodo Hoja del sistema distribuido. Estos poseen las imágenes a compartir, calculan sus vectores
@@ -63,7 +55,7 @@ public class NodoHoja {
 	
 	// Métodos
 	//=========
-	public NodoHoja(String configFile){
+	public NodoHoja(String configFile) throws UnknownHostException {
 		Integer cantCentrales;
 		String[] centrales;
 		
@@ -87,7 +79,7 @@ public class NodoHoja {
 		
 		// Seteo de los atributos de la H.
 		atributos = new AtributosHoja();
-		atributos.setDireccion(config.getProperty("ip"));
+		atributos.setDireccion(InetAddress.getByName(config.getProperty("ip")));
 		
 		// Inicialización de las colas donde se cargarán las "tareas" 
 		atributos.setNombreColas(new String[] {"salida"});
@@ -101,15 +93,28 @@ public class NodoHoja {
 		
 		// Definición de servidores
 		// La H por ser el Nodo más viejo que hice no tiene separados en distintos archivos los Consultores de c/u de los Nodos
-		servers.put("NABC",
-				new Servidor(config.getProperty("ip"), Integer.parseInt(config.getProperty("puerto_na")),
-						config.getProperty("nombre")+": Acceso", ConsultorH.class));
-		servers.put("CENTRALES",
-				new Servidor(config.getProperty("ip"), Integer.parseInt(config.getProperty("puerto_nc")),
-						config.getProperty("nombre")+": Centrales", ConsultorH.class));
-		servers.put("HOJAS",
-				new Servidor(config.getProperty("ip"), Integer.parseInt(config.getProperty("puerto_nh")),
-						config.getProperty("nombre")+": Hojas", ConsultorH.class));
+		this.servers.put("acceso", new Servidor(
+				atributos.getDireccion().ip.getHostAddress(),
+				atributos.getDireccion().puerto_na,
+				config.getProperty("nombre")+": Acceso",
+				ConsultorH.class
+		));
+		this.servers.put("centrales", new Servidor(
+				atributos.getDireccion().ip.getHostAddress(),
+				atributos.getDireccion().puerto_nc,
+				config.getProperty("nombre")+": Centrales",
+				ConsultorH.class
+		));
+		this.servers.put("hojas", new Servidor(
+				atributos.getDireccion().ip.getHostAddress(),
+				atributos.getDireccion().puerto_nh,
+				config.getProperty("nombre")+": Hojas",
+				ConsultorH.class
+		));
+
+		for (Servidor server : servers.values()) {
+			serverThreads.add(new Thread(server));
+		}
 		
 		for (Servidor server : servers.values())
 			serverThreads.add(new Thread(server));
@@ -135,6 +140,7 @@ public class NodoHoja {
 		
 		for (Runnable client : clients.values())
 			clientThreads.add(new Thread(client));
+
 	}
 	
 	
@@ -156,74 +162,24 @@ public class NodoHoja {
 		atributos.encolar("salida", new Tarea("SOLICITUD_NCS", payload));
 		
 		// Bucle "ppal" de la HOJA: revisión y recuperación de hilos mientras hilo PRODUCTOR esté vivo
-		// TODO 01: revisar si faltan NCs y pedirlos
 		while(producerThreads.get(0).getState() != Thread.State.TERMINATED) {
 			// NC amount check
 			NCPeriodicCheck();
 
-			// Check consumer threads status
-//            System.out.println("\n[HOJA] check consumer threads status...");
-            
-// TODO: descomentar
-//            for(int i=0; i < clientThreads.size(); i++){
-//            	System.out.print("\t" + clientThreads.get(i).getName() + " || ");
-//    			System.out.print("Consumer thread #" + Integer.toString(i) + " state: ");
-//    			System.out.println(clientThreads.get(i).getState().toString());
-//    			
-//    			// revivir los consumidores caídos
-//    			// TODO: hacerlo bien porque no es así
-//    			if(clientThreads.get(i).getState() == Thread.State.TERMINATED) {
-//    				// SIEMPRE en la posición 0 va a estar el cliente que se conecta al WKAN. En las demás estan los que se conectan a NCs
-//    				String name = null;
-//    				String node = null;
-//    				switch (i) {
-//    					case 0:
-//    						name = "PPAL - NC0";
-//    						node = this.config.getProperty("wkan");
-//    						break;
-//    					default:
-//    						name = "NC" + i;
-//    						node = this.config.getProperty("nc_" + i);
-//    						break;
-//    				}
-//    				
-//    				// Esta parte está horrible, porque no sé qué keys del hashmap de clientes se correponde con cada posición
-//    				// del arreglo de client threads. Pero bueno, queda así por ahora
-//    				clients.put(name, new HojaConsumidor(i, node.split(":")[0], Integer.parseInt(node.split(":")[1])));
-//    				clientThreads.set(i, new Thread(clients.get(name)));
-//    				clientThreads.get(i).start();
-//    				
-//    				System.out.print("\t\tConsumer thread #" + Integer.toString(i) + " revived. ");
-//    				System.out.println("Actual state: " + clientThreads.get(i).getState().toString());
-//    			}
-//    		}
-		
-			// Check server thread status
-//			System.out.println("\n[HOJA] check server thread status...");
+			// TODO 2020-11-23: por ahora comento lo de abajo porque me molestan para debuggear el funcionamiento de la
+			//  red
 
-// TODO: descomentar
-//			// TODO: actualizar
-//          // Por ahora hay un único server -> generalizarlo a muchos
-//			System.out.print("\t" + serverThreads.get(0).getName() + " || ");
-//			System.out.print("Server thread state: " + serverThreads.get(0).getState().toString());
-//			
-//			if(serverThreads.get(0).getState() == Thread.State.TERMINATED) {
-//				servers.put("GENERAL", new Servidor(Integer.parseInt(config.getProperty("puerto_server")), 
-//                        config.getProperty("nombre")+": General", 
-//                        ConsultorH.class));
-//				
-//				serverThreads.set(0, new Thread(servers.get("GENERAL")));
-//				serverThreads.get(0).start();
-//				
-//				System.out.print("\t\tServer thread revived. ");
-//				System.out.println("Actual state: " + serverThreads.get(0).getState().toString());
-//			}
+			// Clients status
+			// ClientThreadsStatus();
+
+			// Servers status
+			// ServerThreadsStatus();
 			
 			// Pause for 10 seconds
             try {Thread.sleep(10000);}
             catch (InterruptedException e) {e.printStackTrace();}
             
-//            System.out.println("\n[HOJA] Waiting until Producer stop...");
+            // System.out.println("\n[HOJA] Waiting until Producer stop...");
 		}
 		
 		// TODO: ¿debería controlar que la salida del while anterior sea porque efectivamente se salió desde el menú?
@@ -303,6 +259,103 @@ public class NodoHoja {
 			}
 		}
 	}
+
+
+	// TODO 2020-11-23: la manera en que tengo un hash <servers> y otro de <serverthreads> (y los análogos para los
+	//  clientes es una porquería porque no escala y es difícil de mantener.
+	// Puede hacer una clase <RunningInstance> o algo así dónde tenga todos los parámetros necesarios para crear un
+	// nuevo hilo caído y listo. Puedo tener un único arreglo de "hilos que deben correr siempre" y darles un único
+	// tratamiento (es decir, checkeo el status del hilo (el hilo sería un atributo de la clase), si está caído lo
+	// revivo porque tengo todos los parámetros en la misma clase RunningInstance y chau).
+	// Puedo tener N arreglos/hash/loquesea donde estén esas RunningInstance, eso es cuestión de orden
+
+
+	/** Controla el estado de los hilos Clientes y los revive en caso de ser necesario */
+	private void ClientThreadsStatus() {
+		for(int i=0; i < clientThreads.size(); i++){
+			System.out.print("\t" + clientThreads.get(i).getName() + " || ");
+			System.out.print("Consumer thread #" + Integer.toString(i) + " state: ");
+			System.out.println(clientThreads.get(i).getState().toString());
+
+			// revivir los consumidores caídos
+			// TODO: hacerlo bien porque no es así
+			// TODO 2020-11-23: creo que me refería a los threads caídos
+			if(clientThreads.get(i).getState() == Thread.State.TERMINATED) {
+				// SIEMPRE en la posición 0 va a estar el cliente que se conecta al WKAN.
+				// En las demás estan los que se conectan a NCs
+				String name = null;
+				String node = null;
+				switch (i) {
+					case 0:
+						name = "PPAL - NC0";
+						node = this.config.getProperty("wkan");
+						break;
+					default:
+						name = "NC" + i;
+						node = this.config.getProperty("nc_" + i);
+						break;
+				}
+
+				// Esta parte está horrible, porque no sé qué keys del hashmap de clientes se correponde con cada
+				// posición del arreglo de client threads. Pero bueno, queda así por ahora
+				clients.put(name, new ClienteNH_Gral(i));
+				clientThreads.set(i, new Thread(clients.get(name)));
+				clientThreads.get(i).start();
+
+				System.out.print("\t\tConsumer thread #" + Integer.toString(i) + " revived. ");
+				System.out.println("Actual state: " + clientThreads.get(i).getState().toString());
+			}
+		}
+	}
+
+
+	private void ServerThreadsStatus() {
+		String name = null;
+
+		for(int i=0; i < serverThreads.size(); i++) {
+			System.out.print("\t" + serverThreads.get(i).getName() + " || ");
+			System.out.print("Server thread state: " + serverThreads.get(i).getState().toString());
+
+			if (serverThreads.get(i).getState() == Thread.State.TERMINATED) {
+				switch (i) {
+					case 0:
+						name = "acceso";
+						this.servers.put("acceso", new Servidor(
+								atributos.getDireccion().ip.getHostAddress(),
+								atributos.getDireccion().puerto_na,
+								config.getProperty("nombre")+": Acceso",
+								ConsultorH.class
+						));
+						break;
+					case 1:
+						name = "centrales";
+						this.servers.put("centrales", new Servidor(
+								atributos.getDireccion().ip.getHostAddress(),
+								atributos.getDireccion().puerto_nc,
+								config.getProperty("nombre")+": Centrales",
+								ConsultorH.class
+						));
+						break;
+					case 2:
+						name = "hojas";
+						this.servers.put("hojas", new Servidor(
+								atributos.getDireccion().ip.getHostAddress(),
+								atributos.getDireccion().puerto_nh,
+								config.getProperty("nombre")+": Hojas",
+								ConsultorH.class
+						));
+						break;
+				}
+
+				serverThreads.set(i, new Thread(servers.get(name)));
+				serverThreads.get(i).start();
+
+				System.out.print("\t\tServer thread revived. ");
+				System.out.println("Actual state: " + serverThreads.get(0).getState().toString());
+			}
+		}
+	}
+
 }// Fin clase
 
 /* 

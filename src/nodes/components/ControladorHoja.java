@@ -12,10 +12,7 @@ import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.filechooser.FileView;
 
-import commons.CredImagen;
-import commons.Imagen;
-import commons.Tarea;
-import commons.Tupla2;
+import commons.*;
 import commons.structs.nh.ParametrosConexionNC;
 
 /**
@@ -116,7 +113,7 @@ public class ControladorHoja implements Runnable {
 			imagen = new Imagen(elegida);
 			
 			// Se genera una tarea de consulta por cada uno de los NCs conocidos
-			for (String direccion : variables.getCentrales().keySet()) {
+			for (DireccionNodo direccion : variables.getCentrales().keySet()) {
 				HashMap<String, Object> taskPayload = new HashMap<String, Object>();
 				
 				taskPayload.put("credImg", new CredImagen(imagen.getNombre(), imagen.getVecCarComprimido()));
@@ -253,7 +250,7 @@ public class ControladorHoja implements Runnable {
 		
 		if(variables.hayImagenes()){
 			// Genero una tarea de anuncio por cada uno de los NCs conocidos
-			for (String key : variables.getCentrales().keySet()) {
+			for (DireccionNodo key : variables.getCentrales().keySet()) {
 				HashMap<String, Object> taskPayload = new HashMap<String, Object>();
 				
 				taskPayload.put("imagenes", pendientes);
@@ -358,8 +355,8 @@ public class ControladorHoja implements Runnable {
 		Boolean encolado = false;
 		CredImagen laImg;
 		CredImagen[] candidatas;
-		HashMap<String, HashMap<String,CredImagen[]>> querysRtas;
-		HashMap<String,CredImagen[]> unaRta;
+		HashMap<String, HashMap<DireccionNodo,CredImagen[]>> querysRtas;
+		HashMap<DireccionNodo,CredImagen[]> unaRta;
 		Integer indice=0, opcion, contador=0;
 		String laQuery, laHoja;
 		Tupla2<String,CredImagen> solicitud;
@@ -380,7 +377,7 @@ public class ControladorHoja implements Runnable {
 		for(String clave : querysRtas.keySet()){
 			System.out.print(indice + ") " + clave + ": ");
 			contador = 0;
-			for(String clave2 : querysRtas.get(clave).keySet()){
+			for(DireccionNodo clave2 : querysRtas.get(clave).keySet()){
 				CredImagen[] credenciales = querysRtas.get(clave).get(clave2);
 				contador += querysRtas.get(clave).get(clave2).length;
 			}
@@ -397,7 +394,7 @@ public class ControladorHoja implements Runnable {
 		System.out.println("Hojas con imágenes similares a " + laQuery);
 		System.out.println("------------------------------------------\n");
 		indice = 0;
-		for(String hoja : unaRta.keySet()){
+		for(DireccionNodo hoja : unaRta.keySet()){
 			System.out.print(indice + ") " + hoja + ": ");
 			System.out.println( unaRta.get(hoja).length + " imágenes" );
 			indice += 1;
@@ -449,8 +446,8 @@ public class ControladorHoja implements Runnable {
 	private void menuListarRespuestas(Scanner teclado){
 		CredImagen laImg;
 		CredImagen[] candidatas;
-		HashMap<String, HashMap<String,CredImagen[]>> querysRtas;
-		HashMap<String,CredImagen[]> unaRta;
+		HashMap<String, HashMap<DireccionNodo,CredImagen[]>> querysRtas;
+		HashMap<DireccionNodo,CredImagen[]> unaRta;
 		Integer indice=0, opcion, contador=0;
 		String laQuery, laHoja;
 		
@@ -470,7 +467,7 @@ public class ControladorHoja implements Runnable {
 		for(String clave : querysRtas.keySet()){
 			System.out.print(indice + ") " + clave + ": ");
 			contador = 0;
-			for(String clave2 : querysRtas.get(clave).keySet()){
+			for(DireccionNodo clave2 : querysRtas.get(clave).keySet()){
 				CredImagen[] credenciales = querysRtas.get(clave).get(clave2);
 				contador += querysRtas.get(clave).get(clave2).length;
 			}
@@ -487,7 +484,7 @@ public class ControladorHoja implements Runnable {
 		System.out.println("Hojas con imágenes similares a " + laQuery);
 		System.out.println("------------------------------------------\n");
 		indice = 0;
-		for(String hoja : unaRta.keySet()){
+		for(DireccionNodo hoja : unaRta.keySet()){
 			System.out.print(indice + ") " + hoja + ": ");
 			System.out.println( unaRta.get(hoja).length + " imágenes" );
 			indice += 1;

@@ -183,7 +183,21 @@ Actualicé AtributosHoja (seguramente surjan correcciones cuando haga las prueba
 2020-11-23
 Actualicé NodoHoja
 
+2020-12-01
+Actualicé ClienteNH_Gral (a medias, dejé algunas cosas comentadas para verlas cuando todo funcione)
+Actualicé ControladorHoja
+Empecé a actualizar ConsultorNC_H
 
+2020-12-06
+Acabo de darme cuenta de algo: hubiera sido mejor tener distintas clases <Atributos>:
+    + una general que sería la que instanciaría la clase <Cliente> por ejemplo, para consumir de la
+      cola asignada y demás
+    + una espacífica para cada nodo, así por ejemplo <ClienteNC_NC> tendría heredad <Atributos> desde
+      <Cliente> pero además instanciaría <AtributosCentrales> que tendría sólo atributos propios de
+      un NC.
+    + La sincronización sería la misma que hice, es decir, a nivel de clase, pero lo que me ahorro con
+      esto es tener que castear <atributos> en cada uno de los clientes. Por ejemplo en <ClienteNC_NC>
+      me la paso haciendo ((AtributosCentrales) atributos).un_metodo_propio_de_nodos_centrales()
 
 Tabla de pruebas pendientes
 ---------------------------
@@ -210,4 +224,18 @@ su IP pública cuando se instancia y asume que no varía, lo cual es imposible d
 1) no solemnos conocer de antemano nuestra ip pública
 2) el isp puede cambiarla
 Supongo que es algo a aclarar, lo que hace a este trabajo un "prototipo" o "de laboratorio"
+>
+
+
+<
+Las imágenes no debería guardarlas en la Hoja con su nombre como key sino usar un hash o el vector característico o
+algo así.
+>
+
+<
+Usar DireccionNodo para identificar un NH ante un NC es una locura, porque son "clientes" de la red que podrían
+ejecutarse en distintos dispositivos, con distintas IPs. Tendría que forzar a que la conexión entre ellos sea pasando
+los UUID.
+
+De nuevo, por ahora lo dejo así pero lo tengo en mente por si surge la pregunta en la presentación.
 >

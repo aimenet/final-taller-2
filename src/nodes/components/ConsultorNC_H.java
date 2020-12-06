@@ -3,7 +3,9 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
-import org.apache.commons.validator.routines.InetAddressValidator;
+
+import commons.structs.nc.NHIndexada;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.UUID;
@@ -39,16 +41,12 @@ public class ConsultorNC_H implements Consultor {
 	//public ConsultorNC_H(){}
 	
 	
-	private boolean recibirConsulta(ObjectInputStream entrada, ObjectOutputStream salida,
-			Mensaje msj){
+	private boolean recibirConsulta(ObjectInputStream entrada, ObjectOutputStream salida, Mensaje msj){
 		CredImagen modelo;
-		HashMap<String, CredImagen[]> resultado;
-		String direccionNodoActual = null, direccionRta=null;
-		Tupla2<CredImagen, HashMap<String, CredImagen[]>> respuesta = null;
+		DireccionNodo direccionNodoActual, direccionRta;
+		HashMap<DireccionNodo, CredImagen[]> resultado;
+		Tupla2<CredImagen, HashMap<DireccionNodo, CredImagen[]>> respuesta;
 
-		/*System.out.println("¿Qué pasha clarin, estás nerviosho?");
-		System.out.println("NC 1: " + atributos.getCentral(0));
-		System.out.println("Dir cen: " +  atributos.getDireccion());*/
 		
 		// Imagen modelo (query)
 		modelo = (CredImagen) msj.getCarga();
@@ -63,28 +61,25 @@ public class ConsultorNC_H implements Consultor {
 		CountDownLatch latchHojas = new CountDownLatch(cantHilos);
 		HashConcurrente similares = new HashConcurrente();
 
-		/*Primera versión
-		Integer[] hojasConImagenes =  atributos.getClavesIndiceImagenes();
-		System.out.println("Checkpoint 0");
-		for(int i=0; i<cantHilos; i++){
-			String destino = atributos.getHoja(hojasConImagenes[i]).split(";")[1];
-			Worker trabajador = new Worker(i, similares, modelo, atributos.getImagenes(hojasConImagenes[i]),
-					latchHojas, destino.split(":")[0], destino.split(":")[1], 1, "Hoja");
-			
-			new Thread( trabajador ).start();
-			
-			System.out.println("<ConcultorNC_H.java> Worker consultando a Hoja " + destino);
-		}*/
-		
-		// Segunda versión (se puede hacer más eficiente o al menos más prolijo buscando las hojas finales
+		// Se puede hacer más eficiente o al menos más prolijo buscando las hojas finales
 		// para no estar decrementando el latch y demás)
-		String[] hojasConImagenes =  atributos.getClavesIndiceImagenes();
-		for(String clave : hojasConImagenes) {
-			if(clave != msj.getEmisor()) {
-				String destino = atributos.getHoja(clave);
-				Worker trabajador = new Worker(clave, similares, modelo, atributos.getImagenes(clave),
-						latchHojas, destino.split(":")[0], destino.split(":")[1], 1, "Hoja");
-				new Thread( trabajador ).start();
+		UUID[] hojasConImagenes =  atributos.getClavesIndiceImagenes();
+		for(UUID clave : hojasConImagenes) {
+			if(clave != msj.getIdEmisor()) {
+				NHIndexada destino = atributos.getHoja(clave);  // 2020-12-01: debería poder pasarle un UUID y/ó una DireccionNodo?? O siempre lo voy a usar con UUID??
+
+				ConsultorNC_Worker trabajador = new ConsultorNC_Worker(
+						clave,
+						similares,
+						modelo,
+						atributos.getImagenes(clave),
+						latchHojas,
+						destino.getDireccion(),
+						1,
+						"Hoja"
+				);
+
+				new Thread(trabajador).start();
 				System.out.println("<ConcultorNC_H.java> Worker consultando a Hoja " + destino);
 			} else {
 				System.out.println("A la Hoja " + clave + " no le envío");
@@ -98,17 +93,27 @@ public class ConsultorNC_H implements Consultor {
 		// Acá tengo que hacer la consulta a los NC -> sólo si el TTL del mensaje lo permite
 		// La respuesta del servior debe ser algo así: HashMap<String, String[]>
 		cantHilos =  atributos.getCentrales().size();
-		direccionNodoActual = atributos.getDireccion("centrales");
+		direccionNodoActual = atributos.getDireccion();
 		direccionRta = msj.recepcionRta();
 		CountDownLatch latchCentrales = new CountDownLatch(cantHilos);
 		
 		for(int i=0; i<cantHilos; i++){
-			String destino = atributos.getCentral(i);
+			DireccionNodo destino = atributos.getCentral(i);
 			
 			if (destino != null){
-				Worker trabajador = new Worker(Integer.toString(i), similares, modelo, new ArrayList<CredImagen>(),
-						latchCentrales, destino.split(":")[0], destino.split(":")[1], 3, "Central",
-						direccionNodoActual, direccionNodoActual, direccionRta);
+				ConsultorNC_Worker trabajador = new ConsultorNC_Worker(
+						UUID.randomUUID(),  // 2020-12-03: una boludez. Qué cada Nodo, independientemente del tipo, tenga uuid y listo
+						similares,
+						modelo,
+						new ArrayList<CredImagen>(),
+						latchCentrales,
+						destino,
+						3,
+						"Central",
+						direccionNodoActual,
+						direccionNodoActual,
+						direccionRta
+				);
 			
 				new Thread( trabajador ).start();
 				
@@ -141,13 +146,15 @@ public class ConsultorNC_H implements Consultor {
 		try {
 			//salida.writeObject(new Mensaje(null,4,resultado));
 			// Conexión tmp con Hoja solicitante
-			ConexionTcp conexionTmp = new ConexionTcp(msj.recepcionRta().split(":")[0],
-													  Integer.parseInt(msj.recepcionRta().split(":")[1]));
+			ConexionTcp conexionTmp = new ConexionTcp(
+					msj.recepcionRta().ip.getHostAddress(),
+					msj.recepcionRta().puerto_nh
+			);
 			
 			/*La respuesta es una tupla donde el primer elemento es la imagen que la Hoja pasó como modelo
 			 * y el segundo un diccionario. Las claves son las direcciones de las H que poseen imágenes
 			 * similares y el value son las imágenes similares*/
-			respuesta = new Tupla2<CredImagen, HashMap<String, CredImagen[]>>(modelo,resultado);
+			respuesta = new Tupla2<CredImagen, HashMap<DireccionNodo, CredImagen[]>>(modelo,resultado);
 			conexionTmp.enviarSinRta((new Mensaje(null,11,respuesta)));
 			conexionTmp.cerrar();
 		} catch (IOException e) {
@@ -165,8 +172,7 @@ public class ConsultorNC_H implements Consultor {
 	 * @param msj
 	 * @return
 	 */
-	private boolean recibirListado(ObjectInputStream entrada, ObjectOutputStream salida,
-			Mensaje msj){		
+	private boolean recibirListado(ObjectInputStream entrada, ObjectOutputStream salida, Mensaje msj){
 		Integer cantidad, emisor, resultado;
 
 		resultado = 0;
@@ -186,7 +192,7 @@ public class ConsultorNC_H implements Consultor {
 		}
 		
 		//Carga las credenciales de las imágenes en el índice.
-		atributos.indexarImagenes(msj.getEmisor(), (ArrayList<CredImagen>) msj.getCarga());
+		atributos.indexarImagenes(msj.getIdEmisor(), (ArrayList<CredImagen>) msj.getCarga());
 		System.out.println("\tIndexadas imágenes de: " + sockToString());
 
 		try {
@@ -196,7 +202,7 @@ public class ConsultorNC_H implements Consultor {
 			e.printStackTrace();
 		}
 		
-		for (String clave:atributos.getClavesIndiceImagenes() ){
+		for (UUID clave:atributos.getClavesIndiceImagenes() ){
 			System.out.println(clave + ": " + atributos.getImagenes(clave));
 		}
 		return true;
@@ -206,39 +212,31 @@ public class ConsultorNC_H implements Consultor {
 	/**
 	 * Método por el cual el Consultor (servidor)  atiende por primera vez a un Cliente (Nodo Hoja).
 	 * Recibe un saludo y le responde con otro, más un mensaje con el ID asignado
-	 * @param entrada
 	 * @param salida
 	 * @param direccionServer
 	 * @return
 	 */
-	private boolean saludo(ObjectInputStream entrada, ObjectOutputStream salida, String direccionServer){
-		Mensaje mensaje;
-		String idAsignado = null;
-		UUID token = null;
+	private boolean saludo(ObjectOutputStream salida, Object direccionServer){
+		UUID idAsignado = null, token;
 		
 		try {
 			// direccionServer puede ser una dirección IP (del servidor de la H) o el ID (UUID propiamente dicho)
 			// que identifica a la HOJA pues ya estuvo conectada al nodo y se envía a modo de validación
 			// TODO: marcar H como activa nuevamente
 
-			if (InetAddressValidator.getInstance().isValid(direccionServer.split(":")[0])) {
+			if (direccionServer instanceof DireccionNodo) {
 				// Controla (defensivamente) la existencia del NH entre los conocidos previamente
-				idAsignado = atributos.getIDHoja(direccionServer);
+				idAsignado = atributos.getIDHoja((DireccionNodo) direccionServer);
 				if (idAsignado == null)
 					idAsignado = atributos.generarToken();
-			} else {
+			} else if (direccionServer instanceof UUID) {
 				// se recibió un token -> saludo de reconexión
-				token = UUID.fromString(direccionServer);
+				token = (UUID) direccionServer; // TODO 2020-12-03: revisar si efectivamente recibe UUID o el string que lo representa
 
-				if (this.atributos.getHoja(token.toString()) == null || this.atributos.getHoja(token.toString()).length() == 0 ) {
-					// No es un ID válido por lo que se genera uno nuevo
-					idAsignado = atributos.generarToken();
-				} else {
-					idAsignado = token.toString();
+				idAsignado = token;
 
-					// Obtengo la dirección del servidor de la H pues al ser reconexión ya se conoce
-					direccionServer = this.atributos.getHoja(token.toString()).split(";")[1];
-				}
+				// Obtengo la dirección del servidor de la H pues al ser reconexión ya se conoce
+				direccionServer = this.atributos.getHoja(token);
 			}
 
 			//¿El servidor debería tener un ID, un Mensaje propio sin campo emisor o pongo null como ahora?
@@ -246,12 +244,10 @@ public class ConsultorNC_H implements Consultor {
 			System.out.println("-> Asignado ID " +  idAsignado + " a cliente " + sockToString());
 			
 			//Guardado del par ID<->Nodo Hoja (atributo de clase, debe sincronizarse)
-			atributos.indexarHoja(idAsignado, direccionServer);
+			atributos.indexarHoja(idAsignado, (DireccionNodo) direccionServer);
 						
 			return true;
 		} catch (IOException e){
-			//IOException -> por escritura en buffer salida.
-		    //ClassNotFoundException -> por lectura en buffer de entrada.
 			System.out.println(e.toString());
 			return false;
 		}
@@ -281,7 +277,7 @@ public class ConsultorNC_H implements Consultor {
 				
 				switch(mensaje.getCodigo()){
 				case 1:
-					if (!saludo(buffEntrada, buffSalida, (String) mensaje.getCarga())) {terminar=true;}
+					if (!saludo(buffSalida, (String) mensaje.getCarga())) {terminar=true;}
 					break;
 				// case 2 podría ser saludo para reconexion
 				case 3:

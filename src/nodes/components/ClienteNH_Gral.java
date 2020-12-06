@@ -6,13 +6,8 @@ import java.time.Instant;
 import java.util.*;
 import java.util.function.Function;
 
+import commons.*;
 import my_exceptions.ManualInterruptException;
-import commons.Codigos;
-import commons.ConexionTcp;
-import commons.CredImagen;
-import commons.Mensaje;
-import commons.Tarea;
-import commons.Tupla2;
 
 /**
  * Uno de las instancias que compone la "faceta" Cliente de un Nodo Hoja. Es la encargada de 
@@ -44,27 +39,23 @@ public class ClienteNH_Gral extends Cliente {
 	// Métodos que se usan para atender los distintos tipos de órdenes recibidas en una Tarea
 	// ---------------------------------------------------------------------------------------------------
 	private HashMap<String, Object> anunciarAnteNCFnc(HashMap<String, Object> params){
-		ArrayList<CredImagen> credencialesImgs;
 		HashMap<String, Object> output = new HashMap<String, Object>();
 		Mensaje mensaje;
 		Mensaje respuesta;
-		String ipServerPropia;
-		String token;
+		UUID token;
 		
 		// Estos son comunes a todas las funciones
 		output.put("callBackOnSuccess", false);
 		output.put("callBackOnFailure", false);
 		output.put("result", true);
 		
-		ipServerPropia = this.atributos.getDireccion("centrales");
-		
 		// Si existe un ID de Hoja definido en los atributos, se envía un mensaje de reconexión.
 		// En caso contrario se envía un saludo
-		token = ((AtributosHoja) this.atributos).getId((String) params.get("direccionNC"));
+		token = ((AtributosHoja) this.atributos).getId((DireccionNodo) params.get("direccionNC"));
 
 		if (token == null) {
 			// Saludo, 1ra conexión
-			mensaje = new Mensaje(null,1, ipServerPropia);
+			mensaje = new Mensaje(null,1, this.atributos.getDireccion());
 		} else {
 			// Saludo de reconexión
 			//mensaje = new Mensaje(null,1, "##"+token+"##");
@@ -75,13 +66,13 @@ public class ClienteNH_Gral extends Cliente {
 		
 		if (respuesta.getCodigo().equals(1) && respuesta.getCarga() != null){
 			//La respuesta contiene el ID con el que se identificará al Cliente.
-			token = (String) respuesta.getCarga();
+			token = (UUID) respuesta.getCarga();
 			sesionIniciada = true;
 			
 			// Seteo del ID que recibió la H en los atributos comartidos para ser conocido por todos los
 			// "componentes" del nodo Hoja. Si se trataba de una reconexión el ID será igual así que en realidad es
 			// redundante ese paso
-			((AtributosHoja) this.atributos).setId((String) params.get("direccionNC"), token);
+			((AtributosHoja) this.atributos).setId((DireccionNodo) params.get("direccionNC"), token);
 		} else {
 			output.put("result", false);
 		}
@@ -93,7 +84,7 @@ public class ClienteNH_Gral extends Cliente {
 		ArrayList<CredImagen> credencialesImgs;
 		HashMap<String, Object> output = new HashMap<String, Object>();
 		Mensaje mensaje;
-		String idAsignado = ((AtributosHoja) this.atributos).getCentrales().get((String) params.get("direccionNC")).idAsignado;
+		UUID idAsignado = ((AtributosHoja) this.atributos).getCentrales().get((String) params.get("direccionNC")).idAsignado;
 
 
 		// Estos son comunes a todas las funciones
@@ -102,8 +93,12 @@ public class ClienteNH_Gral extends Cliente {
 		output.put("result", true);
 		
 		credencialesImgs = (ArrayList<CredImagen>) params.get("imagenes");
-		
-		conexionConNodo.enviarSinRta(new Mensaje(idAsignado.toString(), 3, credencialesImgs.size()));
+
+		// TODO 2020-12-01: acá tengo un problema, si quiero mantener el uso de UUID para identificar, en lugar de la
+		//  DireccionNodo, voy a tener que tener otro constructor de Mensaje y atajar el caso en el NC para que reciba
+		//  uno u otro (si corresponde).
+		// 2020-12-01 continuación: por ahora comento todo y después veo qué hago
+		/*conexionConNodo.enviarSinRta(new Mensaje(idAsignado.toString(), 3, credencialesImgs.size()));
 
 		mensaje = new Mensaje(idAsignado.toString(), 3, credencialesImgs);
 		Mensaje respuesta = (Mensaje) conexionConNodo.enviarConRta(mensaje);
@@ -114,22 +109,24 @@ public class ClienteNH_Gral extends Cliente {
 		} else {
 			System.out.printf("[Cli %s] compartidas %s imágenes\n", this.idConsumidor, credencialesImgs.size());
 		}
-		
+		*/
 		return output;
 	}
 	
 	private HashMap<String, Object> descargarImgFnc(HashMap<String, Object> params){
 		HashMap<String, Object> output = new HashMap<String, Object>();
 		Mensaje solicitud;
-		String direccionRecepcionRta;
 		
 		// Estos son comunes a todas las funciones
 		output.put("callBackOnSuccess", false);
 		output.put("callBackOnFailure", false);
 		output.put("result", true);
-		
-		direccionRecepcionRta = this.atributos.getDireccion("hojas");
-		conexionConNodo.enviarSinRta(new Mensaje(null, direccionRecepcionRta, 21, params.get("credImg")));
+
+		conexionConNodo.enviarSinRta(new Mensaje(
+				this.atributos.getDireccion(),
+				21,
+				params.get("credImg")
+		));
 		
 		System.out.printf("[Cli %s]", this.idConsumidor);
 		System.out.printf(" solicitada imagen <%s> para descarga\n", ((CredImagen) params.get("credImg")).getNombre());
@@ -139,16 +136,21 @@ public class ClienteNH_Gral extends Cliente {
 	private HashMap<String, Object> queryNCFnc(HashMap<String, Object> params){
 		HashMap<String, Object> output = new HashMap<String, Object>();
 		Mensaje solicitud;
-		String direccionRecepcionRta;
-		String idAsignado = ((AtributosHoja) this.atributos).getId((String) params.get("direccionNC"));
+		UUID idAsignado = ((AtributosHoja) this.atributos).getId((DireccionNodo) params.get("direccionNC"));
 		
 		// Estos son comunes a todas las funciones
 		output.put("callBackOnSuccess", false);
 		output.put("callBackOnFailure", false);
 		output.put("result", true);
-		
-		direccionRecepcionRta = this.atributos.getDireccion("centrales");
-		solicitud = new Mensaje(idAsignado.toString(), direccionRecepcionRta, 4, (CredImagen) params.get("credImg"));
+
+		solicitud = new Mensaje(
+				this.atributos.getDireccion(),
+				idAsignado,
+				this.atributos.getDireccion(),
+				4,
+				(CredImagen) params.get("credImg")
+		)
+		;
 		conexionConNodo.enviarSinRta(solicitud);
 		
 		System.out.printf("[Cli %s]", this.idConsumidor);
@@ -176,22 +178,23 @@ public class ClienteNH_Gral extends Cliente {
 			return output;
 
 		// Lista de NCs actuales
-		params.put("conocidos", new HashSet<String>(((AtributosHoja) this.atributos).getCentrales().keySet()));
+		params.put("conocidos", new HashSet<DireccionNodo>(((AtributosHoja) this.atributos).getCentrales().keySet()));
 
 		System.out.printf("[Cli %s]", this.idConsumidor);
 		System.out.printf(" enviando solicitud por <%s> NCs a WKAN", amount);
 		
-		params.put("direccionNH_NC", this.atributos.getDireccion("centrales"));
-		params.put("direccionNH_NA", this.atributos.getDireccion("acceso"));
+		params.put("direccionNH", this.atributos.getDireccion());
 		params.put("pendientes", amount);
 		
-		mensaje = (Mensaje) conexionConNodo.enviarConRta(new Mensaje(this.atributos.getDireccion("acceso"), 
-				                                                     Codigos.NH_NA_POST_SOLICITUD_NCS, 
-				                                                     params));
+		mensaje = (Mensaje) conexionConNodo.enviarConRta(new Mensaje(
+				this.atributos.getDireccion(),
+				Codigos.NH_NA_POST_SOLICITUD_NCS,
+				params
+		));
 		
 		// TODO: ver qué pasa acá con lo que encolo (idAsignado)
 		if (mensaje.getCodigo().equals(Codigos.OK)) {
-			for (String central : (LinkedList<String>) mensaje.getCarga()) {
+			for (DireccionNodo central : (LinkedList<DireccionNodo>) mensaje.getCarga()) {
 				((AtributosHoja) atributos).encolarCentral(central, null);
 
 				payload = new HashMap<String, Object>();
@@ -308,9 +311,13 @@ public class ClienteNH_Gral extends Cliente {
 
 		// TODO Ojo que estoy mandando una única dirección sin considerar qué tipo de Nodo es el destinatario 
 		this.conexionConNodo.enviarSinRta(
-				new Mensaje(this.atributos.getDireccion("centrales"),
-						    Codigos.CONNECTION_END, 
-						    null));
+				new Mensaje(
+						this.atributos.getDireccion(),
+						Codigos.CONNECTION_END,
+						null
+				)
+		);
+
 		this.terminarConexion();
 		System.out.println("[Cli  " + this.idConsumidor + "] arrancando de nuevo inmediatamente");
 		

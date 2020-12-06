@@ -1,6 +1,7 @@
 package commons;
 
 import java.io.Serializable;
+import java.util.UUID;
 
 /**Unidad de datos intercambiada entre Cliente (Nodo Hoja) y Servidor (Nodo Central).
  * Posee un código entero que indica la acción a realizar y una carga que por ahora es un String.
@@ -19,6 +20,9 @@ public class Mensaje implements Serializable {
 	// Usados por mensajes que se envían entre NCs
 	private DireccionNodo origen, ncEmisor, recepcionRta;
 	
+	// Usados por mensajes que se envían entre NH y NC
+	private UUID idEmisor;
+
 
 	// Métodos
 	// -----------------------------------------------------------------------------------------------------------------
@@ -31,6 +35,8 @@ public class Mensaje implements Serializable {
 		this.ttl = 1;
 		this.origen = null;
 		this.ncEmisor = null;
+
+		this.idEmisor = null;
 	}
 
 	/** Constructor usado por NC para retransmitir consulta a otro NC */
@@ -43,6 +49,22 @@ public class Mensaje implements Serializable {
 		this.carga = carga;
 		this.ncEmisor = ncEmisor;
 		this.recepcionRta = direccionRta;
+
+		this.idEmisor = null;
+	}
+
+	/** Constructor usado por NH para comunicación con NC */
+	public Mensaje(DireccionNodo emisor, UUID idEmisor, DireccionNodo direccionRta, Integer codigo, Object carga){
+		this.emisor = emisor;
+		this.recepcionRta = direccionRta;
+		this.codigo = codigo;
+		this.carga = carga;
+
+		this.ttl = 1;
+		this.origen = null;
+		this.ncEmisor = null;
+
+		this.idEmisor = idEmisor;
 	}
 
 	// Getters.
@@ -52,6 +74,8 @@ public class Mensaje implements Serializable {
 	public Integer getCodigo() {return codigo;}
 
 	public DireccionNodo getEmisor() {return emisor;}
+
+	public UUID getIdEmisor() {return this.idEmisor;}
 
 	public DireccionNodo getNCEmisor() {return ncEmisor;}
 
@@ -65,17 +89,6 @@ public class Mensaje implements Serializable {
 
     // 2020-09-11: lo mato hasta que llegue su turno
 	/*
-	public Mensaje(String idEmisor, String direccionRta, Integer codigo, Object carga){
-		this.emisor = idEmisor;
-		this.recepcionRta = direccionRta;
-		this.codigo = codigo;
-		this.carga = carga;
-
-		this.ttl = 1;
-		this.origen = null;
-		this.ncEmisor = null;
-	}
-
 
 	// Constructor usado por NC
 	public Mensaje(String emisor, Integer codigo, Integer ttl, Object carga){

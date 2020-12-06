@@ -29,8 +29,8 @@ public class ClienteNC_NA extends Cliente {
 
 	// Métodos
 	// -----------------------------------------------------------------------------------------------------------------
-	public ClienteNC_NA(int idConsumidor) {
-		super(idConsumidor, "acceso");  // la cola de la que consume debería recibirla como parámetro?
+	public ClienteNC_NA(int idConsumidor, String cola) {
+		super(idConsumidor, cola);
 		this.atributos = new AtributosCentral();  // <atributos> está declarado en Cliente
 	}
 

@@ -128,7 +128,7 @@ public class AtributosCentral extends Atributos {
 		return asignado;
 	}
 	
-	public String generarToken() {
+	public UUID generarToken() {
 		/* Depreco toda esta cosa manual de los token (que me gustaba mucho) en favor de UUID
 		// Los tokens son case sensitive por lo que puede considerarse que en el mejor de los casos
 		// tengo la mitad de probabilidad de repetición que si no lo fueran (ver nota B al final)
@@ -145,7 +145,7 @@ public class AtributosCentral extends Atributos {
 		Encoder encoder = Base64.getUrlEncoder().withoutPadding();
 		return encoder.encodeToString(bytes); // el token
 		*/
-		return UUID.randomUUID().toString();
+		return UUID.randomUUID();
 	}
 	
 	public Integer getTamanioIndiceImagenes(){

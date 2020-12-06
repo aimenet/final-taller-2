@@ -26,18 +26,12 @@ import my_exceptions.ManualInterruptException;
 public class ClienteNC_NC extends Cliente {
 	// Atributos
 	// -----------------------------------------------------------------------------------------------------------------
-	private AtributosCentral atributos;
-	private Callable<HashMap<String, Object>> funcion;
-	private ConexionTcp conexionConNodoCentral;
-	private boolean conexionEstablecida, sesionIniciada;
-	public Integer idConsumidor;
-	public String tipoConsumidor;
 
 
 	// Métodos
 	// -----------------------------------------------------------------------------------------------------------------
-	public ClienteNC_NC(int idConsumidor) {
-		super(idConsumidor, "salida");
+	public ClienteNC_NC(int idConsumidor, String cola) {
+		super(idConsumidor, cola);
 		this.atributos = new AtributosCentral();
 	}
 
@@ -59,18 +53,18 @@ public class ClienteNC_NC extends Cliente {
 		output.put("result", true);
 
 		enviado = new Mensaje(this.atributos.getDireccion(), Codigos.NC_NC_POST_SALUDO, null);
-		recibido = (Mensaje) this.conexionConNodoCentral.enviarConRta(enviado);
+		recibido = (Mensaje) this.conexionConNodo.enviarConRta(enviado);
 
 		// Si el código no es OK (200), independientemente de por qué no se ha aceptado la "vinculación"
 		// no hago nada.
 		// TODO: hacer tarea periódica que controle si falta enlazarse a NCs y dispare tarea de pedidos de vecinos
 		// (hacer que esa tarea pida de a 1, así es más fácil)
-		System.out.printf("[Cli %s]\t", this.idConsumidor);
+		System.out.printf("[Cli %s]\t", this.id);
 		System.out.printf("registrado nuevo NC vecino: %s ", (String) params.get("direccionNC"));
 
 		if (recibido.getCodigo() == Codigos.OK) {
-			if (atributos.getCentrales().size() < atributos.getMaxCentralesVecinos()) {
-				atributos.indexarCentral((DireccionNodo) params.get("direccionNC"));
+			if (((AtributosCentral) atributos).getCentrales().size() < ((AtributosCentral) atributos).getMaxCentralesVecinos()) {
+				((AtributosCentral) atributos).indexarCentral((DireccionNodo) params.get("direccionNC"));
 				System.out.printf("[OK]\n");
 			} else {
 				System.out.printf("[OK pero sin capacidad]\n");
@@ -101,16 +95,16 @@ public class ClienteNC_NC extends Cliente {
 				Codigos.NA_NC_POST_NC_VECINO,
 				(String) params.get("direccionNcVecino")
 		);
-		msj = (Mensaje) this.conexionConNodoCentral.enviarConRta(msj);
+		msj = (Mensaje) this.conexionConNodo.enviarConRta(msj);
 
 		System.out.println("revisá params a ver cual es la dir que tenés que registrar");
 
-		System.out.printf("Consumidor %s: ", this.idConsumidor);
+		System.out.printf("Consumidor %s: ", this.id);
 		System.out.printf("registrado NC (%s) como vecino ", (String) params.get("direccionNcVecino"));
 
 		if (msj.getCodigo() == Codigos.OK) {
 			System.out.println("[COMPLETADO]");
-			atributos.indexarCentral((DireccionNodo) params.get("direccionNcVecino"));
+			((AtributosCentral) atributos).indexarCentral((DireccionNodo) params.get("direccionNcVecino"));
 		} else {
 			System.out.println("[ERROR]");
 		}
@@ -141,7 +135,7 @@ public class ClienteNC_NC extends Cliente {
 			Thread.sleep(rand.nextInt(3000));
     	}
 		
-		System.out.printf("Consumidor %s: esperando\n", this.idConsumidor);
+		System.out.printf("Consumidor %s: esperando\n", this.id);
 		tarea = atributos.desencolar("centrales"); // thread-safe
 		
 		ipNcDestino = null;
@@ -177,10 +171,10 @@ public class ClienteNC_NC extends Cliente {
 			|| (Boolean) diccionario.containsKey("callbackOnFailure"))
 			method.apply(diccionario);
 
-		this.conexionConNodoCentral.enviarSinRta(
+		this.conexionConNodo.enviarSinRta(
 				new Mensaje(this.atributos.getDireccion(), Codigos.CONNECTION_END, null));
 		this.terminarConexion();
-		System.out.println("\nConsumidor " + this.idConsumidor + " arrancando de nuevo inmediatamente");
+		System.out.println("\nConsumidor " + this.id + " arrancando de nuevo inmediatamente");
 
 		return null;  // 2020-11-06: o esto está mal o el método debería retornar void
 	}

@@ -28,6 +28,7 @@ public abstract class Cliente implements Runnable {
 	protected ConexionTcp conexionConNodo;
 	protected Integer id;
 	protected String cola;
+	protected String prueba;
 	
 	// Constructores
 	// -------------
@@ -35,6 +36,13 @@ public abstract class Cliente implements Runnable {
 		// [2019-10-30] en esta primera versión sólo consumira de una cola en particular
 		this.cola = cola;
 		this.id = id;
+	}
+
+	protected Cliente(int id, String cola, Atributos atributos) {
+		// [2019-10-30] en esta primera versión sólo consumira de una cola en particular
+		this.cola = cola;
+		this.id = id;
+		this.atributos = atributos;
 	}
 	
 	
@@ -60,13 +68,13 @@ public abstract class Cliente implements Runnable {
 	
 	protected void consumir() throws InterruptedException, ManualInterruptException {
 		Tarea tarea = null;
-		
+
 		// Si hago esto, el uso del CPU sube levemente pero me permite que trabajen todos los threads consumidores,
 		// sino, pasa lo que detallé al final del archivo -[2019-10-19]-
-		while(this.atributos.colaVacia(this.cola)) {
+		while (this.atributos.colaVacia(this.cola)) {
 			Random rand = new Random();
 			Thread.sleep(rand.nextInt(3000));
-    	}
+		}
 		
 		System.out.printf("Cliente %s: esperando\n", this.id);
 		tarea = atributos.desencolar(this.cola);  // thread-safe

@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
+import commons.Constantes;
 import commons.DireccionNodo;
 import commons.Tarea;
 import nodes.components.AtributosCentral;
@@ -76,7 +77,7 @@ public class NodoCentral {
 		
 		// Inicialización de las colas donde se cargarán las "tareas" 
 		// Podría setear sólo las colas que voy a usar pero dejo las default
-		atributos.setNombreColas(new String[]{"acceso", "centrales", "hojas"});
+		atributos.setNombreColas(new String[]{Constantes.COLA_NA, Constantes.COLA_NC, Constantes.COLA_NH});
 		atributos.setColas();
 		
 		// Servidores
@@ -107,8 +108,15 @@ public class NodoCentral {
 		// 1 para conectarse al WKAN que sirve de pto de entrada a la red
 		// 3 (def. por el archivo de configuración) para interactuar con los NCs a los que se conectará
 		while (this.clients.size() < Integer.parseInt(this.config.getProperty("centrales")))
-			this.clients.put("NC-" + Integer.toString(this.clients.size()), new ClienteNC_NC(this.clients.size()));
-		this.clients.put("NC-" + Integer.toString(this.clients.size()), new ClienteNC_NA(this.clients.size()));
+			this.clients.put(
+					"NC-" + Integer.toString(this.clients.size()),
+					new ClienteNC_NC(this.clients.size(), Constantes.COLA_NC)
+			);
+
+		this.clients.put(
+				"NC-" + Integer.toString(this.clients.size()),
+				new ClienteNC_NA(this.clients.size(), Constantes.COLA_NA)
+		);
 		
 		// Hacer otro bucle para esto no creo que sea lo mejor
 		for (String cliente : this.clients.keySet())
@@ -146,7 +154,8 @@ public class NodoCentral {
 		// Nótese que no está hardcodeada la IP del WKAN así que este nodo tranquilamente podría estar concetado
 		// a más de un Nodo de Acceso
 		try {
-			atributos.encolar("acceso", new Tarea(00, "ANUNCIO_WKAN", atributos.getWKANAsignado()));
+			atributos.encolar(Constantes.COLA_NA, new Tarea(00, "ANUNCIO_WKAN", atributos.getWKANAsignado()));
+			atributos.encolar(Constantes.COLA_NC, new Tarea(00, "ANUNCIO_WKAN", atributos.getWKANAsignado()));
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
@@ -159,7 +168,7 @@ public class NodoCentral {
 			// Tarea que determina si es necesario enviar anuncio a WKAN en caso de que aún no se ingresó a la red
 			try {
 				Thread.sleep(120000);
-				atributos.encolar("acceso", new Tarea(00, "CHECK_ANUNCIO", null));
+				atributos.encolar(Constantes.COLA_NA, new Tarea(00, "CHECK_ANUNCIO", null));
 				System.out.println("[Core] Disparada tarea periódica: CHECK ANUNCIO para determinar ingreso a la red");
 			} catch (InterruptedException e) {
 				e.printStackTrace();
@@ -168,7 +177,7 @@ public class NodoCentral {
 			// Dispara tarea de envío de keepalive a WKAN
 			try {
 				Thread.sleep(TimeUnit.MILLISECONDS.convert(atributos.keepaliveWKAN, TimeUnit.SECONDS));
-				atributos.encolar("acceso", new Tarea(00, "SEND_KEEPALIVE_WKAN", null));
+				atributos.encolar(Constantes.COLA_NA, new Tarea(00, "SEND_KEEPALIVE_WKAN", null));
 				System.out.println("[Core] Disparada tarea periódica: keepalive WKAN");
 			} catch (InterruptedException e) {
 				e.printStackTrace();

@@ -6,10 +6,7 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.*;
 
-import commons.Codigos;
-import commons.DireccionNodo;
-import commons.Mensaje;
-import commons.Tarea;
+import commons.*;
 import commons.structs.nc.NHIndexada;
 
 public class ConsultorNC_NA implements Consultor {
@@ -115,15 +112,10 @@ public class ConsultorNC_NA implements Consultor {
 		// Como es de las pocas actividades en las que el NC se conectará a un NH, levanto "on demand"
 		// el cliente para tal fin (en lugar de encolar y tener un cliente consultando en todo momento)
 		Tarea tarea = new Tarea(00, "INFORMAR-DIRECCION-A-NH", nodoHoja);
-		ClienteNC_NH anunciante = new ClienteNC_NH(99);
+		ClienteNC_NH anunciante = new ClienteNC_NH(99, Constantes.COLA_NH);
 
 		HashMap<String, Comparable> resultado = null;
-		try {
-			resultado = anunciante.procesarTarea(tarea);
-		} catch (InterruptedException e) {
-			resultado = new HashMap<String, Comparable>();
-			resultado.put("status", false);
-		}
+		resultado = anunciante.procesarTarea(tarea);
 
 		System.out.printf("[Con WKAN] ");
 		System.out.printf("Enviada dirección a NH %s\t", nodoHoja.ip.getHostName());

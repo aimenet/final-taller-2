@@ -19,13 +19,12 @@ import java.util.function.Function;
 public class ClienteNC_NH extends Cliente {
 	// Atributos
 	// -----------------------------------------------------------------------------------------------------------------
-	public Integer idConsumidor;
 
 
 	// Métodos
 	// -----------------------------------------------------------------------------------------------------------------
-	public ClienteNC_NH(int idConsumidor) {
-		super(idConsumidor, "centrales");
+	public ClienteNC_NH(int idConsumidor, String cola) {
+		super(idConsumidor, cola);
 		this.atributos = new AtributosAcceso();
 	}
 
@@ -107,7 +106,7 @@ public class ClienteNC_NH extends Cliente {
 		);
 
 		this.terminarConexion();
-		System.out.println("[Cli  " + this.idConsumidor + "] arrancando de nuevo inmediatamente");
+		System.out.println("[Cli  " + this.id + "] arrancando de nuevo inmediatamente");
 
 		// TODO: hacelo bien
 		diccionario2 = new HashMap<String, Comparable>();

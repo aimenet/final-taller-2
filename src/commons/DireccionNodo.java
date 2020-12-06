@@ -64,7 +64,7 @@ public class DireccionNodo implements Comparable<DireccionNodo>, Serializable {
 
     @Override
     public int hashCode() {
-        String ipSinPuntos = this.ip.getHostName().replace(".", "");
+        String ipSinPuntos = this.ip.getHostAddress().replace(".", "");
 
         return Integer.parseInt(ipSinPuntos);
     }

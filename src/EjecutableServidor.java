@@ -1,5 +1,7 @@
 import nodes.NodoCentral;
 
+import java.net.UnknownHostException;
+
 public class EjecutableServidor {
 
 	public static void main(String[] args) {
@@ -13,8 +15,13 @@ public class EjecutableServidor {
 		}
 		
 		configFile = args[0];
-		
-		NodoCentral NC1 = new NodoCentral(configFile);
+
+		NodoCentral NC1 = null;
+		try {
+			NC1 = new NodoCentral(configFile);
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		}
 		NC1.ponerEnMarcha();
 	}
 

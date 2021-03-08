@@ -192,7 +192,7 @@ public class NodoAccesoBienConocido {
 				// Dispara tarea que actualiza el estado de los NCs administrados. Es una tarea interna del Nodo
 				try {
 					Thread.sleep(30000);
-					atributos.encolar("interna", new Tarea(00, "CHECK_KEEPALIVE_NCS", null));
+					atributos.encolar(Constantes.COLA_INTERNA, new Tarea(00, "CHECK_KEEPALIVE_NCS", null));
 					System.out.println("[Core] Disparada tarea periódica: keep alive NCs");
 				} catch (InterruptedException e) {
 					e.printStackTrace();

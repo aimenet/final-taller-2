@@ -10,4 +10,5 @@ public class Constantes {
 	public static final String COLA_NC = "centrales";
 	public static final String COLA_NH = "hojas";
 	public static final String COLA_SALIDA = "salida";
+	public static final String COLA_INTERNA = "interna";
 }

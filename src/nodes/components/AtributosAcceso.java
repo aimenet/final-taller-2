@@ -33,7 +33,7 @@ public class AtributosAcceso extends Atributos {
 	private static volatile HashMap<DireccionNodo,HashMap<String, Comparable>> centrales = new HashMap<DireccionNodo,HashMap<String, Comparable>>();
 	
 	// Parámetros "operativos"
-	public static int keepaliveNC = 30;  // segundos -> TODO: debería venir de config
+	public static int keepaliveNC = 60;  // segundos -> TODO: debería venir de config
 	public static int keepaliveNodoVecino = 3; // valor default, los nodos pueden sobreescribirlo si corresponde
 	public static int maxNCCapacity = 10;
 	

@@ -163,16 +163,19 @@ public class NodoCentral {
 		System.out.println("Terminé de poner en marcha el Nodo Central");
 		
 		// Loop donde se administran ciertas tareas que ejecuta periódicamente el nodo
-		// Claramente esto es quick and dirty y funca porque hay una tarea periódica
+		// Claramente esto es una porquería porque el tiempo de espera se va acumulando cuando debería funcionar como un
+		// CRONJOB
 		while(!terminar) {
 			// Tarea que determina si es necesario enviar anuncio a WKAN en caso de que aún no se ingresó a la red
 			try {
-				Thread.sleep(120000);
+				Thread.sleep(10000);
 				atributos.encolar(Constantes.COLA_NA, new Tarea(00, "CHECK_ANUNCIO", null));
 				System.out.println("[Core] Disparada tarea periódica: CHECK ANUNCIO para determinar ingreso a la red");
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
+
+			// Hasta acá esperé: 10 segundos ---------------------------------------------------------------------------
 
 			// Dispara tarea de envío de keepalive a WKAN
 			try {
@@ -182,6 +185,8 @@ public class NodoCentral {
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
+
+			// Hasta acá esperé: 30 segundos ---------------------------------------------------------------------------
 
 			// TODO 2020-11-23: revisar y revivir threads caídos
 		}

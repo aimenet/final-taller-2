@@ -260,8 +260,8 @@ public class ClienteNH_Gral extends Cliente {
 				/* Solicita al WKAN que oficia de pto de acceso a la red, una determinada cantidad de NCs a los que conectarse */
 				
 				diccionario = (HashMap<String, Object>) tarea.getPayload();
-				ipDestino = ((String) diccionario.get("direccionWKAN")).split(":")[0];
-				puertoDestino = Integer.parseInt(((String) diccionario.get("direccionWKAN")).split(":")[1]);
+				ipDestino = ((DireccionNodo) diccionario.get("direccionWKAN")).ip.getHostAddress();
+				puertoDestino = ((DireccionNodo) diccionario.get("direccionWKAN")).puerto_nh;
 				method = this::solicitarNCsFnc;
 				break;
 			case "DESCARGA":

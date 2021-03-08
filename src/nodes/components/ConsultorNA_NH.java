@@ -41,7 +41,7 @@ public class ConsultorNA_NH implements Consultor {
 		output.put("callBackOnFailure", false);
 		output.put("result", true);
 
-		System.out.printf("[Con NH] Solicitud de %s NCs por parte de NH en %s ", nodoHoja.ip.getHostName());
+		System.out.printf("[Con NH] Solicitud de %s NCs por parte de NH en %s ", solicitados, nodoHoja.ip.getHostName());
 
 		// Obtrención de NCs que pueden recibir a la H: si no existen más WKANs en la red entonces buscará entre sus
 		// NCs la cantidad solicitada, sino escogerá sólo 1 (y retransmitirá la consulta)
@@ -130,7 +130,7 @@ public class ConsultorNA_NH implements Consultor {
 
 						this.solicitudNCsFnc(
 								mensaje.getEmisor(),
-								Integer.parseInt((String) diccionario.get("pendientes")),
+								(Integer) diccionario.get("pendientes"),
 								(HashSet<DireccionNodo>) diccionario.get("conocidos")
 						);
 						

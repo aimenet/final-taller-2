@@ -1,4 +1,6 @@
 package nodes.components;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.*;
 
 import commons.*;
@@ -53,7 +55,7 @@ public class AtributosHoja extends Atributos {
 	// Constantes
 	private static final Integer MAX_COLA_TX = 100;
 	private static final String[] extensionesValidas = new String[]{"bmp","jpg","jpeg","png"};
-	private static String wkanInicial;
+	private static DireccionNodo wkanInicial;
 	
 	// que deben definirse antes de generar los hilos de la Hoja
 	// private static ArrayList<Object>[] colasTx;
@@ -63,12 +65,14 @@ public class AtributosHoja extends Atributos {
 	
 	// Métodos - wkan
 	// =======================================================================================
-	public static String getWkanInicial() {
+	public static DireccionNodo getWkanInicial() {
 		return wkanInicial;
 	}
 
-	public static void setWkanInicial(String wkanInicial) {
-		AtributosHoja.wkanInicial = wkanInicial;
+	public static void setWkanInicial(String wkanInicial) throws UnknownHostException {
+		AtributosHoja.wkanInicial = new DireccionNodo(
+				InetAddress.getByName(wkanInicial.split(":")[0])
+		);
 	}
 	
 	

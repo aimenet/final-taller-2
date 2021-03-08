@@ -112,10 +112,6 @@ public class NodoHoja {
 				ConsultorH.class
 		));
 
-		for (Servidor server : servers.values()) {
-			serverThreads.add(new Thread(server));
-		}
-		
 		for (Servidor server : servers.values())
 			serverThreads.add(new Thread(server));
 		

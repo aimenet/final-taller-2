@@ -199,6 +199,9 @@ Acabo de darme cuenta de algo: hubiera sido mejor tener distintas clases <Atribu
       esto es tener que castear <atributos> en cada uno de los clientes. Por ejemplo en <ClienteNC_NC>
       me la paso haciendo ((AtributosCentrales) atributos).un_metodo_propio_de_nodos_centrales()
 
+Empecé a acomodar los errores que no dejan correr el código.
+Me quedé en la solicitud de NCs por parte del NH, concretamente falla solicitarNCsFnc
+
 Tabla de pruebas pendientes
 ---------------------------
     * creada: 2020-10-01

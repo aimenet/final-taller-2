@@ -50,13 +50,16 @@ public class ConsultorNA_NH implements Consultor {
 		// "Trae" el doble de lo requerido para aumentar las probabilidades de encontar un NC que no tenga ya al NH
 		List<DireccionNodo> candidatos = funciones.getNCsConCapacidadNH(
 				solicitados * 2,
-				excepciones);
+				excepciones
+		);
 
 		// Nótese que este nodo puede no manejar tantos NCs como los solicitados, pero si no existen otros WKANs en la
 		// red, estos serán los únicos NCs existentes por lo que no podrá informar más que dicha cantidad (obviamente)
-		List<DireccionNodo> elegidos = candidatos.subList(
-				0,
-				candidatos.size() >= cantidad ? cantidad : candidatos.size()
+		ArrayList<DireccionNodo> elegidos = new ArrayList<DireccionNodo>(
+				candidatos.subList(
+					0,
+					candidatos.size() >= cantidad ? cantidad : candidatos.size()
+				)
 		);
 
 		try {

@@ -194,7 +194,7 @@ public class ClienteNH_Gral extends Cliente {
 		
 		// TODO: ver qué pasa acá con lo que encolo (idAsignado)
 		if (mensaje.getCodigo().equals(Codigos.OK)) {
-			for (DireccionNodo central : (LinkedList<DireccionNodo>) mensaje.getCarga()) {
+			for (DireccionNodo central : (ArrayList<DireccionNodo>) mensaje.getCarga()) {
 				((AtributosHoja) atributos).encolarCentral(central, null);
 
 				payload = new HashMap<String, Object>();
@@ -252,8 +252,8 @@ public class ClienteNH_Gral extends Cliente {
 				/* Se conecta por primera vez a un NC, registrándose y recibiendo el ID de hoja que lo identificará */
 				
 				diccionario = (HashMap<String, Object>) tarea.getPayload();
-				ipDestino = ((String) diccionario.get("direccionNC")).split(":")[0];
-				puertoDestino = Integer.parseInt(((String) diccionario.get("direccionNC")).split(":")[1]);
+				ipDestino = ((DireccionNodo) diccionario.get("direccionNC")).ip.getHostAddress();
+				puertoDestino = ((DireccionNodo) diccionario.get("direccionNC")).puerto_nc;
 				method = this::anunciarAnteNCFnc;
 				break;
 			case "SOLICITUD_NCS":

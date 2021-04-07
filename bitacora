@@ -202,6 +202,16 @@ Acabo de darme cuenta de algo: hubiera sido mejor tener distintas clases <Atribu
 Empecé a acomodar los errores que no dejan correr el código.
 Me quedé en la solicitud de NCs por parte del NH, concretamente falla solicitarNCsFnc
 
+2021-04-07
+Algunas cosas que debería recordar para el próximo proyecto:
+    + NO USAR DICCIONARIOS PARA PASAR PARÁMETROS PORQUE DESPUÉS NO SÉ QUÉ CARAJOS TIENEN. HACER CLASES COMO CORRESPONDE
+    + HACER BUENOS LOGS Y PRINTS EN CONSOLA...O DIRECTAMENTE UNA ESPECIE DE DASHBOARD. A LA LARGA ME HUBIERA AHORRADO
+      MUUUUUUUUUCHO TIEMPO Y DOLORES DE CABEZA
+
+
+
+
+
 Tabla de pruebas pendientes
 ---------------------------
     * creada: 2020-10-01

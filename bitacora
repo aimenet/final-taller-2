@@ -204,11 +204,14 @@ Me quedé en la solicitud de NCs por parte del NH, concretamente falla solicitar
 
 2021-04-07
 Algunas cosas que debería recordar para el próximo proyecto:
-    + NO USAR DICCIONARIOS PARA PASAR PARÁMETROS PORQUE DESPUÉS NO SÉ QUÉ CARAJOS TIENEN. HACER CLASES COMO CORRESPONDE
+    + NO USAR DICCIONARIOS PARA PASAR PARÁMETROS PORQUE DESPUÉS NO SÉ QUÉ CARAJOS TIENEN Y ME OBLIGAN A HACER MIL
+      CASTEOS. HACER CLASES COMO CORRESPONDE
     + HACER BUENOS LOGS Y PRINTS EN CONSOLA...O DIRECTAMENTE UNA ESPECIE DE DASHBOARD. A LA LARGA ME HUBIERA AHORRADO
       MUUUUUUUUUCHO TIEMPO Y DOLORES DE CABEZA
 
-
+2021-04-10
+Me falta mejorar (mucho) la tolerancia a fallos: por ejemplo, cuando se cae un NC mientras el NH le estaba mandando
+imágenes (entre el envío de la cantidad y el de las imágenes en sí, por decir algo)
 
 
 

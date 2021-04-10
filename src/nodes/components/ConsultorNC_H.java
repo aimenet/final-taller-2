@@ -217,7 +217,8 @@ public class ConsultorNC_H implements Consultor {
 	 * @return
 	 */
 	private boolean saludo(ObjectOutputStream salida, Object direccionServer){
-		UUID idAsignado = null, token;
+		UUID idAsignado = null;
+		UUID token = null;
 		
 		try {
 			// direccionServer puede ser una dirección IP (del servidor de la H) o el ID (UUID propiamente dicho)
@@ -240,7 +241,7 @@ public class ConsultorNC_H implements Consultor {
 			}
 
 			//¿El servidor debería tener un ID, un Mensaje propio sin campo emisor o pongo null como ahora?
-			salida.writeObject(new Mensaje(null,1, idAsignado.toString()));
+			salida.writeObject(new Mensaje(null,1, idAsignado));
 			System.out.println("-> Asignado ID " +  idAsignado + " a cliente " + sockToString());
 			
 			//Guardado del par ID<->Nodo Hoja (atributo de clase, debe sincronizarse)
@@ -277,7 +278,8 @@ public class ConsultorNC_H implements Consultor {
 				
 				switch(mensaje.getCodigo()){
 				case 1:
-					if (!saludo(buffSalida, (String) mensaje.getCarga())) {terminar=true;}
+					// Message's payload could be an UUID or a DireccionNodo instance
+					if (!saludo(buffSalida, mensaje.getCarga())) {terminar=true;}
 					break;
 				// case 2 podría ser saludo para reconexion
 				case 3:

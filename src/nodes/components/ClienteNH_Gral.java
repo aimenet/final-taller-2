@@ -61,7 +61,7 @@ public class ClienteNH_Gral extends Cliente {
 			//mensaje = new Mensaje(null,1, "##"+token+"##");
 			mensaje = new Mensaje(null,1, token);
 		}
-		
+
 		respuesta = (Mensaje) conexionConNodo.enviarConRta(mensaje);
 		
 		if (respuesta.getCodigo().equals(1) && respuesta.getCarga() != null){
@@ -73,8 +73,11 @@ public class ClienteNH_Gral extends Cliente {
 			// "componentes" del nodo Hoja. Si se trataba de una reconexión el ID será igual así que en realidad es
 			// redundante ese paso
 			((AtributosHoja) this.atributos).setId((DireccionNodo) params.get("direccionNC"), token);
+
+			System.out.printf("\n[Cli %s] anunciado ante NC [OK]\n", this.idConsumidor);
 		} else {
 			output.put("result", false);
+			System.out.printf("\n[Cli %s] anunciado ante NC [ERROR]\n", this.idConsumidor);
 		}
 		
 		return output;
@@ -84,7 +87,10 @@ public class ClienteNH_Gral extends Cliente {
 		ArrayList<CredImagen> credencialesImgs;
 		HashMap<String, Object> output = new HashMap<String, Object>();
 		Mensaje mensaje;
-		UUID idAsignado = ((AtributosHoja) this.atributos).getCentrales().get((String) params.get("direccionNC")).idAsignado;
+
+		UUID idAsignado = ((AtributosHoja) this.atributos).getCentrales().get(
+				((DireccionNodo) params.get("direccionNC"))
+		).idAsignado;
 
 
 		// Estos son comunes a todas las funciones
@@ -94,13 +100,24 @@ public class ClienteNH_Gral extends Cliente {
 		
 		credencialesImgs = (ArrayList<CredImagen>) params.get("imagenes");
 
-		// TODO 2020-12-01: acá tengo un problema, si quiero mantener el uso de UUID para identificar, en lugar de la
-		//  DireccionNodo, voy a tener que tener otro constructor de Mensaje y atajar el caso en el NC para que reciba
-		//  uno u otro (si corresponde).
-		// 2020-12-01 continuación: por ahora comento todo y después veo qué hago
-		/*conexionConNodo.enviarSinRta(new Mensaje(idAsignado.toString(), 3, credencialesImgs.size()));
+		// First, the NH informs the amount of image to send
+		mensaje = new Mensaje(
+			((AtributosHoja) this.atributos).getDireccion(),
+			idAsignado,
+			null,  // dirección a dónde enviar la rta
+			3,  // TODO: este código no puede estar hardcodeado, tiene que salir de una constante
+			credencialesImgs.size()
+		);
+		conexionConNodo.enviarSinRta(mensaje);
 
-		mensaje = new Mensaje(idAsignado.toString(), 3, credencialesImgs);
+		// Then, it sends the image
+		mensaje = new Mensaje(
+				((AtributosHoja) this.atributos).getDireccion(),
+				idAsignado,
+				null,  // dirección a dónde enviar la rta
+				3,  // TODO: este código no puede estar hardcodeado, tiene que salir de una constante
+				credencialesImgs
+		);
 		Mensaje respuesta = (Mensaje) conexionConNodo.enviarConRta(mensaje);
 
 		if ((Integer) respuesta.getCodigo() != Codigos.OK){
@@ -109,7 +126,7 @@ public class ClienteNH_Gral extends Cliente {
 		} else {
 			System.out.printf("[Cli %s] compartidas %s imágenes\n", this.idConsumidor, credencialesImgs.size());
 		}
-		*/
+
 		return output;
 	}
 	
@@ -244,8 +261,8 @@ public class ClienteNH_Gral extends Cliente {
 				/* Informa a NC las imágenes compartidas */
 				
 				diccionario = (HashMap<String, Object>) tarea.getPayload();
-				ipDestino = ((String) diccionario.get("direccionNC")).split(":")[0];
-				puertoDestino = Integer.parseInt(((String) diccionario.get("direccionNC")).split(":")[1]);
+				ipDestino = ((DireccionNodo) diccionario.get("direccionNC")).ip.getHostAddress();
+				puertoDestino = ((DireccionNodo) diccionario.get("direccionNC")).puerto_nh;
 				method = this::anunciarImgsFnc;	
 				break;
 			case "ESTABLECER_CONEXION_NC":
@@ -253,7 +270,7 @@ public class ClienteNH_Gral extends Cliente {
 				
 				diccionario = (HashMap<String, Object>) tarea.getPayload();
 				ipDestino = ((DireccionNodo) diccionario.get("direccionNC")).ip.getHostAddress();
-				puertoDestino = ((DireccionNodo) diccionario.get("direccionNC")).puerto_nc;
+				puertoDestino = ((DireccionNodo) diccionario.get("direccionNC")).puerto_nh;
 				method = this::anunciarAnteNCFnc;
 				break;
 			case "SOLICITUD_NCS":

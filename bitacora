@@ -213,7 +213,11 @@ Algunas cosas que debería recordar para el próximo proyecto:
 Me falta mejorar (mucho) la tolerancia a fallos: por ejemplo, cuando se cae un NC mientras el NH le estaba mandando
 imágenes (entre el envío de la cantidad y el de las imágenes en sí, por decir algo)
 
-
+- Probar WKAN+NC+NH, agregar NC y corroborar que NH se comunica [OK]
+- Probar WKAN+NC+NC+NH+NH y ver que los NHs puedan pedir imágenes [OK]
+- Probar WKAN+NC+NC+NH+NH y ver que los NHs puedan descargar imágenes [OK]
+- Cliente para debuggeo que se conecte a los nodos que le indique (habilitar un puerto de "operaciones"/"mantenimiento"
+  o algo así y consulte los nodos a los que está conectado/conoce el Nodo que hace de server []
 
 Tabla de pruebas pendientes
 ---------------------------

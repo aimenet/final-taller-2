@@ -289,16 +289,16 @@ public class ClienteNH_Gral extends Cliente {
 				 * 		"credImg": la imagen que se va a solicitar descargar
 				 * } */
 				diccionario = (HashMap<String, Object>) tarea.getPayload();
-				ipDestino = ((String) ((HashMap<String,Object>) tarea.getPayload()).get("direccionNH")).split(":")[0];
-				puertoDestino = Integer.parseInt(((String) diccionario.get("direccionNH")).split(":")[1]);
+				ipDestino = ((DireccionNodo) diccionario.get("direccionNH")).ip.getHostAddress();
+				puertoDestino = ((DireccionNodo) diccionario.get("direccionNH")).puerto_nh;
 				method = this::descargarImgFnc;
 				break;
 			case "QUERY":
 				/* Consulta a NC por imágenes similares a la dada cómo referencia */
 				
 				diccionario = (HashMap<String, Object>) tarea.getPayload();
-				ipDestino = ((String) diccionario.get("direccionNC")).split(":")[0];
-				puertoDestino = Integer.parseInt(((String) diccionario.get("direccionNC")).split(":")[1]);
+				ipDestino = ((DireccionNodo) diccionario.get("direccionNC")).ip.getHostAddress();
+				puertoDestino = ((DireccionNodo) diccionario.get("direccionNC")).puerto_nh;
 				method = this::queryNCFnc;
 				break;
 			case "STOP":

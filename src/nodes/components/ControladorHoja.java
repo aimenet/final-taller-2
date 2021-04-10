@@ -355,10 +355,11 @@ public class ControladorHoja implements Runnable {
 		Boolean encolado = false;
 		CredImagen laImg;
 		CredImagen[] candidatas;
+		DireccionNodo laHoja;
 		HashMap<String, HashMap<DireccionNodo,CredImagen[]>> querysRtas;
 		HashMap<DireccionNodo,CredImagen[]> unaRta;
 		Integer indice=0, opcion, contador=0;
-		String laQuery, laHoja;
+		String laQuery;
 		Tupla2<String,CredImagen> solicitud;
 		
 		querysRtas = variables.getColaRtas();
@@ -395,7 +396,7 @@ public class ControladorHoja implements Runnable {
 		System.out.println("------------------------------------------\n");
 		indice = 0;
 		for(DireccionNodo hoja : unaRta.keySet()){
-			System.out.print(indice + ") " + hoja + ": ");
+			System.out.print(indice + ") " + hoja.ip.getHostAddress() + ": ");
 			System.out.println( unaRta.get(hoja).length + " imágenes" );
 			indice += 1;
 		}
@@ -403,7 +404,7 @@ public class ControladorHoja implements Runnable {
 		opcion = Integer.parseInt(teclado.nextLine());
 		
 		// La tercer elección es la de la imagen que se quiere descargar
-		laHoja = (String) unaRta.keySet().toArray()[opcion];
+		laHoja = (DireccionNodo) unaRta.keySet().toArray()[opcion];
 		candidatas = unaRta.get(laHoja);
 		cls();
 		System.out.println("Imágenes similares en Hoja " + laHoja);
@@ -446,10 +447,11 @@ public class ControladorHoja implements Runnable {
 	private void menuListarRespuestas(Scanner teclado){
 		CredImagen laImg;
 		CredImagen[] candidatas;
+		DireccionNodo laHoja;
 		HashMap<String, HashMap<DireccionNodo,CredImagen[]>> querysRtas;
 		HashMap<DireccionNodo,CredImagen[]> unaRta;
 		Integer indice=0, opcion, contador=0;
-		String laQuery, laHoja;
+		String laQuery;
 		
 		querysRtas = variables.getColaRtas();
 		cls();
@@ -493,10 +495,10 @@ public class ControladorHoja implements Runnable {
 		opcion = Integer.parseInt(teclado.nextLine());
 		
 		// La tercer elección es la de la imagen que se quiere descargar
-		laHoja = (String) unaRta.keySet().toArray()[opcion];
+		laHoja = (DireccionNodo) unaRta.keySet().toArray()[opcion];
 		candidatas = unaRta.get(laHoja);
 		cls();
-		System.out.println("Imágenes similares en Hoja " + laHoja);
+		System.out.println("Imágenes similares en Hoja " + laHoja.ip.getHostAddress());
 		System.out.println("-------------------------------------\n");
 		for(int i=0; i<candidatas.length; i++){
 			System.out.println("\t" + i + ") " + candidatas[i].getNombre());

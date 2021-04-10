@@ -124,7 +124,7 @@ public class ConsultorH implements Consultor{
 
 
 		CredImagen solicitada = (CredImagen) msj.getCarga();
-		DireccionNodo direccionRta = msj.recepcionRta();
+		DireccionNodo direccionRta = msj.getEmisor(); // Antes era msj.recepcionRta() pero ya no es necesario
 		Imagen img = variables.getImagen(solicitada.getNombre());
 		
 		System.out.println("\n\tRecibida consulta de: " + msj.getEmisor().ip.getHostName());
@@ -151,7 +151,8 @@ public class ConsultorH implements Consultor{
 			);
 
 			descargada = (Integer) respuesta.getCarga();
-			
+
+			// TODO: no usar un valor hardcodeado
 			if(descargada==0){
 				System.out.println("Enviada imagen " +img.getNombre()+" a "+direccionRta.ip.getHostName()+" con éxito");
 				exito = true;

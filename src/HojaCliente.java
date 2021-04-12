@@ -8,6 +8,9 @@ import java.util.Random;
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+import commons.*;
+import nodes.components.AtributosHoja;
+
 /**
  * "Parte" Cliente de un Nodo Hoja. Es la encargada de conectarse al Nodo Central e interactuar con él.
  * 
@@ -86,7 +89,7 @@ public class HojaCliente {
 		}
 		
 		// Acá el ID es anecdótico pues las H no registran los IDs de las demás -> vulnerabilidad 
-		respuesta = (Mensaje) conexionTmp.enviarConRta(new Mensaje(this.id,21,nombre));
+		respuesta = (Mensaje) conexionTmp.enviarConRta(new Mensaje(atributos.getDireccion(),21,nombre));
 		descargada = (String) respuesta.getCarga();
 		
 		return descargada;
@@ -98,15 +101,11 @@ public class HojaCliente {
 		CredImagen referencia;
 		HashMap<String,String[]> similares;
 		Imagen imagen;
-		Mensaje respuesta;
-		String direccionServidor;
 
 		imagen = new Imagen(imagenObjetivo);
 		referencia = new CredImagen(imagen.getNombre(), imagen.getVecCarComprimido());
-		direccionServidor = String.format("%s:%d", atributos.getIpServidor(), atributos.getPuertoServidor());
-		
-		//respuesta = (Mensaje) conexionConNodoCentral.enviarConRta(new Mensaje(id,direccionServidor,4,referencia));
-		conexionConNodoCentral.enviarSinRta(new Mensaje(id,direccionServidor,4,referencia));
+
+		conexionConNodoCentral.enviarSinRta(new Mensaje(atributos.getDireccion(),4,referencia));
 		
 		/*if(respuesta != null){
 			similares = (HashMap<String,String[]>) respuesta.getCarga();
@@ -144,14 +143,20 @@ public class HojaCliente {
 		}
 			
 		// Mensaje indicando la cantidad de imágenes a enviar
-		enviado = conexionConNodoCentral.enviarSinRta(new Mensaje(this.id,3,pendientes.size()));
+		enviado = conexionConNodoCentral.enviarSinRta(new Mensaje(atributos.getDireccion(),3,pendientes.size()));
 		
 		if(!enviado){
 			return false;
 		}
 			
 		// Envío de imágenes
-		respuesta = (Mensaje) conexionConNodoCentral.enviarConRta(new Mensaje(this.id,3,pendientes));
+		respuesta = (Mensaje) conexionConNodoCentral.enviarConRta(
+				new Mensaje(
+						atributos.getDireccion(),
+						3,
+						pendientes
+				)
+		);
 			
 		// Si carga del mensaje = 0 -> recibió todo OK, si = 1 -> algo salió mal.
 		if ((Integer) respuesta.getCarga() == 0){ return true;}
@@ -171,7 +176,7 @@ public class HojaCliente {
 		numero = aleatorio.nextInt(100);
 		texto = "Texto de prueba + " + numero;
 		
-		resultado = conexionConNodoCentral.enviarSinRta(new Mensaje(this.id,2,texto));
+		resultado = conexionConNodoCentral.enviarSinRta(new Mensaje(atributos.getDireccion(),2,texto));
 		if(!resultado){
 			numero = 666;
 		}
@@ -194,9 +199,17 @@ public class HojaCliente {
 		
 		// hojaServer debe ser el token asignado a la HOJA en caso de que se trate de una reconexión
 		// Caso contrario será la dirección de la faceta servidor de la H
-		hojaServer = atributos.getIpServidor() + ":" + atributos.getPuertoServidor().toString();
+		//hojaServer = atributos.getIpServidor() + ":" + atributos.getPuertoServidor().toString();
 
-		respuesta = (Mensaje) conexionConNodoCentral.enviarConRta(new Mensaje(null,1, hojaServer));
+		// lo comenté el 2020-12-01 hasta probarlo y ver si se usa o no
+		//hojaServer = atributos.getDireccion();
+		//respuesta = (Mensaje) conexionConNodoCentral.enviarConRta(new Mensaje(atributos.getDireccion(),1, hojaServer));
+		respuesta = (Mensaje) conexionConNodoCentral.enviarConRta(new Mensaje(
+				atributos.getDireccion(),
+				1,
+				atributos.getDireccion()
+		));
+
 		if (respuesta.getCodigo().equals(1) && respuesta.getCarga() != null){
 			//La respuesta contiene el ID con el que se identificará al Cliente.
 			this.id = respuesta.getCarga().toString();
@@ -214,7 +227,7 @@ public class HojaCliente {
 	} 
 	
 
-	public HashMap<String, HashMap<String, CredImagen[]>> getColaRespuestas(){
+	public HashMap<String, HashMap<DireccionNodo, CredImagen[]>> getColaRespuestas(){
 		return atributos.getColaRtas();
 	}
 	
@@ -228,7 +241,7 @@ public class HojaCliente {
 		
 		// TODO: ¿realmente debo capturar los errores?
 		if(sesionIniciada){
-			r1 = conexionConNodoCentral.enviarSinRta(new Mensaje(this.id,0, null));
+			r1 = conexionConNodoCentral.enviarSinRta(new Mensaje(atributos.getDireccion(),0, null));
 			sesionIniciada = false;
 			System.out.println("Cerrada sesión");
 		}

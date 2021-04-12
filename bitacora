@@ -1,0 +1,261 @@
+[2020-07-21]
+todo: <a> prueba de funcionamiento "hasta ahora" con dos wkan, 3 nc y 2nh
+        [1] gráfico de la "red"
+        [2] prueba
+      <b> lectura de propuesta original
+      <c> definición de 2 tareas para mañana
+/estimate 2h
+/spend 2h
+
+sin hacer: <a> [2]
+           <b>
+           <c>
+
+[2020-07-25]
+<a> pruebas: 1) WKAN-01 -> NC-01
+                WKAN-02 -> NC-02
+                NH-01 pide a WKAN-01 dos NCs
+<b> print periódico para debuggeo
+    para facilitar el testeo y el desarrollo tengo que hace una tarea periódica propia de la clase NODO (si es que la
+    hice) donde se imprima en pantalla los nodos a los que está conectado ese nodo
+
+
+2020-08-10
+Tengo que cambiar el pedido de NCs que le hace un NH a un WKAN: hacer que le mande un listado de los NCs a los que ya
+está conectado así evito eso del flag "primera_vez" y todoslos problemas que eso me trajo
+=> dejé 2 todos en consultorna_nh, terminarlos y probar.
+
+
+2020-08-12
+En el grupo de aguirre dejé un comando para generar interfaces de red en linux. Con eso puedo hacer que los puertos sean
+fijos y asignarle una IP distinta a cada nodo que corra así simulo que están en máquinas distintas. Primero, antes que
+nada commiteá las cosas como están y después hacé esta prueba. No seas pelotudo
+
+
+2020-08-17
+Voy a fijar los nodos, dejando 10101, 10102 y 10103. En realidad los fijo pero podría cambiarlos de forma particular
+sin que nada se rompiera (?)
+
+
+2020-09-09
+Tengo que cambiar el uso de direcciones en string. En lugar voy a usar la clase DireccionNodo. El proceso de
+implementación impacta en todos lados así que tengo que hacerlo ordenado:
+1) WKAN: interacciones wkan <-> wkan
+2) WKAN: interacciones wkan <-> nc
+3) WKAN: interacciones wkan <-> nh
+
+
+2020-09-10
+Me encuentro con  el problema de tener que especificar la interfaz de red (o la dirección IP que voy a usar, que es lo
+mismo llegado el caso) en los clientes, porque al correr todos los nodos en la misma máquina no puedo diferenciarlos
+sino (y la estrategia usada originalmente de los puertos distintos fue un asco).
+
+Por ahora saco la IP de la clase Atributos, pero si esto "pasara a producción" supongo que tendría que volar la
+definición de la ip en el archivo de config y sacarla de algún lugar posta (o dejar que la busque el sistema sólo total
+en esos casos correría un nodo por máquina).
+
+Estuve cambiando en clienteNA_NA el uso de la conexióntcp propia que usaba. Ahora usa la de la clase Cliente (a la cual
+le agregué la IP local a ver si con eso puedo probar varios nodos en la compu y hacer que cada uno use ("para enviar",
+o sea, como cliente) la ip que le diga
+
+
+2020-09-12
+En el marco de "1) WKAN: interacciones wkan <-> wkan"
+Estuve trabajando en clienteNA_NA, porque cambié Mensaje para que identificara al emisor con una DireccionNodo (que a su
+vez lo cambié para que la ip sea InetAddress y así eliminar toda amnigüedad)
+
+
+2020-09-13
+En el marco de "1) WKAN: interacciones wkan <-> wkan":
+Repasé el ANUNCIO (a nivel código, no está probado)
+
+
+2020-09-15
+En el marco de "1) WKAN: interacciones wkan <-> wkan":
+Repasé el INFORME A WKANs, el INFORME DE CONOCIDOS y la RETRANSMISIÓN DEL ANUNCIO DE UN NC
+(a nivel código, no está probado)
+
+
+2020-09-24
+En el marco de "1) WKAN: interacciones wkan <-> wkan":
+Me quedé en el último case de los mensaje recibidos por un ConsultorNA_NA
+
+
+2020-09-25
+En el marco de "1) WKAN: interacciones wkan <-> wkan": repasé (código, no probé) consultor y cliente
+En el marco de "2) WKAN: interacciones wkan <-> nc": empecé a actualizar ClienteNA_NC.java
+
+
+2020-09-27
+En el marco de "2) WKAN: interacciones wkan <-> nc":
+    actualicé ClienteNA_NC.java (sin probar)
+    actualicé ConsultorNA_NC.java (sin probar)
+
+Para evitar casteos y cosas así podría hacer que, por ejemplo, el constructor de DireccionNodo reciba una instancia
+de DireccionNodo, una de String o hasta una de InetAddress y listo, no me preocupo mucho por lo que le paso.
+
+Hacer un Consultor nuevo, genérico, implementado en todos los Nodos que me sirva de control y me devuelva un JSON
+con toda la información del nodo (vecinos, NC que maneja si es un WKAN, NH que maneja si es un NC, imágenes compartidas
+si es un NH, etc, etc.
+Sería hermoso poder hacer una red con graphQL con eso, o un diagrama de la red al menos (debería armar un grafo con esa
+información primero).
+
+
+2020-09-27
+En el marco de "3) WKAN: interacciones wkan <-> nh":
+    empecé a actualizar ConsultorNA_NH.java (sin probar)
+
+2020-09-30
+En el marco de "3) WKAN: interacciones wkan <-> nh":
+    terminé de actualizar ConsultorNA_NH.java (sin probar)
+También actualicé (sin probar): WorkerNA_Interno
+
+* ¿Tendré que usar InetAddress.getHostAddress() en ves de .getHostName()????
+  -> cuando necesite la IP, sí
+  -> cuando quiera hacer un print por ejemplo, puedo usar cualquiera
+* Algo falla en AtributosAcceso.java línea 52 si la DireccionNodo corresponde a localhost (127.0.0.1). No sé por qué
+  pero la solución rápida qur le di fue simplemente no usar esa dirección y arrancar de 127.0.0.2
+
+2020-10-01
+En el marco de "1) WKAN: interacciones wkan <-> wkan": probé interacciones WKAN <-> WKAN
+En el marco de "2) WKAN: interacciones wkan <-> nc": empecé a actualizar el NC
+    actualicé NodoCentral
+    empecé a actualizar ClienteNC_NA
+        -> necesito agregat tarea periódica para reintentar ingresar a la red si no pudo (por ahora voy a lo villero
+           con un flag booleano además del timestamp que ya estoy registrando (o quizás mejor un alive/notalive del WKAN
+           de acceso??)
+
+2020-10-02
+En el marco de "2) WKAN: interacciones wkan <-> nc":
+    actualicé ClienteNC_NA
+    empecé a actualizar ConsultorNC_NA
+        -> creo que voy a hacer un struct o una clase para guardar por cada NH registrado en un NC, así ahí pongo
+           todos los datos relevantes (id (uuid) asignado, lista de imágenes que tiene, último keepalive, etc) y después
+           es fácil reemplazar eso en memoria por una BD o lo que sea.
+
+2020-10-06
+En el marco de "2) WKAN: interacciones wkan <-> nc":
+    Pospuse la actualización de ConsultorNC_NA
+    Actualicé en AtributosCentral lo referido a NHs
+
+2020-10-08
+En el marco de "2) WKAN: interacciones wkan <-> nc":
+    Terminé la actualización de ConsultorNC_NA (falta probar)
+
+2020-10-20
+Los 3 puntos antes definidos (WKAN: interacciones wkan <-> {wkan, nc, nh}) creo que están cubiertos, sin embargo debo
+terminar de repasar casi todos los componentes restantes porque hubo muchos cambios.
+
+Voy a listar los que sé (gracias a que no compila el código) que restan y los demás (en caso de existir) surgirán cuando
+complete la "Tabla de pruebas pendientes":
+    1) ConsultorNC_NC
+    2) ClienteNC_NC
+    3) ConsultorNC_H
+    4) ClienteNC_NH
+    5) ConsultorH
+    6) HojaCliente
+    7) NodoHoja
+    8) AtributosCentral
+
+Empecé a actualizar ConsultorNC_NC
+
+2020-11-03
+Seguí actualizando ConsultorNC_NC -> HashConcurrente + ConsultorNC_Worker (acá me quedé)
+
+2020-11-04
+Lo mismo que ayer.
+Me quedé en ConsultorNC_NC línea 152, pero pasé por alto la 113 para dejar esa modificación en AtributosCentrales para
+hoy a la noche o mañana
+
+2020-11-05 y 06
+Terminé lo que quedó del 2020-11-04.
+Actualicé con ClienteNC_NC -> Algo interesante, creo que antes de empezar este refactor general de DireccionNodo
+me había quedado trabajando en este mismo archivo, en conectarNcsFnc()
+
+[[[ Hay un comentario interesante en ClienteNC_NC que habla sobre qué hacer para que no se despierte siemprem al
+ mismo hilo ante la llegada de una nueva tarea a la cola ]]]
+
+2020-11-10
+Actualicé ClienteNC_NH
+Actualicé ConsultorH
+Actualicé AtributosHoja (seguramente surjan correcciones cuando haga las pruebas finales)
+
+2020-11-23
+Actualicé NodoHoja
+
+2020-12-01
+Actualicé ClienteNH_Gral (a medias, dejé algunas cosas comentadas para verlas cuando todo funcione)
+Actualicé ControladorHoja
+Empecé a actualizar ConsultorNC_H
+
+2020-12-06
+Acabo de darme cuenta de algo: hubiera sido mejor tener distintas clases <Atributos>:
+    + una general que sería la que instanciaría la clase <Cliente> por ejemplo, para consumir de la
+      cola asignada y demás
+    + una espacífica para cada nodo, así por ejemplo <ClienteNC_NC> tendría heredad <Atributos> desde
+      <Cliente> pero además instanciaría <AtributosCentrales> que tendría sólo atributos propios de
+      un NC.
+    + La sincronización sería la misma que hice, es decir, a nivel de clase, pero lo que me ahorro con
+      esto es tener que castear <atributos> en cada uno de los clientes. Por ejemplo en <ClienteNC_NC>
+      me la paso haciendo ((AtributosCentrales) atributos).un_metodo_propio_de_nodos_centrales()
+
+Empecé a acomodar los errores que no dejan correr el código.
+Me quedé en la solicitud de NCs por parte del NH, concretamente falla solicitarNCsFnc
+
+2021-04-07
+Algunas cosas que debería recordar para el próximo proyecto:
+    + NO USAR DICCIONARIOS PARA PASAR PARÁMETROS PORQUE DESPUÉS NO SÉ QUÉ CARAJOS TIENEN Y ME OBLIGAN A HACER MIL
+      CASTEOS. HACER CLASES COMO CORRESPONDE
+    + HACER BUENOS LOGS Y PRINTS EN CONSOLA...O DIRECTAMENTE UNA ESPECIE DE DASHBOARD. A LA LARGA ME HUBIERA AHORRADO
+      MUUUUUUUUUCHO TIEMPO Y DOLORES DE CABEZA
+
+2021-04-10
+Me falta mejorar (mucho) la tolerancia a fallos: por ejemplo, cuando se cae un NC mientras el NH le estaba mandando
+imágenes (entre el envío de la cantidad y el de las imágenes en sí, por decir algo)
+
+- Probar WKAN+NC+NH, agregar NC y corroborar que NH se comunica [OK]
+- Probar WKAN+NC+NC+NH+NH y ver que los NHs puedan pedir imágenes [OK]
+- Probar WKAN+NC+NC+NH+NH y ver que los NHs puedan descargar imágenes [OK]
+- Cliente para debuggeo que se conecte a los nodos que le indique (habilitar un puerto de "operaciones"/"mantenimiento"
+  o algo así y consulte los nodos a los que está conectado/conoce el Nodo que hace de server []
+
+Tabla de pruebas pendientes
+---------------------------
+    * creada: 2020-10-01
+    * último update: 2020-10-01
+    * Pruebas:
+        [x] WKAN <-> WKAN
+        [ ] WKAN <-> NC
+        [ ] WKAN <-> NH
+        [ ] NC <-> WKAN
+        [ ] NC <-> NC
+        [ ] NC <-> NH
+        [ ] NH <-> WKAN
+        [ ] NH <-> NC
+        [ ] NH <-> NH
+
+
+
+
+<<<<< ClienteNH_Gral creo que es el ejemplo de cómo deberían ser todos los clientes >>>>>
+<
+El tema de las direcciones IP me está volviendo chango: esto en un entorno real no funciona porque el nodo establece
+su IP pública cuando se instancia y asume que no varía, lo cual es imposible de lograr en un entorno doméstico porque:
+1) no solemnos conocer de antemano nuestra ip pública
+2) el isp puede cambiarla
+Supongo que es algo a aclarar, lo que hace a este trabajo un "prototipo" o "de laboratorio"
+>
+
+
+<
+Las imágenes no debería guardarlas en la Hoja con su nombre como key sino usar un hash o el vector característico o
+algo así.
+>
+
+<
+Usar DireccionNodo para identificar un NH ante un NC es una locura, porque son "clientes" de la red que podrían
+ejecutarse en distintos dispositivos, con distintas IPs. Tendría que forzar a que la conexión entre ellos sea pasando
+los UUID.
+
+De nuevo, por ahora lo dejo así pero lo tengo en mente por si surge la pregunta en la presentación.
+>

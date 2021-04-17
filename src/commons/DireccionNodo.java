@@ -8,12 +8,14 @@ public class DireccionNodo implements Comparable<DireccionNodo>, Serializable {
     public Integer puerto_na;
     public Integer puerto_nc;
     public Integer puerto_nh;
+    public Integer puerto_m;
 
 
     public DireccionNodo() {
         this.puerto_na = Constantes.PUERTO_NA;
         this.puerto_nc = Constantes.PUERTO_NC;
         this.puerto_nh = Constantes.PUERTO_NH;
+        this.puerto_m = Constantes.PUERTO_MANTENIMIENTO;
     }
 
     public DireccionNodo(InetAddress ip) {
@@ -21,6 +23,7 @@ public class DireccionNodo implements Comparable<DireccionNodo>, Serializable {
         this.puerto_na = Constantes.PUERTO_NA;
         this.puerto_nc = Constantes.PUERTO_NC;
         this.puerto_nh = Constantes.PUERTO_NH;
+        this.puerto_m = Constantes.PUERTO_MANTENIMIENTO;
     }
 
     public String getUnaDireccion(String puerto) {
@@ -36,11 +39,14 @@ public class DireccionNodo implements Comparable<DireccionNodo>, Serializable {
             case "hojas":
                 port = puerto_nh;
                 break;
+            case "mantenimiento":
+                port = puerto_m;
+                break;
             default:
                 return ip.getHostName();
         }
 
-        return String.format("%s:%d", ip.getHostName(), port);
+        return String.format("%s:%d", ip.getHostAddress(), port);
     }
 
 

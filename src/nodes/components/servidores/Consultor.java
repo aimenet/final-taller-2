@@ -1,4 +1,4 @@
-package nodes.components;
+package nodes.components.servidores;
 import java.net.Socket;
 
 /**

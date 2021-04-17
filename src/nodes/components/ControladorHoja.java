@@ -1,19 +1,15 @@
 package nodes.components;
 import java.io.File;
-import java.net.Socket;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Random;
 import java.util.Scanner;
 
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileNameExtensionFilter;
-import javax.swing.filechooser.FileView;
 
 import commons.*;
-import commons.structs.nh.ParametrosConexionNC;
+import nodes.components.atributos.AtributosHoja;
 
 /**
  * Clase que permite el control de un Nodo Hoja (su faceta Cliente) mediante una interfaz gráfica muy simple

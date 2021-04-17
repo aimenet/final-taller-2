@@ -7,6 +7,8 @@ import java.util.concurrent.TimeUnit;
 
 import commons.Tarea;
 import commons.DireccionNodo;
+import nodes.components.atributos.AtributosAcceso;
+import nodes.components.clientes.Cliente;
 
 /**
  * Clase que se encarga de las tareas internas de un WKAN.

@@ -1,4 +1,4 @@
-package nodes.components;
+package nodes.components.atributos;
 
 import commons.DireccionNodo;
 
@@ -60,10 +60,10 @@ public class AtributosAcceso extends Atributos {
 			nodosAcceso.put(nodo, keepaliveNodoVecino);
 		}
 	}
-	
-	public void setKeepaliveNodo(DireccionNodo nodo, Integer valor) {
-		synchronized (lockNodos) {
-			nodosAcceso.put(nodo, valor);
+
+	public HashMap<DireccionNodo, Integer> getNodos() {
+		synchronized(lockNodos) {
+			return nodosAcceso;
 		}
 	}
 
@@ -91,8 +91,14 @@ public class AtributosAcceso extends Atributos {
 		
 		return direccion;
 	}
-	
-	
+
+	public void setKeepaliveNodo(DireccionNodo nodo, Integer valor) {
+		synchronized (lockNodos) {
+			nodosAcceso.put(nodo, valor);
+		}
+	}
+
+
 	// Nodos Centrales
 	// -----------------------------------------------------------------------------------------------------------------
 	public HashMap nuevoCentral(DireccionNodo central) {
@@ -124,12 +130,6 @@ public class AtributosAcceso extends Atributos {
 	
 	
 	// Getters
-	public HashMap<DireccionNodo, Integer> getNodos() {
-		synchronized(lockNodos) {
-			return nodosAcceso;
-		}
-	}
-	
 	public Integer getStatusNodo(DireccionNodo nodo) {
 		synchronized(lockNodos) {
 			return nodosAcceso.get(nodo);
@@ -140,7 +140,22 @@ public class AtributosAcceso extends Atributos {
 	// Setters
 	public void setKeepaliveNodoVecino(int intentos) {keepaliveNodoVecino = intentos;}
 	public void setMaxNCCapacity(int capacity) {maxNCCapacity = capacity;}
-	
+
+	// Implementaciones de los abstractos de la clase padre
+	@Override
+	public ArrayList<DireccionNodo> getWkans() {
+		return new ArrayList<DireccionNodo>(this.nodosAcceso.keySet());
+	}
+
+	@Override
+	public ArrayList<DireccionNodo> getNcs() {
+		return new ArrayList<DireccionNodo>(this.centrales.keySet());
+	}
+
+	@Override
+	public ArrayList<DireccionNodo> getNhs() {
+		return new ArrayList<DireccionNodo>();
+	}
 } //Fin clase
 
 

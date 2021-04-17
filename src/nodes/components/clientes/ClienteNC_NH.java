@@ -1,6 +1,7 @@
-package nodes.components;
+package nodes.components.clientes;
 
 import commons.*;
+import nodes.components.atributos.AtributosAcceso;
 
 import java.util.HashMap;
 import java.util.function.Function;
@@ -53,7 +54,7 @@ public class ClienteNC_NH extends Cliente {
 
 
 	@Override
-	protected HashMap<String, Comparable> procesarTarea(Tarea tarea) {
+	public HashMap<String, Comparable> procesarTarea(Tarea tarea) {
 		Function<HashMap<String, Object>, HashMap<String, Object>> method;
 		HashMap<String,Object> diccionario;
 		HashMap<String, Comparable> diccionario2;

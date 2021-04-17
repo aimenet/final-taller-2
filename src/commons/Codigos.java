@@ -33,7 +33,10 @@ public class Codigos {
 	// Usados entre NHs y NHs
 	public static final int NH_NH_GET_IMAGEN = 21;
 	public static final int NH_NH_POST_IMAGEN = 22;
-	
+
+	// Consultas de "mantenimiento"
+	public static final int MANTENIMIENTO_GET_REPORTE_NODOS = 1000;
+
 	// Generales
 	public static final int OK = 200;
 	public static final int ACCEPTED = 202;

@@ -26,13 +26,14 @@ import java.util.concurrent.TimeUnit;
 import commons.Constantes;
 import commons.DireccionNodo;
 import commons.Tarea;
-import nodes.components.AtributosCentral;
-import nodes.components.ClienteNC_NA;
-import nodes.components.ClienteNC_NC;
-import nodes.components.ConsultorNC_H;
-import nodes.components.ConsultorNC_NA;
-import nodes.components.ConsultorNC_NC;
-import nodes.components.Servidor;
+import nodes.components.atributos.AtributosCentral;
+import nodes.components.clientes.ClienteNC_NA;
+import nodes.components.clientes.ClienteNC_NC;
+import nodes.components.servidores.ConsultorMantenimientoNC;
+import nodes.components.servidores.ConsultorNC_H;
+import nodes.components.servidores.ConsultorNC_NA;
+import nodes.components.servidores.ConsultorNC_NC;
+import nodes.components.servidores.Servidor;
 
 
 public class NodoCentral {
@@ -98,6 +99,12 @@ public class NodoCentral {
 				atributos.getDireccion().puerto_na,
 				config.getProperty("nombre")+": Acceso",
 		        ConsultorNC_NA.class
+		));
+		this.servers.put("mantenimiento", new Servidor(
+				atributos.getDireccion().ip.getHostAddress(),
+				atributos.getDireccion().puerto_m,
+				config.getProperty("nombre")+": Mantenimiento",
+				ConsultorMantenimientoNC.class
 		));
 		
 		for (Servidor server : servers.values()) {

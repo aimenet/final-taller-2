@@ -1,4 +1,4 @@
-package nodes.components;
+package nodes.components.servidores;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -12,6 +12,7 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
 import commons.*;
+import nodes.components.atributos.AtributosCentral;
 
 /**
  * Consultor que corre en cada uno de los hilos generado por el Servidor (dedicado a atender HOJAS) 

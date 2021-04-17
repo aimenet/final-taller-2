@@ -1,15 +1,10 @@
-package nodes.components;
+package nodes.components.clientes;
 
-import java.io.IOException;
-import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map.Entry;
-import java.util.Random;
 
 import commons.*;
-import my_exceptions.ManualInterruptException;
+import nodes.components.atributos.AtributosCentral;
 
 /**
  * Una de las instancias que compone la "faceta" Cliente de un Nodo Central. Es la encargada de 

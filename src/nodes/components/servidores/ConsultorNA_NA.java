@@ -1,4 +1,4 @@
-package nodes.components;
+package nodes.components.servidores;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -13,6 +13,9 @@ import commons.Mensaje;
 import commons.Tarea;
 import commons.Tupla2;
 import commons.DireccionNodo;
+import nodes.components.clientes.ClienteNA_NC;
+import nodes.components.WKAN_Funciones;
+import nodes.components.atributos.AtributosAcceso;
 
 /**
  * Consultor que corre en hilos generado por el Servidor de Nodos de Acceso. Es el

@@ -1,4 +1,4 @@
-package nodes.components;
+package nodes.components.atributos;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.*;
@@ -249,8 +249,28 @@ public class AtributosHoja extends Atributos {
 	public HashMap<DireccionNodo, CredImagen[]> getUnaRta(CredImagen query){
 		return nuevaColaRespuestas.get(query.getNombre());
 	}
-	
-		
+
+	// Implementación de abstractos de la clase padre
+	// ----------------------------------------------------------------------------------
+	@Override
+	public ArrayList<DireccionNodo> getWkans() {
+		ArrayList<DireccionNodo> output = new ArrayList<DireccionNodo>();
+		output.add(this.wkanInicial);
+
+		return output;
+	}
+
+	@Override
+	public ArrayList<DireccionNodo> getNcs() {
+		return new ArrayList<DireccionNodo>(this.direccionesNCs);
+	}
+
+	@Override
+	public ArrayList<DireccionNodo> getNhs() {
+		return new ArrayList<DireccionNodo>();
+	}
+
+
 	// Setters
 	// -------
 		

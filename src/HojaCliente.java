@@ -1,6 +1,5 @@
 import java.io.File;
 import java.io.IOException;
-import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
@@ -9,7 +8,7 @@ import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 import commons.*;
-import nodes.components.AtributosHoja;
+import nodes.components.atributos.AtributosHoja;
 
 /**
  * "Parte" Cliente de un Nodo Hoja. Es la encargada de conectarse al Nodo Central e interactuar con él.

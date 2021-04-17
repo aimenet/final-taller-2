@@ -5,6 +5,7 @@ import java.util.*;
 import commons.Codigos;
 import commons.Tarea;
 import commons.DireccionNodo;
+import nodes.components.atributos.AtributosAcceso;
 
 /** 
  * Clase que engloba funciones, algoritmos y similares, propios de un WKAN y que son utilizado por más

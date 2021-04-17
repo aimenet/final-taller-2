@@ -1,4 +1,4 @@
-package nodes.components;
+package nodes.components.servidores;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -10,6 +10,8 @@ import java.util.HashMap;
 import commons.Codigos;
 import commons.Mensaje;
 import commons.DireccionNodo;
+import nodes.components.WKAN_Funciones;
+import nodes.components.atributos.AtributosAcceso;
 
 public class ConsultorNA_NC implements Consultor {
 	// De cada instancia

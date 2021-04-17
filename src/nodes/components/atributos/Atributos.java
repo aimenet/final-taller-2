@@ -1,4 +1,4 @@
-package nodes.components;
+package nodes.components.atributos;
 
 import java.net.InetAddress;
 import java.util.ArrayList;
@@ -20,10 +20,13 @@ import commons.DireccionNodo;
  * 
  * Nótese que lo anterior hace que sea thread-safe, así que quienes consuman de las colas sicnronizadas no deberán preocuparse por locks y demás
  * métodos de acceso, simplemente encolar y desencolar.
- * 
+ *
+ * Por otra parte, la clase define ciertos métodos abstractos cuya implementación dependerá completamente de la
+ * instancia de Atributos, pues variará la estructura de datos interna.
+ *
  * @author rodrigo
  */
-public class Atributos {
+public abstract class Atributos {
 	// Atributos
 	// -----------------------------------------------------------------------------------------------
 	// Colas de tareas, para interacción con otros NABC
@@ -100,12 +103,19 @@ public class Atributos {
 	
 	public DireccionNodo getDireccion() {return direccion;}
 
+
 	// Getters grales.
 	public Object getLockCola(String cola) {
 		synchronized(locksColas) {
 			return locksColas.get(cola);
 		}
 	}
+
+
+	// Abstractos
+	public abstract ArrayList<DireccionNodo> getWkans();
+	public abstract ArrayList<DireccionNodo> getNcs();
+	public abstract ArrayList<DireccionNodo> getNhs();
 
 } //Fin clase
 

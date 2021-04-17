@@ -1,18 +1,15 @@
-package nodes.components;
+package nodes.components.atributos;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Reader;
 import java.nio.file.Paths;
-import java.security.SecureRandom;
 import java.sql.Timestamp;
 import java.util.*;
-import java.util.Base64.Encoder;
 
 import commons.DireccionNodo;
 import commons.structs.nc.NHIndexada;
-import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -395,9 +392,33 @@ public class AtributosCentral extends Atributos {
 		
 		return guardado;
 	}
-	
-	
-	
+
+
+	// Implemetación de abstractos de clase padre
+	// ----------------------------------------------------------------------------------
+	@Override
+	public ArrayList<DireccionNodo> getWkans() {
+		ArrayList<DireccionNodo> output = new ArrayList<DireccionNodo>();
+		output.add(this.wkanAsignado);
+
+		return output;
+	}
+
+	@Override
+	public ArrayList<DireccionNodo> getNcs() {
+		return this.indiceCentrales;
+	}
+
+	@Override
+	public ArrayList<DireccionNodo> getNhs() {
+		ArrayList<DireccionNodo> output = new ArrayList<DireccionNodo>();
+
+		for (NHIndexada hoja : this.indiceHojas.values()) {
+			output.add(hoja.getDireccion());
+		}
+
+		return output;
+	}
 } //Fin clase
 
 

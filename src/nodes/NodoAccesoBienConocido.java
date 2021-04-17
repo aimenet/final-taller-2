@@ -11,14 +11,15 @@ import java.util.Properties;
 import commons.Constantes;
 import commons.Tarea;
 import commons.DireccionNodo;
-import nodes.components.AtributosAcceso;
-import nodes.components.ClienteNA_NA;
-import nodes.components.ClienteNA_NC;
-import nodes.components.ConsultorNA_NA;
-import nodes.components.ConsultorNA_NC;
-import nodes.components.ConsultorNA_NH;
-import nodes.components.Servidor;
 import nodes.components.WorkerNA_Interno;
+import nodes.components.atributos.AtributosAcceso;
+import nodes.components.clientes.ClienteNA_NA;
+import nodes.components.clientes.ClienteNA_NC;
+import nodes.components.servidores.ConsultorNA_NA;
+import nodes.components.servidores.ConsultorNA_NC;
+import nodes.components.servidores.ConsultorNA_NH;
+import nodes.components.servidores.ConsultorMantenimientoWKAN;
+import nodes.components.servidores.Servidor;
 
 
 /**
@@ -42,12 +43,48 @@ public class NodoAccesoBienConocido {
 	private ArrayList<Thread> serverThreads;
 	private AtributosAcceso atributos;
 	private HashMap<String, Runnable> clients;
-	private HashMap<String,Servidor> servers;
+	private HashMap<String, Servidor> servers;
 	private Integer id, maxClientes;
 	private Properties config;
 	private Servidor servidorHojas, servidorCentrales, servidorAcceso;
-    
-	//TODO: éste creo que va a ser el único Nodo que al final recibirá archivo de configuración
+
+	private void setServers() {
+		// Define los hilos que oficiarán de servidores, atendiendo consultas
+
+		servers.put("NABC", new Servidor(
+				config.getProperty("ip"),
+				Constantes.PUERTO_NA,
+				config.getProperty("nombre")+": Bien Conocidos",
+				ConsultorNA_NA.class
+		));
+
+		servers.put("CENTRALES", new Servidor(
+				config.getProperty("ip"),
+				Constantes.PUERTO_NC,
+				config.getProperty("nombre")+": Centrales",
+				ConsultorNA_NC.class
+		));
+
+		servers.put("HOJAS", new Servidor(
+				config.getProperty("ip"),
+				Constantes.PUERTO_NH,
+				config.getProperty("nombre")+": Hojas",
+				ConsultorNA_NH.class
+		));
+
+		servers.put("MANTENIMIENTO", new Servidor(
+				config.getProperty("ip"),
+				Constantes.PUERTO_MANTENIMIENTO,
+				config.getProperty("nombre")+": Mantenimiento",
+				ConsultorMantenimientoWKAN.class
+		));
+
+		for (Servidor server : servers.values()) {
+			serverThreads.add(new Thread(server));
+		}
+	}
+
+	//TODO: éste creo que va a ser el único Nodo que al final recibirá archivo de configuración (o variables de entorno)
 	public NodoAccesoBienConocido(String archivoConfiguracion) throws UnknownHostException {
 		Integer aux_puerto;
 		String aux_ip;
@@ -70,26 +107,7 @@ public class NodoAccesoBienConocido {
 		wkanIniciales = new ArrayList<DireccionNodo>();
 		
 		// Definición de servidores -> moverlo a método si crece mucho
-		// ------------------------
-		servers.put("NABC", new Servidor(
-				config.getProperty("ip"),
-				Constantes.PUERTO_NA,
-				config.getProperty("nombre")+": Bien Conocidos", ConsultorNA_NA.class
-		));
-		servers.put("CENTRALES", new Servidor(
-				config.getProperty("ip"),
-				Constantes.PUERTO_NC,
-				config.getProperty("nombre")+": Centrales", ConsultorNA_NC.class
-		));
-		servers.put("HOJAS", new Servidor(
-				config.getProperty("ip"),
-				Constantes.PUERTO_NH,
-				config.getProperty("nombre")+": Hojas", ConsultorNA_NH.class
-		));
-		
-		for (Servidor server : servers.values()) {
-			serverThreads.add(new Thread(server));
-		}
+		this.setServers();
 		
 		// Carga de atributos del NABC
 		// ---------------------------

@@ -1,4 +1,4 @@
-package nodes.components;
+package nodes.components.servidores;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import commons.*;
+import nodes.components.atributos.AtributosHoja;
 
 /**
  * Clase que se instancia en cada uno de los hilos generados por el Servidor de un nodo hoja para atender

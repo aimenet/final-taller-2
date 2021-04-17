@@ -1,18 +1,13 @@
-package nodes.components;
+package nodes.components.clientes;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.Random;
-import java.util.Map.Entry;
-import java.util.concurrent.Callable;
 
-import commons.Codigos;
 import commons.ConexionTcp;
-import commons.Mensaje;
 import commons.Tarea;
-import commons.Tupla2;
 import my_exceptions.ManualInterruptException;
+import nodes.components.atributos.Atributos;
 
 /** Clase que implementa los métodos básicos del Cliente de un Nodo, el cual actúa como "consumidor" y permite la
  * comunicación con otros nodos (independientemente de su tipo).

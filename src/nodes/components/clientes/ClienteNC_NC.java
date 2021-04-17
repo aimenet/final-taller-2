@@ -1,15 +1,11 @@
-package nodes.components;
+package nodes.components.clientes;
 
-import java.io.IOException;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map.Entry;
 import java.util.Random;
-import java.util.concurrent.Callable;
 import java.util.function.Function;
 
 import commons.*;
-import my_exceptions.ManualInterruptException;
+import nodes.components.atributos.AtributosCentral;
 
 
 /**

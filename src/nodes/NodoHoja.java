@@ -1,9 +1,6 @@
 package nodes;
 
-import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.FileInputStream;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -12,14 +9,14 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Properties;
-import java.util.Random;
-
-import javax.imageio.ImageIO;
-import javax.swing.JFileChooser;
-import javax.swing.filechooser.FileNameExtensionFilter;
 
 import commons.Tarea;
-import nodes.components.*;
+import nodes.components.ControladorHoja;
+import nodes.components.atributos.AtributosHoja;
+import nodes.components.clientes.ClienteNH_Gral;
+import nodes.components.servidores.ConsultorH;
+import nodes.components.servidores.ConsultorMantenimientoNH;
+import nodes.components.servidores.Servidor;
 
 /**
  * Nodo Hoja del sistema distribuido. Estos poseen las imágenes a compartir, calculan sus vectores
@@ -110,6 +107,12 @@ public class NodoHoja {
 				atributos.getDireccion().puerto_nh,
 				config.getProperty("nombre")+": Hojas",
 				ConsultorH.class
+		));
+		this.servers.put("mantenimiento", new Servidor(
+				atributos.getDireccion().ip.getHostAddress(),
+				atributos.getDireccion().puerto_m,
+				config.getProperty("nombre")+": Mantenimiento",
+				ConsultorMantenimientoNH.class
 		));
 
 		for (Servidor server : servers.values())

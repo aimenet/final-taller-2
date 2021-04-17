@@ -1,13 +1,9 @@
-package nodes.components;
-import java.io.File;
-import java.io.IOException;
-import java.sql.Timestamp;
-import java.time.Instant;
+package nodes.components.clientes;
 import java.util.*;
 import java.util.function.Function;
 
 import commons.*;
-import my_exceptions.ManualInterruptException;
+import nodes.components.atributos.AtributosHoja;
 
 /**
  * Uno de las instancias que compone la "faceta" Cliente de un Nodo Hoja. Es la encargada de 

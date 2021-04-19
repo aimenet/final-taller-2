@@ -21,6 +21,7 @@ public class Codigos {
 	public static final int NC_NA_POST_KEEPALIVE = 63;
 	public static final int NA_NC_POST_CAPACIDAD_NH = 64;
 	public static final int NA_NC_POST_ACEPTAR_NH = 65;
+	public static final int NC_NA_POST_SOLICITUD_VECINOS = 66;
 
 	// Usados entre Hs y WKANs
 	public static final int NH_NA_POST_SOLICITUD_NCS = 70;

@@ -162,7 +162,6 @@ public class NodoCentral {
 		// a más de un Nodo de Acceso
 		try {
 			atributos.encolar(Constantes.COLA_NA, new Tarea(00, "ANUNCIO_WKAN", atributos.getWKANAsignado()));
-			atributos.encolar(Constantes.COLA_NC, new Tarea(00, "ANUNCIO_WKAN", atributos.getWKANAsignado()));
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
@@ -184,6 +183,22 @@ public class NodoCentral {
 
 			// Hasta acá esperé: 10 segundos ---------------------------------------------------------------------------
 
+			// Solicitud de NCs vecinos en caso de no haberse alcanzado el número necesario
+			try {
+				Thread.sleep(10000);
+
+				atributos.encolar(
+						Constantes.COLA_NC,
+						new Tarea(00, Constantes.TSK_NC_CHECK_VECINOS, null)
+				);
+
+				System.out.println("[Core] Disparada tarea periódica: CHECK ANUNCIO para determinar ingreso a la red");
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+
+			// Hasta acá esperé: 20 segundos ---------------------------------------------------------------------------
+
 			// Dispara tarea de envío de keepalive a WKAN
 			try {
 				Thread.sleep(TimeUnit.MILLISECONDS.convert(atributos.keepaliveWKAN, TimeUnit.SECONDS));
@@ -198,21 +213,7 @@ public class NodoCentral {
 			// TODO 2020-11-23: revisar y revivir threads caídos
 		}
 	}
-	
-	
-	/**
-	 *	05/02/2018
-	 *		Como no existe una conexión permanente entre NC sino que las levanto sólo cuando hace falta, 
-	 *		puedo hacer acá (no sé bien en qué parte corresponde, hay que verlo) un bucle donde cada X tiempo 
-	 *		se intente establecer conexión con el NC y enviar un mensaje keep alive. Si la conexión se cayó lo 
-	 *		que puedo hacer es reemplazar la dirección de ese NC por otro (así el NC actual mantiene la mism
-	 *		cantidad de conexiones con otros nodos) o bien eliminarla de los parámetros accesibles, volver a probar
-	 *		después de un tiempo y si se arregló, cargalo otra vez como un nodo accesible en los parámetros.
-	 *
-	 *		La "terminal" creo que sería una buena implementación y rápida 
-	 */
-	
-	
+
 } // Fin clase 
 
 

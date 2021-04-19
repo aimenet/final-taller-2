@@ -165,7 +165,8 @@ public class AtributosCentral extends Atributos {
 	// Getters y Setters
 	// -----------------------------------------------------------------------------------
 	public Integer getNHCapacity() {return AtributosCentral.NHCapacity;}  // Si pongo sólo NHCapacity es = que como está ahora 
-	
+
+
 	public void setPuertoServidorCentrales(Integer puerto){
 		this.puertoServidorCentrales = puerto; 
 	}
@@ -205,8 +206,17 @@ public class AtributosCentral extends Atributos {
 	
 	// Métodos relacionados a Nodos Centrales
 	// -----------------------------------------------------------------------------------
-	public void setMaxCentralesVecinos(Integer cantidad) {maxCentralesVecinos = cantidad;}
-	public Integer getMaxCentralesVecinos() {return maxCentralesVecinos;}
+	public void setMaxCentralesVecinos(Integer cantidad) {
+		maxCentralesVecinos = cantidad;
+	}
+	public Integer getMaxCentralesVecinos() {
+		Integer cantidad = 0;
+
+		if ((maxCentralesVecinos != null) && (maxCentralesVecinos > 0))
+				cantidad = maxCentralesVecinos;
+
+		return cantidad;
+	}
 
 
 	// Métodos relacionados a Nodos Hojas
@@ -225,7 +235,6 @@ public class AtributosCentral extends Atributos {
 
 		return existe;
 	}
-
 
 
 	/**Evalúa si una consulta ya fue recibida previamente. Si existe y expiró actualiza el horario, en caso contrario la encola.
@@ -405,9 +414,7 @@ public class AtributosCentral extends Atributos {
 	}
 
 	@Override
-	public ArrayList<DireccionNodo> getNcs() {
-		return this.indiceCentrales;
-	}
+	public ArrayList<DireccionNodo> getNcs() { return this.indiceCentrales; }
 
 	@Override
 	public ArrayList<DireccionNodo> getNhs() {

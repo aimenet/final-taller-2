@@ -12,4 +12,7 @@ public class Constantes {
 	public static final String COLA_NH = "hojas";
 	public static final String COLA_SALIDA = "salida";
 	public static final String COLA_INTERNA = "interna";
+
+	// Nombres de tareas
+	public static final String TSK_NC_CHECK_VECINOS = "TSK_NC_CHECK_VECINOS";
 }

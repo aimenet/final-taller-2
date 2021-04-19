@@ -22,7 +22,23 @@ public class ClienteNC_NA extends Cliente {
 	// -----------------------------------------------------------------------------------------------------------------
 
 
-	// Métodos
+	// Métodos auxiliares
+	// -----------------------------------------------------------------------------------------------------------------
+	private Integer getNcsVecinosFaltantes() {
+		Integer actuales = this.atributos.getNcs().size();
+		Integer necesarios = ((AtributosCentral) this.atributos).getMaxCentralesVecinos();
+
+		Integer cantidad = necesarios - actuales;
+
+		return cantidad >= 0 ? cantidad : 0;
+	}
+
+	private void logUnaLinea(String mensaje) {
+		System.out.printf("[Cli WKAN %s] ", this.id);
+		System.out.printf("%s\n", mensaje);
+	}
+
+	// Métodos de procesamiento de tareas
 	// -----------------------------------------------------------------------------------------------------------------
 	public ClienteNC_NA(int idConsumidor, String cola) {
 		super(idConsumidor, cola);
@@ -118,6 +134,25 @@ public class ClienteNC_NA extends Cliente {
 	}
 
 
+	private Boolean checkVecinosFaltantes() {
+		Integer faltantes = this.getNcsVecinosFaltantes();
+
+		if (faltantes > 0) {
+			Mensaje solicitud = new Mensaje(
+					atributos.getDireccion(),
+					Codigos.NC_NA_POST_SOLICITUD_VECINOS,
+					faltantes
+			);
+
+			this.conexionConNodo.enviarSinRta(solicitud);
+
+			logUnaLinea(String.format("Solicitados %s NCs vecinos a WKAN", faltantes));
+		}
+
+		return true;
+	}
+
+
 	private Boolean keepAliveFnc() {
 		/**
 		 * Se informa al WKAN que este nodo está "vivo"
@@ -172,6 +207,11 @@ public class ClienteNC_NA extends Cliente {
 				
 				this.keepAliveFnc();
 
+				break;
+			case Constantes.TSK_NC_CHECK_VECINOS:
+				// Controla la cantidad de NCs vecinos conocidos hasta el momento y en caso de ser necesario solicita
+				// más al WKAN
+				this.checkVecinosFaltantes();
 				break;
 		}
 		

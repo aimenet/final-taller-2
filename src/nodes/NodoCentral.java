@@ -192,7 +192,7 @@ public class NodoCentral {
 						new Tarea(00, Constantes.TSK_NC_CHECK_VECINOS, null)
 				);
 
-				System.out.println("[Core] Disparada tarea periódica: CHECK ANUNCIO para determinar ingreso a la red");
+				System.out.println("[Core] Disparada tarea periódica: CHECK NCs vecinos faltantes");
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}

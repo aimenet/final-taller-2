@@ -6,7 +6,7 @@ import java.util.function.Function;
 
 import commons.DireccionNodo;
 import commons.Codigos;
-import commons.Mensaje;
+import commons.mensajes.Mensaje;
 import commons.Tarea;
 import commons.Tupla2;
 import nodes.components.atributos.AtributosAcceso;

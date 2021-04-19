@@ -3,6 +3,7 @@ import java.util.*;
 import java.util.function.Function;
 
 import commons.*;
+import commons.mensajes.Mensaje;
 import nodes.components.atributos.AtributosHoja;
 
 /**

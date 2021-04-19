@@ -10,6 +10,7 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
 import commons.*;
+import commons.mensajes.Mensaje;
 import commons.structs.nc.NHIndexada;
 import nodes.components.atributos.AtributosCentral;
 

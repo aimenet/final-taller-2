@@ -9,7 +9,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import commons.Codigos;
-import commons.Mensaje;
+import commons.mensajes.Mensaje;
 import commons.Tarea;
 import commons.Tupla2;
 import commons.DireccionNodo;

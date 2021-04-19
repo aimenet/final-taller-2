@@ -8,7 +8,7 @@ import java.sql.Timestamp;
 import java.util.HashMap;
 
 import commons.Codigos;
-import commons.Mensaje;
+import commons.mensajes.Mensaje;
 import commons.DireccionNodo;
 import nodes.components.WKAN_Funciones;
 import nodes.components.atributos.AtributosAcceso;

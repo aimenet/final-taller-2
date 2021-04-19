@@ -1,7 +1,7 @@
 import commons.Codigos;
 import commons.ConexionTcp;
 import commons.DireccionNodo;
-import commons.Mensaje;
+import commons.mensajes.Mensaje;
 
 import java.io.IOException;
 import java.net.InetAddress;

@@ -15,7 +15,7 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 import commons.CredImagen;
-import commons.Mensaje;
+import commons.mensajes.Mensaje;
 
 /**
  * Clase que engloba todos los atributos de un Nodo Central e implementa los métodos necesarios para

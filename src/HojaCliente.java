@@ -8,6 +8,7 @@ import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 import commons.*;
+import commons.mensajes.Mensaje;
 import nodes.components.atributos.AtributosHoja;
 
 /**

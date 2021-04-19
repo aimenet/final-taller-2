@@ -4,6 +4,8 @@ import java.sql.Timestamp;
 import java.util.HashMap;
 
 import commons.*;
+import commons.mensajes.Mensaje;
+import commons.mensajes.SolicitudNcsVecinos;
 import nodes.components.atributos.AtributosCentral;
 
 /**
@@ -138,7 +140,7 @@ public class ClienteNC_NA extends Cliente {
 		Integer faltantes = this.getNcsVecinosFaltantes();
 
 		if (faltantes > 0) {
-			Mensaje solicitud = new Mensaje(
+			SolicitudNcsVecinos solicitud = new SolicitudNcsVecinos(
 					atributos.getDireccion(),
 					Codigos.NC_NA_POST_SOLICITUD_VECINOS,
 					faltantes

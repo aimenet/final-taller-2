@@ -2,7 +2,7 @@ package nodes.components.servidores;
 
 import commons.Codigos;
 import commons.DireccionNodo;
-import commons.Mensaje;
+import commons.mensajes.Mensaje;
 import commons.structs.ReporteNodosConocidos;
 import nodes.components.atributos.Atributos;
 

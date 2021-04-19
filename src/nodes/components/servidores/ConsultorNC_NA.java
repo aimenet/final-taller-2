@@ -7,6 +7,7 @@ import java.net.Socket;
 import java.util.*;
 
 import commons.*;
+import commons.mensajes.Mensaje;
 import commons.structs.nc.NHIndexada;
 import nodes.components.clientes.ClienteNC_NH;
 import nodes.components.WKAN_Funciones;

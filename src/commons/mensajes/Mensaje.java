@@ -1,4 +1,6 @@
-package commons;
+package commons.mensajes;
+
+import commons.DireccionNodo;
 
 import java.io.Serializable;
 import java.util.UUID;

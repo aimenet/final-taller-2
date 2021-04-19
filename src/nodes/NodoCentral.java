@@ -192,7 +192,9 @@ public class NodoCentral {
 						new Tarea(00, Constantes.TSK_NC_CHECK_VECINOS, null)
 				);
 
-				System.out.println("[Core] Disparada tarea periódica: CHECK NCs vecinos faltantes");
+				System.out.println(
+						String.format("[Core] Disparada tarea periódica: ", Constantes.TSK_NC_CHECK_VECINOS)
+				);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}

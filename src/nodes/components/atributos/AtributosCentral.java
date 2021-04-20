@@ -60,8 +60,8 @@ public class AtributosCentral extends Atributos {
 	
 	// Nodos Centrales
 	private static final Object lockIndiceCentrales = new Object();
-	// TODO 2020-11-06: por qué es una lista enlazada y no un hash?
-	private static volatile ArrayList<DireccionNodo> indiceCentrales = new ArrayList<DireccionNodo>();
+	// Por ahora necesito solamente las keys, el value es anecdótico
+	private static volatile HashMap<DireccionNodo, Boolean> indiceCentrales = new HashMap<DireccionNodo, Boolean>();
 	private static volatile Integer maxCentralesVecinos;
 	
 	// Últimas consultas recibidas para evitar duplicar respuestas. En la primer fila de la matriz se guardan
@@ -94,11 +94,11 @@ public class AtributosCentral extends Atributos {
 
 	public HashMap<UUID,NHIndexada> getHojas() {return this.indiceHojas;}
 
-	public DireccionNodo getCentral(Integer index){
-		return indiceCentrales.get(index);
-	}
+	//public DireccionNodo getCentral(Integer index){
+	//	return indiceCentrales.get(index);
+	//}
 	
-	public ArrayList<DireccionNodo> getCentrales(){
+	public HashMap<DireccionNodo, Boolean> getCentrales(){
 		return indiceCentrales;
 	}
 	
@@ -221,7 +221,7 @@ public class AtributosCentral extends Atributos {
 	}
 
 	public void indexarCentral(DireccionNodo direccion){
-		indiceCentrales.add(direccion);
+		indiceCentrales.put(direccion, true);
 	}
 
 	public Integer indexarCentrales(ArrayList<DireccionNodo> direcciones){
@@ -231,14 +231,22 @@ public class AtributosCentral extends Atributos {
 		if ((necesarios <= 0) || (disponibles <= 0))
 			return 0;
 
+		ArrayList<DireccionNodo> aInsertar;
+		Integer cantidad;
+
 		if (disponibles > necesarios) {
-			indiceCentrales.addAll(direcciones.subList(0, necesarios));
-			return necesarios;
+			aInsertar = (ArrayList<DireccionNodo>) direcciones.subList(0, necesarios);
+			cantidad = necesarios;
 		} else {
-			// Indexá #disponibles
-			indiceCentrales.addAll(direcciones.subList(0, disponibles));
-			return disponibles;
+			aInsertar = (ArrayList<DireccionNodo>) direcciones.subList(0, disponibles);
+			cantidad = disponibles;
 		}
+
+		// Tiene que haber una manera más eficiente de hacerlo
+		for (DireccionNodo direccion : aInsertar)
+			indiceCentrales.put(direccion, true);
+
+		return cantidad;
 	}
 
 	public void setMaxCentralesVecinos(Integer cantidad) {
@@ -441,7 +449,9 @@ public class AtributosCentral extends Atributos {
 	}
 
 	@Override
-	public ArrayList<DireccionNodo> getNcs() { return this.indiceCentrales; }
+	public ArrayList<DireccionNodo> getNcs() {
+		return new ArrayList<DireccionNodo>(this.indiceCentrales.keySet());
+	}
 
 	@Override
 	public ArrayList<DireccionNodo> getNhs() {

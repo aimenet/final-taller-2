@@ -5,7 +5,7 @@ import java.util.HashMap;
 
 import commons.*;
 import commons.mensajes.Mensaje;
-import commons.mensajes.SolicitudNcsVecinos;
+import commons.mensajes.wkan_nc.SolicitudNcsVecinos;
 import nodes.components.atributos.AtributosCentral;
 
 /**

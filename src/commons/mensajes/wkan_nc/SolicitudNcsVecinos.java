@@ -1,6 +1,7 @@
-package commons.mensajes;
+package commons.mensajes.wkan_nc;
 
 import commons.DireccionNodo;
+import commons.mensajes.Mensaje;
 
 /**
  * Mensaje mediante el que un NC solicitará vecinos a un WKAN

@@ -15,7 +15,7 @@ public class InformeNcsVecinos extends Mensaje {
         super(emisor, codigo, vecinos);
     }
 
-    public ArrayList<DireccionNodo> vecinos() {
+    public ArrayList<DireccionNodo> getVecinos() {
         return (ArrayList<DireccionNodo>) getCarga();
     }
 }

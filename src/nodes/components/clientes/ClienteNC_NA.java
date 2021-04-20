@@ -26,15 +26,6 @@ public class ClienteNC_NA extends Cliente {
 
 	// Métodos auxiliares
 	// -----------------------------------------------------------------------------------------------------------------
-	private Integer getNcsVecinosFaltantes() {
-		Integer actuales = this.atributos.getNcs().size();
-		Integer necesarios = ((AtributosCentral) this.atributos).getMaxCentralesVecinos();
-
-		Integer cantidad = necesarios - actuales;
-
-		return cantidad >= 0 ? cantidad : 0;
-	}
-
 	private void logUnaLinea(String mensaje) {
 		System.out.printf("[Cli WKAN %s] ", this.id);
 		System.out.printf("%s\n", mensaje);
@@ -137,12 +128,12 @@ public class ClienteNC_NA extends Cliente {
 
 
 	private Boolean checkVecinosFaltantes() {
-		Integer faltantes = this.getNcsVecinosFaltantes();
+		Integer faltantes = ((AtributosCentral) this.atributos).getNcsVecinosFaltantes();
 
 		if (faltantes > 0) {
 			SolicitudNcsVecinos solicitud = new SolicitudNcsVecinos(
 					atributos.getDireccion(),
-					Codigos.NC_NA_POST_SOLICITUD_VECINOS,
+					Codigos.NC_NA_GET_SOLICITUD_VECINOS,
 					faltantes
 			);
 

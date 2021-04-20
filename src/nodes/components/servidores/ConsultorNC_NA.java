@@ -8,6 +8,7 @@ import java.util.*;
 
 import commons.*;
 import commons.mensajes.Mensaje;
+import commons.mensajes.wkan_nc.InformeNcsVecinos;
 import commons.structs.nc.NHIndexada;
 import nodes.components.clientes.ClienteNC_NH;
 import nodes.components.WKAN_Funciones;
@@ -130,6 +131,26 @@ public class ConsultorNC_NA implements Consultor {
 			System.out.printf("[ERROR]\n");
 	}
 
+	private void recibirListadoVecinos(InformeNcsVecinos mensaje) {
+		ArrayList<DireccionNodo> listado = mensaje.getVecinos();
+
+		System.out.printf("[Con WKAN] ");
+		System.out.printf("Recibido listado de %d NCs vecinos.", listado.size());
+
+		Integer indexados = 0;
+
+		if (listado.size() > 0)
+			indexados = ((AtributosCentral) atributos).indexarCentrales(listado);
+
+		System.out.printf("\tIndexados  %d NCs.", indexados);
+
+		System.out.printf(
+				"\tEstado actual: %d de %d NCs\n",
+				atributos.getNcs().size(),
+				atributos.getMaxCentralesVecinos()
+		);
+	}
+
 
 	@Override
 	public void atender() {
@@ -166,6 +187,10 @@ public class ConsultorNC_NA implements Consultor {
 					case Codigos.NA_NC_POST_ACEPTAR_NH:
 						// WKAN informa NH ante el que anununciarse
 						this.aceptarNHFnc(mensaje.getEmisor(), (DireccionNodo) mensaje.getCarga());
+						break;
+					case Codigos.NA_NC_POST_VECINOS:
+						// WKAN informa posibles NCs vecinos
+						this.recibirListadoVecinos((InformeNcsVecinos) mensaje);
 						break;
 					case Codigos.CONNECTION_END:
 						terminar = true;

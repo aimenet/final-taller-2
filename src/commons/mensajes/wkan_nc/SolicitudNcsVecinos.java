@@ -13,7 +13,7 @@ public class SolicitudNcsVecinos extends Mensaje {
         super(emisor, codigo, faltantes);
     }
 
-    public Integer faltantes() {
+    public Integer getFaltantes() {
         return (Integer) this.getCarga();
     }
 }

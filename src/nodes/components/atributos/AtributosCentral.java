@@ -156,10 +156,6 @@ public class AtributosCentral extends Atributos {
 	public Set<UUID> getClavesIndiceHojas(){
 		return indiceHojas.keySet();
 	}
-	
-	public void indexarCentral(DireccionNodo direccion){
-		indiceCentrales.add(direccion);
-	}
 
 
 	// Getters y Setters
@@ -206,9 +202,6 @@ public class AtributosCentral extends Atributos {
 	
 	// Métodos relacionados a Nodos Centrales
 	// -----------------------------------------------------------------------------------
-	public void setMaxCentralesVecinos(Integer cantidad) {
-		maxCentralesVecinos = cantidad;
-	}
 	public Integer getMaxCentralesVecinos() {
 		Integer cantidad = 0;
 
@@ -216,6 +209,40 @@ public class AtributosCentral extends Atributos {
 				cantidad = maxCentralesVecinos;
 
 		return cantidad;
+	}
+
+	public Integer getNcsVecinosFaltantes() {
+		Integer actuales = indiceCentrales.size();
+		Integer necesarios = maxCentralesVecinos;
+
+		Integer cantidad = necesarios - actuales;
+
+		return cantidad >= 0 ? cantidad : 0;
+	}
+
+	public void indexarCentral(DireccionNodo direccion){
+		indiceCentrales.add(direccion);
+	}
+
+	public Integer indexarCentrales(ArrayList<DireccionNodo> direcciones){
+		Integer necesarios = maxCentralesVecinos - indiceCentrales.size();
+		Integer disponibles = necesarios - direcciones.size();
+
+		if ((necesarios <= 0) || (disponibles <= 0))
+			return 0;
+
+		if (disponibles > necesarios) {
+			indiceCentrales.addAll(direcciones.subList(0, necesarios));
+			return necesarios;
+		} else {
+			// Indexá #disponibles
+			indiceCentrales.addAll(direcciones.subList(0, disponibles));
+			return disponibles;
+		}
+	}
+
+	public void setMaxCentralesVecinos(Integer cantidad) {
+		maxCentralesVecinos = cantidad;
 	}
 
 
@@ -348,8 +375,8 @@ public class AtributosCentral extends Atributos {
 		
 		return existio;
 	}
-	
-	
+
+
 	
 	/** Registra una HOJA en el archivo correspondiente (para llevar un registro "histórico" en caso de reconexión 
 	 * @throws ParseException 

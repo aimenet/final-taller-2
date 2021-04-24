@@ -201,6 +201,9 @@ public class NodoCentral {
 
 			// Hasta acá esperé: 20 segundos ---------------------------------------------------------------------------
 
+			// Podría hacer una tarea que le envíe un ping o un algo así a los NCs vecinos y elimine a los que no
+			// respondan
+
 			// Dispara tarea de envío de keepalive a WKAN
 			try {
 				Thread.sleep(TimeUnit.MILLISECONDS.convert(atributos.keepaliveWKAN, TimeUnit.SECONDS));

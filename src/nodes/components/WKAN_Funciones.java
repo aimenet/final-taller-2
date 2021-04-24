@@ -51,6 +51,7 @@ public class WKAN_Funciones {
 		}
 		
 		if (nuevo) {
+			// TODO 2021-04-20: revisar que esto se esté ejecutando
 			// Se encola la tarea que indicará a alguno de los WKAN que el nuevo NC necesita enlazarse con otros NCs
 			HashMap<String, Object> payload = new HashMap<String, Object>();
 			payload.put("ncDestino", direccionNC);

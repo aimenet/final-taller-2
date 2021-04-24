@@ -3,16 +3,15 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 import commons.Codigos;
 import commons.mensajes.Mensaje;
 import commons.Tarea;
 import commons.Tupla2;
 import commons.DireccionNodo;
+import commons.mensajes.wkan_nc.SolicitudNcsVecinos;
+import commons.mensajes.wkan_wkan.RetransmisionSolicitudNcsVecinos;
 import nodes.components.clientes.ClienteNA_NC;
 import nodes.components.WKAN_Funciones;
 import nodes.components.atributos.AtributosAcceso;
@@ -218,9 +217,7 @@ public class ConsultorNA_NA implements Consultor {
 		 * Evalua si algún NC posee capacidad de enlazarse a otro, a fin de comunicarlo al NC recientemente incorporado
 		 * a la red
 		 *
-		 * Payload del mensaje: {
-		 *     "ncDestino": DireccionNodo,
-		 * }
+		 * Payload del mensaje: RetransmisionSolicitudNcsVecinos
 		 *
 		 */
 
@@ -230,16 +227,14 @@ public class ConsultorNA_NA implements Consultor {
 		output.put("callBackOnFailure", false);
 		output.put("result", true);
 
-		HashMap<String, Object> diccionario = (HashMap<String, Object>) mensaje.getCarga();
+		RetransmisionSolicitudNcsVecinos solicitud = (RetransmisionSolicitudNcsVecinos) mensaje.getCarga();
+
 		HashMap<DireccionNodo, HashMap<String, Comparable>> centralesRegistrados = atributos.getCentrales();
 
-		// Registra en el diccionario enviado durante la solicitud que éste nodo ya ha sido consultado
-		diccionario.put("saltos", (Integer) diccionario.get("saltos") - 1);
-
-		LinkedList<DireccionNodo> confirmados = (LinkedList<DireccionNodo>) diccionario.get("consultados");
+		Integer faltantes = solicitud.getFaltantes();
+		Integer saltos = solicitud.getSaltos() - 1;
+		ArrayList<DireccionNodo> confirmados = solicitud.getWkansVisitados();
 		confirmados.add(atributos.getDireccion());
-
-		diccionario.put("consultados", confirmados);
 
 		for (DireccionNodo key : centralesRegistrados. keySet()) {
 			Integer activos = (int) centralesRegistrados.get(key).get("centrales_activos");
@@ -252,24 +247,29 @@ public class ConsultorNA_NA implements Consultor {
 							new Tarea(
 									00,
 									"CONECTAR-NCS",
-									new Tupla2<DireccionNodo, DireccionNodo> (key, (DireccionNodo) diccionario.get("ncDestino"))
+									new Tupla2<DireccionNodo, DireccionNodo> (key, (DireccionNodo) solicitud.getNodoCentral())
 							)
 					);
 
 					// Se marca el anuncio del NC vecino.
-					diccionario.put("ncsRestantes", (Integer) diccionario.get("ncsRestantes")-1);
+					faltantes -= 1;
 
-					// Marca especial en el diccionario para conocer que se originó acá
-					diccionario.put("preparado", true);
 					break;
 				}
 		}
 
 		// Si restan NCs por conectar se retransmite nuevamente el mensaje
-		if ((Integer) diccionario.get("ncsRestantes") > 0 && (Integer) diccionario.get("saltos") > 0) {
-			// marco para que se reutilice este diccionario en lugar de crear uno nuevo
-			diccionario.put("preparado", true);
-			atributos.encolar("salida", new Tarea(00, "SOLICITAR_NCS_VECINOS", diccionario));
+		if (faltantes > 0 && saltos > 0) {
+			RetransmisionSolicitudNcsVecinos solicitud_retransmitir = new RetransmisionSolicitudNcsVecinos(
+					this.atributos.getDireccion(),
+					Codigos.NA_NA_POST_RETRANSMISION_ANUNCIO_NC,
+					solicitud.getNodoCentral(),
+					saltos,
+					faltantes,
+					confirmados
+			);
+
+			atributos.encolar("salida", new Tarea(00, "SOLICITAR_NCS_VECINOS", solicitud_retransmitir));
 		}
 
 		System.out.println("Procesada solicitud de vecinos para NC [OK]");

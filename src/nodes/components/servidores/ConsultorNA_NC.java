@@ -5,11 +5,19 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.sql.Timestamp;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import commons.Codigos;
+import commons.Tarea;
+import commons.Tupla2;
 import commons.mensajes.Mensaje;
 import commons.DireccionNodo;
+import commons.mensajes.wkan_nc.InformeNcsVecinos;
+import commons.mensajes.wkan_nc.SolicitudNcsVecinos;
+import commons.mensajes.wkan_wkan.RetransmisionSolicitudNcsVecinos;
+import commons.structs.wkan.NCIndexado;
 import nodes.components.WKAN_Funciones;
 import nodes.components.atributos.AtributosAcceso;
 
@@ -89,6 +97,82 @@ public class ConsultorNA_NC implements Consultor {
 		}
 
 		return output;
+	}
+
+	private void solicitudVecinos(SolicitudNcsVecinos solicitud) {
+		/* Un NC solicita otros NCs vecinos a los que enlazarse.
+		*
+		*  Acá debe existir una política ya que si este WKAN responde al menos 1 NC cada vez que responde, se corre el
+		*  riesgo de que gran parte de los vecinos a los que termine enlazado el NC sean de este WKAN y por ende la red
+		*  no estaría "distribuida" (o balanceada).
+		*
+		*  Por ahora la política definida es la siguiente: si puede, le indica un NC aleatorio administrado por él y
+		*  registra el timestamp. No volverá a informarle nuevos NCs vecinos hasta que no haya pasado X tiempo desde el
+		*  último.
+		*
+		*  Y siempre retransmitirá la consulta a otros WKANs a fin de distribuír las conexiones a lo largo de toda la
+		*  red. Esto es exactamente lo mismo que se hace cuando un NC se anuncia por primera vez.
+		*
+		* */
+
+		// Busca un NC de los administrados para informarle
+		// -> Acá debería encolar para que un cliente le mande al NC (que en este caso va a estar oficiando de server)
+		// -> Lo hago acá mismo pero no va, hay que encolar la tarea CONECTAR_NCS
+		NCIndexado nodo = atributos.getCentral(solicitud.getEmisor());
+
+		if ((nodo == null) || (solicitud.getFaltantes() <= 0))
+			// Si el NC es desconocido debe estar siendo administrado por otro WKAN
+			return;
+
+		Boolean informar = false;
+
+		if (nodo.ultimoNncInformado == null) {
+			informar = true;
+		} else {
+			Timestamp start = nodo.ultimoNncInformado;
+			Timestamp end = new Timestamp(System.currentTimeMillis());
+
+			long timeElapsed = Duration.between(start.toInstant(),end.toInstant()).toSeconds();
+
+			if (timeElapsed >= atributos.esperaEntreInformeDeVecinos)
+				informar = true;
+		}
+
+		if (informar) {
+			DireccionNodo vecino = atributos.getRandomNCDistinto(solicitud.getEmisor());
+
+			try {
+				atributos.encolar(
+						"centrales",
+						new Tarea(
+								00,
+								"CONECTAR-NCS",
+								new Tupla2<DireccionNodo, DireccionNodo>(solicitud.getEmisor(), vecino)
+						)
+				);
+			} catch (InterruptedException e) {
+				// TODO: qué hago?
+				e.printStackTrace();
+			}
+		}
+
+		// Se retransmite a otros WKANs la solicitud a fin de distribuir por toda la red la carga de Nodos
+		RetransmisionSolicitudNcsVecinos solicitud_retransmitir = new RetransmisionSolicitudNcsVecinos(
+				this.atributos.getDireccion(),
+				Codigos.NA_NA_POST_RETRANSMISION_ANUNCIO_NC,
+				solicitud.getEmisor(),
+				(solicitud.getFaltantes() * 2) - 1,
+				solicitud.getFaltantes(),
+				new ArrayList<DireccionNodo>()
+		);
+
+		try {
+			atributos.encolar("salida", new Tarea(00, "RETRANSMITIR_ANUNCIO_NC", solicitud_retransmitir));
+		} catch (InterruptedException e) {
+			// No hago nada, el NC volverá a solicitar vecinos de ser necesario. Sí debería controlar por qué no se
+			// puede enconlar
+			e.printStackTrace();
+		}
 	}
 
 	@Override

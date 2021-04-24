@@ -1,5 +1,6 @@
 package nodes.components.clientes;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
@@ -9,6 +10,7 @@ import commons.Codigos;
 import commons.mensajes.Mensaje;
 import commons.Tarea;
 import commons.Tupla2;
+import commons.mensajes.wkan_nc.InformeNcsVecinos;
 import nodes.components.atributos.AtributosAcceso;
 
 /**
@@ -107,14 +109,17 @@ public class ClienteNA_NC extends Cliente {
 		output.put("callBackOnFailure", false);
 		output.put("result", true);
 
-		this.conexionConNodo.enviarSinRta(
-				new Mensaje(
-						this.atributos.getDireccion(),
-						Codigos.NA_NC_POST_NC_VECINO,
-						nodoVecino
-				)
+		ArrayList<DireccionNodo> vecinos = new ArrayList<DireccionNodo>();
+		vecinos.add(nodoVecino);
+
+		InformeNcsVecinos respuesta = new InformeNcsVecinos(
+				atributos.getDireccion(),
+				Codigos.NA_NC_POST_VECINOS,
+				vecinos
 		);
-		
+
+		this.conexionConNodo.enviarSinRta(respuesta);
+
 		System.out.printf("[Cli %s]\t", this.idConsumidor);
 		System.out.printf("anunciado NC vecino (%s) a ", nodoVecino.ip.getHostName());
 		System.out.printf("%s\n", nodoNuevo.ip.getHostName());

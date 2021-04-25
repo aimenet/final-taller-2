@@ -454,7 +454,7 @@ public class ClienteNA_NA extends Cliente {
 				break;
 			case "RETRANSMITIR_ANUNCIO_NC":
 				hashmapPayload = new HashMap<String, Object>();
-				hashmapPayload.put("solicitud_original", (SolicitudNcsVecinos) tarea.getPayload());
+				hashmapPayload.put("solicitud_original", (RetransmisionSolicitudNcsVecinos) tarea.getPayload());
 
 				this.retransmitirAnuncioNCFnc(hashmapPayload);
 

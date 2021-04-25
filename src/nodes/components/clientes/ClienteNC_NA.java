@@ -129,6 +129,7 @@ public class ClienteNC_NA extends Cliente {
 
 	private Boolean checkVecinosFaltantes() {
 		Integer faltantes = ((AtributosCentral) this.atributos).getNcsVecinosFaltantes();
+		DireccionNodo wkanAsignado = ((AtributosCentral) this.atributos).getWKANAsignado();
 
 		if (faltantes > 0) {
 			SolicitudNcsVecinos solicitud = new SolicitudNcsVecinos(
@@ -137,7 +138,12 @@ public class ClienteNC_NA extends Cliente {
 					faltantes
 			);
 
-			this.conexionConNodo.enviarSinRta(solicitud);
+			if (this.establecerConexion(wkanAsignado.ip.getHostAddress(), wkanAsignado.puerto_nc)) {
+				this.conexionConNodo.enviarSinRta(solicitud);
+			} else {
+				logUnaLinea("Solicitud de NCs vecinos a WKAN: imposible establecer conexión");
+				return false;
+			}
 
 			logUnaLinea(String.format("Solicitados %s NCs vecinos a WKAN", faltantes));
 		}

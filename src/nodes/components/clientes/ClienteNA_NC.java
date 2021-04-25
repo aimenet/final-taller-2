@@ -120,6 +120,9 @@ public class ClienteNA_NC extends Cliente {
 
 		this.conexionConNodo.enviarSinRta(respuesta);
 
+		// Registra el timestamp de la notificación
+		((AtributosAcceso) atributos).setInformeNCVecino(nodoNuevo);
+
 		System.out.printf("[Cli %s]\t", this.idConsumidor);
 		System.out.printf("anunciado NC vecino (%s) a ", nodoVecino.ip.getHostName());
 		System.out.printf("%s\n", nodoNuevo.ip.getHostName());

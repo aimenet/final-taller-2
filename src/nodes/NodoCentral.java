@@ -188,12 +188,12 @@ public class NodoCentral {
 				Thread.sleep(10000);
 
 				atributos.encolar(
-						Constantes.COLA_NC,
+						Constantes.COLA_NA,
 						new Tarea(00, Constantes.TSK_NC_CHECK_VECINOS, null)
 				);
 
 				System.out.println(
-						String.format("[Core] Disparada tarea periódica: ", Constantes.TSK_NC_CHECK_VECINOS)
+						String.format("[Core] Disparada tarea periódica: %s", Constantes.TSK_NC_CHECK_VECINOS)
 				);
 			} catch (InterruptedException e) {
 				e.printStackTrace();

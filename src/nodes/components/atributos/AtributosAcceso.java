@@ -184,10 +184,20 @@ public class AtributosAcceso extends Atributos {
 		if (distinto != null)
 			claves.remove(distinto);
 
-		indice = generador.nextInt(claves.size());
-		direccion = claves.get(indice);
+		if (claves.size() > 0) {
+			indice = generador.nextInt(claves.size());
+			direccion = claves.get(indice);
+		}
 
 		return direccion;
+	}
+
+	public void setInformeNCVecino(DireccionNodo nodoInformado) {
+		HashMap<String,Comparable> datosNodo = centrales.get(nodoInformado);
+
+		datosNodo.put("ultimo_nc_informado", new Timestamp(System.currentTimeMillis()));
+
+		centrales.put(nodoInformado, datosNodo);
 	}
 
 

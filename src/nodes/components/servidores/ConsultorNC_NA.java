@@ -133,22 +133,36 @@ public class ConsultorNC_NA implements Consultor {
 
 	private void recibirListadoVecinos(InformeNcsVecinos mensaje) {
 		ArrayList<DireccionNodo> listado = mensaje.getVecinos();
+		Integer cantidadIndexados = 0;
 
 		System.out.printf("[Con WKAN] ");
-		System.out.printf("Recibido listado de %d NCs vecinos.", listado.size());
+		System.out.printf("Recibido listado de %d NCs vecinos", listado.size());
 
-		Integer indexados = 0;
+		if (listado.size() > 0) {
+			//ArrayList<DireccionNodo> indexados = ((AtributosCentral) atributos).indexarCentrales(listado);
+			//cantidadIndexados = indexados.size();
 
-		if (listado.size() > 0)
-			indexados = ((AtributosCentral) atributos).indexarCentrales(listado);
+			for (DireccionNodo indexado : listado) {
+				Tarea tarea = new Tarea(00, Constantes.TSK_NC_ANUNCIO_VECINO, indexado);
 
-		System.out.printf("\tIndexados  %d NCs.", indexados);
+				try {
+					atributos.encolar("centrales", tarea);
+				} catch (InterruptedException e) {
+					// TODO 2021-04-25: hacer algo
+					e.printStackTrace();
+				}
+			}
+		}
 
-		System.out.printf(
-				"\tEstado actual: %d de %d NCs\n",
-				atributos.getNcs().size(),
-				atributos.getMaxCentralesVecinos()
-		);
+		System.out.println(" [OK]");
+
+		//System.out.printf("\tIndexados  %d NCs.", cantidadIndexados);
+
+		//System.out.printf(
+		//		"\tEstado actual: %d de %d NCs\n",
+		//		atributos.getNcs().size(),
+		//		atributos.getMaxCentralesVecinos()
+		//);
 	}
 
 

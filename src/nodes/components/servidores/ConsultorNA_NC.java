@@ -1,5 +1,6 @@
 package nodes.components.servidores;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -9,11 +10,8 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import commons.Codigos;
-import commons.Tarea;
-import commons.Tupla2;
+import commons.*;
 import commons.mensajes.Mensaje;
-import commons.DireccionNodo;
 import commons.mensajes.wkan_nc.InformeNcsVecinos;
 import commons.mensajes.wkan_nc.SolicitudNcsVecinos;
 import commons.mensajes.wkan_wkan.RetransmisionSolicitudNcsVecinos;
@@ -114,15 +112,22 @@ public class ConsultorNA_NC implements Consultor {
 		*  red. Esto es exactamente lo mismo que se hace cuando un NC se anuncia por primera vez.
 		*
 		* */
+		Boolean errorFlag = false;
+
+		System.out.printf("[Con NC] Recibido pedido de %d ", solicitud.getFaltantes());
+		System.out.printf(" NCs vecinos para %s", solicitud.getEmisor().ip.getHostName());
 
 		// Busca un NC de los administrados para informarle
 		// -> Acá debería encolar para que un cliente le mande al NC (que en este caso va a estar oficiando de server)
 		// -> Lo hago acá mismo pero no va, hay que encolar la tarea CONECTAR_NCS
 		NCIndexado nodo = atributos.getCentral(solicitud.getEmisor());
 
-		if ((nodo == null) || (solicitud.getFaltantes() <= 0))
+		if ((nodo == null) || (solicitud.getFaltantes() <= 0)) {
 			// Si el NC es desconocido debe estar siendo administrado por otro WKAN
+			System.out.printf(" [ERROR] (NC desconocido)");
+			errorFlag = true;
 			return;
+		}
 
 		Boolean informar = false;
 
@@ -141,19 +146,25 @@ public class ConsultorNA_NC implements Consultor {
 		if (informar) {
 			DireccionNodo vecino = atributos.getRandomNCDistinto(solicitud.getEmisor());
 
-			try {
-				atributos.encolar(
-						"centrales",
-						new Tarea(
-								00,
-								"CONECTAR-NCS",
-								new Tupla2<DireccionNodo, DireccionNodo>(solicitud.getEmisor(), vecino)
-						)
+			if (vecino != null) {
+				Tupla2<DireccionNodo, DireccionNodo> par = new Tupla2<DireccionNodo, DireccionNodo>(
+						solicitud.getEmisor(), vecino
 				);
-			} catch (InterruptedException e) {
-				// TODO: qué hago?
-				e.printStackTrace();
+
+				Tarea tarea = new Tarea(00, Constantes.TSK_NA_CONECTAR_NCS, par);
+
+				try {
+					atributos.encolar("centrales", tarea);
+				} catch (InterruptedException e) {
+					// TODO: qué hago?
+					System.out.printf(" [ERROR] (tarea no encolada)");
+					errorFlag = true;
+					e.printStackTrace();
+				}
+			} else {
+				System.out.printf(" (No hay NCs para sugerir)");
 			}
+
 		}
 
 		// Se retransmite a otros WKANs la solicitud a fin de distribuir por toda la red la carga de Nodos
@@ -171,8 +182,13 @@ public class ConsultorNA_NC implements Consultor {
 		} catch (InterruptedException e) {
 			// No hago nada, el NC volverá a solicitar vecinos de ser necesario. Sí debería controlar por qué no se
 			// puede enconlar
+			System.out.printf(" [ERROR] (imposible retransmitir a WKANs)");
+			errorFlag = true;
 			e.printStackTrace();
 		}
+
+		if (!errorFlag)
+			System.out.println(" [OK]");
 	}
 
 	@Override
@@ -188,7 +204,7 @@ public class ConsultorNA_NC implements Consultor {
 			buffSalida = new ObjectOutputStream(sock.getOutputStream());
 			buffEntrada = new ObjectInputStream(sock.getInputStream());
 			
-			// Bucle principal de atención al cliente. Finalizará cuando este indica que cerrará la conexión
+			// Bucle principal de atención al cliente. Finalizará cuando este indique que cerrará la conexión
 			while(!terminar){
 				mensaje = (Mensaje) buffEntrada.readObject();
 				
@@ -214,6 +230,10 @@ public class ConsultorNA_NC implements Consultor {
 
 						terminar = true;
 						break;
+					case Codigos.NC_NA_GET_SOLICITUD_VECINOS:
+						this.solicitudVecinos((SolicitudNcsVecinos) mensaje);
+						terminar = true;
+						break;
 					default:
 						System.out.printf("\tRecibido mensaje en %s: %s\n", sockToString(), mensaje.getCarga());
 						break;
@@ -222,7 +242,7 @@ public class ConsultorNA_NC implements Consultor {
 			
 			sock.close();
 			System.out.printf("-> Conexión con %s finalizada\n", sockToString());
-		} catch (IOException | ClassNotFoundException e) {
+		} catch (ClassNotFoundException | IOException e) {
 			//IOException -> buffer de salida (se cae el Cliente y el Servidor espera la recepción de un mensaje).
 			//ClassNotFoundException -> buffer de entrada.
 			// TODO: hacer algo en caso de error

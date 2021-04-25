@@ -224,29 +224,28 @@ public class AtributosCentral extends Atributos {
 		indiceCentrales.put(direccion, true);
 	}
 
-	public Integer indexarCentrales(ArrayList<DireccionNodo> direcciones){
+	public ArrayList<DireccionNodo> indexarCentrales(ArrayList<DireccionNodo> direcciones){
 		Integer necesarios = maxCentralesVecinos - indiceCentrales.size();
-		Integer disponibles = necesarios - direcciones.size();
+		Integer disponibles = direcciones.size();
 
 		if ((necesarios <= 0) || (disponibles <= 0))
-			return 0;
+			return new ArrayList<DireccionNodo>();
 
 		ArrayList<DireccionNodo> aInsertar;
 		Integer cantidad;
 
-		if (disponibles > necesarios) {
-			aInsertar = (ArrayList<DireccionNodo>) direcciones.subList(0, necesarios);
+		if (disponibles > necesarios)
 			cantidad = necesarios;
-		} else {
-			aInsertar = (ArrayList<DireccionNodo>) direcciones.subList(0, disponibles);
+		else
 			cantidad = disponibles;
-		}
+
+		aInsertar = new ArrayList<DireccionNodo>(direcciones.subList(0, cantidad));
 
 		// Tiene que haber una manera más eficiente de hacerlo
 		for (DireccionNodo direccion : aInsertar)
 			indiceCentrales.put(direccion, true);
 
-		return cantidad;
+		return aInsertar;
 	}
 
 	public void setMaxCentralesVecinos(Integer cantidad) {

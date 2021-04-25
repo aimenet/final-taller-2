@@ -15,6 +15,8 @@ public class Constantes {
 
 	// Nombres de tareas
 	public static final String TSK_NC_CHECK_VECINOS = "TSK_NC_CHECK_VECINOS";
+	public static final String TSK_NA_CONECTAR_NCS = "CONECTAR-NCS";
+	public static final String TSK_NC_ANUNCIO_VECINO = "ANUNCIO-VECINO";
 
 	// Propios de WKANs
 	public static final Integer ESPERA_ENTRE_INFORME_DE_NCS_VECINOS = 60;  // segundos

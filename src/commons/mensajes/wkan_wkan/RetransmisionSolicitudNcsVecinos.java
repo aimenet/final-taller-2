@@ -4,7 +4,7 @@ import commons.DireccionNodo;
 import commons.mensajes.Mensaje;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+
 
 /**
  * Mensaje mediante el que un WKAN retransmitirá a otro la solicitud de (NCs) vecinos efectuada por un NC

@@ -219,20 +219,42 @@ imágenes (entre el envío de la cantidad y el de las imágenes en sí, por deci
 - Cliente para debuggeo que se conecte a los nodos que le indique (habilitar un puerto de "operaciones"/"mantenimiento"
   o algo así y consulte los nodos a los que está conectado/conoce el Nodo que hace de server []
 
-Tabla de pruebas pendientes
----------------------------
-    * creada: 2020-10-01
-    * último update: 2020-10-01
-    * Pruebas:
-        [x] WKAN <-> WKAN
-        [ ] WKAN <-> NC
-        [ ] WKAN <-> NH
-        [ ] NC <-> WKAN
-        [ ] NC <-> NC
-        [ ] NC <-> NH
-        [ ] NH <-> WKAN
-        [ ] NH <-> NC
-        [ ] NH <-> NH
+2021-04-25
+Los logs deberían ser de 1 línea, por más que pertenezcan a la misma tarea, de manera de que sean fáciles de procesar
+por Kibana por ejemplo.
+Incluso podría agregarle un UUID a cada tarea para que sea fácilmente agrupable. Puedo hacer una clase para esto y que
+todo lo que quiera loggear herede de ella.
+
+Se me ocurre algo así:
+[UUID] [WKAN] [Cons NC] [Solicitud vecinos] Recibido pedido de X NC por N vecinos
+[UUID] [WKAN] [Cons NC] [Solicitud vecinos] [Error] No se pudo encolar X tarea
+[UUID] [WKAN] [Cons NC] [Solicitud vecinos] Informado vecino
+[UUID] [WKAN] [Cons NC] [Solicitud vecinos] [OK]
+
+
+CASO: solicitud de un NCs de vecinos
+Tengo 1 WKAN con 2 NCs conectados a él
+El WKAN informa vecinos bien, ambos NCs tienen al otro como vecino, hasta ahí genial.
+Cuando pasa el tiempo correspondiente y el WKAN le informa otra vez un vecino a uno de los NCs, los logs muestran como
+si le hubiera informado un nuevo vecino pero en realidad es el mismo que ya conocía. No  pasa nada porque cuando el NC
+lo guarda lo que hace es pisar al que ya conocía, pero queda un poco desprolijo.
+
+
+------------------------------------------------------------------------------------------------------------------------
+---------- ROADMAP                                                                                            ----------
+------------------------------------------------------------------------------------------------------------------------
+[2021-04-19 al 2021-04-25]
+    * Solicitud de vecinos de un NCs
+
+[2021-04-26 al 2021-05-02]
+    * Clase para loggear bien
+    * Implementarla en 1 método de 1 nodo para probar, después la iré propagando al resto de los nodos
+
+
+
+
+
+
 
 
 

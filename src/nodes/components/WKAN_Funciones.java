@@ -5,6 +5,7 @@ import java.util.*;
 import commons.Codigos;
 import commons.Tarea;
 import commons.DireccionNodo;
+import commons.mensajes.wkan_wkan.RetransmisionAnuncioNc;
 import nodes.components.atributos.AtributosAcceso;
 
 /** 
@@ -27,49 +28,78 @@ public class WKAN_Funciones {
 		// Acá la lógica puede ser tan compleja como se quiera
 		return atributos.getCentrales().size() < atributos.maxNCCapacity;
 	}
-	
-	
-	// Métodos externos
-	// -----------------------------------------------------------------------------------------------------------------
-	public int atenderAnuncioNC(DireccionNodo direccionNC, boolean retransmitir) throws InterruptedException {
-		/* Función que determina si el nodo puede aceptar y administrar al NC que se está anunciando 
-		 * 
+
+	private int aceptarORetransmitirNC(
+			DireccionNodo direccionNC,
+			Boolean retransmitir,
+			Integer saltos_retransmision,
+			ArrayList<DireccionNodo> wkansVisitados
+	) {
+		/* Determina si el nodo puede aceptar y administrar al NC que se está anunciando, o si en su defecto debe
+		 * retransmitir el anuncio a otro WKAN.
+		 *
 		 * Devuelve el código que le será enviado como respuesta al NC (y del que puede inferirse el estado final
-		 * de la evaluación 
-		 * 
+		 * de la evaluación
+		 *
 		 * */
-		
 		// Valida que no lo tenga ya entre los NC registrados
 		HashMap<DireccionNodo, HashMap<String, Comparable>> actuales = this.atributos.getCentrales();
-		Boolean nuevo = true;
-		
-		for (DireccionNodo key : actuales.keySet()) {
-			if (key.equals(direccionNC)) {
-				nuevo = false;
-				break;
-			}
-		}
-		
-		if (nuevo) {
-			// TODO 2021-04-20: revisar que esto se esté ejecutando
-			// Se encola la tarea que indicará a alguno de los WKAN que el nuevo NC necesita enlazarse con otros NCs
-			HashMap<String, Object> payload = new HashMap<String, Object>();
-			payload.put("ncDestino", direccionNC);
-			atributos.encolar("salida", new Tarea(00, "SOLICITAR_NCS_VECINOS", payload));
 
-		}
-		
 		// Lógica de aceptación de NC
 		if (this.checkAcceptationCapacity()) {
 			atributos.encolarCentral(this.atributos.nuevoCentral(direccionNC));
-
 			return Codigos.OK;
-		} else {
-			if (retransmitir)
-				atributos.encolar("salida", new Tarea(00, "RETRANSMITIR_ANUNCIO_NC", direccionNC));
+		}
+
+		if (retransmitir && saltos_retransmision > 0) {
+			RetransmisionAnuncioNc retransmision = new RetransmisionAnuncioNc(
+					atributos.getDireccion(),
+					Codigos.NA_NA_POST_RETRANSMISION_ANUNCIO_NC,
+					direccionNC,
+					saltos_retransmision,
+					wkansVisitados
+			);
+
+			try {
+				atributos.encolar("salida", new Tarea(00, "RETRANSMITIR_ANUNCIO_NC", retransmision));
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+				return Codigos.DENIED;
+			}
 
 			return Codigos.ACCEPTED;
 		}
+
+		return Codigos.DENIED;
+	}
+	
+	// Métodos externos
+	// -----------------------------------------------------------------------------------------------------------------
+	public int atenderAnuncioNC(DireccionNodo direccionNC, boolean retransmitir) {
+		Integer saltos_retransmision = 3; // TODO: esto no debe estar hardcodeado ni ser un número puesto a dedo
+		ArrayList<DireccionNodo> wkansVisitados = new ArrayList<DireccionNodo>();
+
+		wkansVisitados.add(atributos.getDireccion());
+
+		Integer resultado = this.aceptarORetransmitirNC(
+				direccionNC, retransmitir, saltos_retransmision, wkansVisitados
+		);
+
+		return resultado;
+	}
+
+	public int atenderAnuncioNC(RetransmisionAnuncioNc retransmision) {
+		ArrayList<DireccionNodo> wkansVisitados = retransmision.getWkansVisitados();
+		wkansVisitados.add(atributos.getDireccion());
+
+		Integer resultado = this.aceptarORetransmitirNC(
+				retransmision.getNodoCentral(),
+				true,
+				retransmision.getSaltos() - 1,
+				wkansVisitados
+		);
+
+		return resultado;
 	}
 
 	public List<DireccionNodo> getNCsConCapacidadNH(Integer cantidad, Set<DireccionNodo> excepciones) {

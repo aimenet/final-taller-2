@@ -45,12 +45,7 @@ public class ConsultorNA_NC implements Consultor {
 		System.out.printf("Recibido anuncio de NC en %s\n", anunciante.ip.getHostName());
 
 		Integer codigo = null;
-		try {
-			codigo = funciones.atenderAnuncioNC(anunciante, true);
-		} catch (InterruptedException e) {
-			// A fines prácticos, está bien la retransmisión en tanto el código ACCEPTED no se use para otra cosa
-			codigo = Codigos.ACCEPTED;
-		}
+		codigo = funciones.atenderAnuncioNC(anunciante, true);
 
 		try {
 			buffSalida.writeObject(new Mensaje(null, codigo, null));
@@ -63,6 +58,9 @@ public class ConsultorNA_NC implements Consultor {
 		} else if (codigo == Codigos.ACCEPTED) {
 			System.out.printf("Capacidad max NC alcanzada, ");
 			System.out.printf("retransmitiendo anuncio de NC %s\n", anunciante.ip.getHostName());
+		} else {
+			System.out.printf("Capacidad max NC alcanzada, ");
+			System.out.printf("error al retransmitir anuncio de NC %s\n", anunciante.ip.getHostName());
 		}
 
 		return output;

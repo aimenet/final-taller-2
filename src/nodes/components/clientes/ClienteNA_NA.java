@@ -13,6 +13,7 @@ import commons.mensajes.Mensaje;
 import commons.Tarea;
 import commons.Tupla2;
 import commons.mensajes.wkan_nc.SolicitudNcsVecinos;
+import commons.mensajes.wkan_wkan.RetransmisionAnuncioNc;
 import commons.mensajes.wkan_wkan.RetransmisionSolicitudNcsVecinos;
 import nodes.components.atributos.AtributosAcceso;
 
@@ -30,9 +31,6 @@ import nodes.components.atributos.AtributosAcceso;
  * @author rodrigo
  * @since 2019-10-01
  */
-
-
-
 
 
 public class ClienteNA_NA extends Cliente {
@@ -182,7 +180,11 @@ public class ClienteNA_NA extends Cliente {
 		return output;
 	}
 
-	private HashMap<String, Object> retransmitirAnuncioNCFnc(HashMap<String, Object> params) {
+	private HashMap<String, Object> retransmitirAnuncioNCFncAnterior(HashMap<String, Object> params) {
+		// 2021-04-29: esta función está mal y puede que sea lo que me está mezclando todo. Al menos por lo que vi hasta
+		// el momento (flujo "NC se anuncia ante WKAN") no tiene nada que ver así que dejo esta función comentada
+		// (renombrada en realidad) y la paso en limpio
+
 		/**
 		 * Al no poder "hacerse cargo" de un NC retransmite la consulta a uno de los WKANs conocidos (elegido
 		 * aleatoriamente) para que se haga cargo.
@@ -235,6 +237,62 @@ public class ClienteNA_NA extends Cliente {
 			System.out.printf(
 					"No se encontraron WKANs para retransmitir anuncio del NC %s\n",
 					solicitud.getEmisor().ip.getHostName()
+			);
+		}
+
+		return output;
+	}
+
+	private HashMap<String, Object> retransmitirAnuncioNCFnc(HashMap<String, Object> params) {
+		/**
+		 * Al no poder "hacerse cargo" de un NC retransmite la consulta a uno de los WKANs conocidos (elegido
+		 * aleatoriamente) para que se haga cargo.
+		 *
+		 * La elección es aleatorioa para:
+		 *     1) no controlar que 2 (o más) WKANs que reciben la retransmisión se hagan cargo del mismo nodo
+		 * 	   2) no saturar la red con tantos mensajes
+		 *
+		 * Para evitar problemas se setea un TTL al mensaje a fin de que alcanzado el mismo se informe al NC que nadie
+		 * puede hacerse cargo de él.
+		 *
+		 * params: {
+		 *     "mensaje_retransmision", RetransmisionAnuncioNc
+		 * }
+		 *
+		 */
+
+		HashMap<String, Object> output = new HashMap<String, Object>();
+
+		// Estos son comunes a todas las funciones
+		output.put("callBackOnSuccess", false);
+		output.put("callBackOnFailure", false);
+		output.put("result", true);
+
+		RetransmisionAnuncioNc mensaje = (RetransmisionAnuncioNc) params.get("mensaje_retransmision");
+
+		DireccionNodo wkanDestino = ((AtributosAcceso) atributos).getRandomNABC();
+
+		if (wkanDestino != null) {
+			String ipDestino = wkanDestino.ip.getHostName();
+			Integer puertoDestino = wkanDestino.puerto_na;
+
+			System.out.printf("Consumidor %s: retransmitiendo anuncio NC a %s", this.id, wkanDestino.ip.getHostName());
+
+			if (this.establecerConexion(ipDestino, puertoDestino)) {
+				this.conexionConNodo.enviarSinRta(mensaje);
+
+				System.out.printf(" [COMPLETADO]\n");
+			} else {
+				Integer status = ((AtributosAcceso) this.atributos).getStatusNodo(wkanDestino);
+				status = status <= 0 ? 0 : status - 1;
+
+				((AtributosAcceso) this.atributos).setKeepaliveNodo(wkanDestino, status);
+				System.out.printf(" [FALLIDO]\n");
+			}
+		} else {
+			System.out.printf(
+					"No se encontraron WKANs para retransmitir anuncio del NC %s\n",
+					mensaje.getNodoCentral().ip.getHostName()
 			);
 		}
 
@@ -343,13 +401,11 @@ public class ClienteNA_NA extends Cliente {
 		 *
 		 * params: {
 		 *     "ncDestino": DireccionNodo, la IP del NC al que conectarse
-		 *     "preparado": boolean, identifica que la solicitud vino de ???
-		 *     "consultados"
-		 *     "saltos"
-		 *     "ncsRestantes"
 		 * }
 		 *
 		 */
+
+		// TODO 2021-04-25: esta función creo que no se usa más
 
 		HashMap<String, Object> output = new HashMap<String, Object>();
 
@@ -362,7 +418,7 @@ public class ClienteNA_NA extends Cliente {
 		DireccionNodo ncDestino = (DireccionNodo) params.get("ncDestino");
 		DireccionNodo wkanDestino = null;
 
-		// Armado del payload de la consulta (donde está toda la información de "control" para todo esto
+		// Armado del payload de la consulta (donde está toda la información de "control")
 		// El payload puede tener distintos formatos, dependiendo de quién haya generado la tarea
 		if (!params.containsKey("preparado")) {
 			LinkedList<DireccionNodo> consultados = new LinkedList<DireccionNodo>();
@@ -454,7 +510,7 @@ public class ClienteNA_NA extends Cliente {
 				break;
 			case "RETRANSMITIR_ANUNCIO_NC":
 				hashmapPayload = new HashMap<String, Object>();
-				hashmapPayload.put("solicitud_original", (RetransmisionSolicitudNcsVecinos) tarea.getPayload());
+				hashmapPayload.put("mensaje_retransmision", (RetransmisionAnuncioNc) tarea.getPayload());
 
 				this.retransmitirAnuncioNCFnc(hashmapPayload);
 

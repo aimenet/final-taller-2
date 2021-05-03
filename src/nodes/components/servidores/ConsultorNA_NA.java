@@ -11,6 +11,7 @@ import commons.Tarea;
 import commons.Tupla2;
 import commons.DireccionNodo;
 import commons.mensajes.wkan_nc.SolicitudNcsVecinos;
+import commons.mensajes.wkan_wkan.RetransmisionAnuncioNc;
 import commons.mensajes.wkan_wkan.RetransmisionSolicitudNcsVecinos;
 import nodes.components.clientes.ClienteNA_NC;
 import nodes.components.WKAN_Funciones;
@@ -28,19 +29,13 @@ public class ConsultorNA_NA implements Consultor {
 	/* --------- */
 	/* Atributos */
 	/* --------- */
-	// De cada instancia
 	private AtributosAcceso atributos = new AtributosAcceso();
 	private ObjectInputStream buffEntrada;
 	private ObjectOutputStream buffSalida;
 	private Socket sock;
 	private WKAN_Funciones funciones = new WKAN_Funciones();
-	
-	// De la clase
-	
-	
-	/* -------- */
-	/* Métodos  */
-	/* -------- */
+
+
 	// Métodos que se usan para atender los distintos tipos de órdenes recibidas en una Tarea
 	// ---------------------------------------------------------------------------------------------------
 	private HashMap<String, Object> anuncioFnc(Mensaje mensaje) throws IOException {
@@ -98,13 +93,10 @@ public class ConsultorNA_NA implements Consultor {
 		return output;
 	}
 
-	private HashMap<String, Object> retransmisionAnuncioNCFnc(Mensaje mensaje) throws InterruptedException {
+	private HashMap<String, Object> retransmisionAnuncioNCFnc(RetransmisionAnuncioNc retransmision) {
 		/*
 		* Anuncio (retransmitido por un WKAN sin capacidad de atenderlo) de un NC
 		*
-		* Payload del mensaje: {
-		*	"nc_pendiente": DireccionNodo,
-		* }
 		* */
 
 		// Estos son comunes a todas las funciones
@@ -113,15 +105,21 @@ public class ConsultorNA_NA implements Consultor {
 		output.put("callBackOnFailure", false);
 		output.put("result", true);
 
-		DireccionNodo nodo = (DireccionNodo) ((HashMap<String, Object>) mensaje.getCarga()).get("nc_pendiente");
-
-		Integer codigo = funciones.atenderAnuncioNC(nodo, false);
+		DireccionNodo nodo = retransmision.getNodoCentral();
+		Integer codigo = funciones.atenderAnuncioNC(retransmision);
 
 		if (codigo == Codigos.OK) {
 			// Tarea donde se le informará al NC que este Nodo lo aceptará
 			System.out.printf("Aceptado NC %s. Comunicando\n", nodo.getUnaDireccion("acceso"));
 
-			atributos.encolar("centrales", new Tarea(00, "ANUNCIO-ACEPTADO", nodo));
+			try {
+				atributos.encolar(
+						"centrales", new Tarea(00, "ANUNCIO-ACEPTADO", nodo)
+				);
+			} catch (InterruptedException e) {
+				// TODO: ver cómo lo soluciono
+				e.printStackTrace();
+			}
 		} else if (codigo == Codigos.ACCEPTED) {
 			System.out.printf("Capacidad max NC alcanzada, rechazado NC %s\n", nodo.getUnaDireccion("acceso"));
 		}
@@ -212,7 +210,7 @@ public class ConsultorNA_NA implements Consultor {
 		return output;
 	}
 
-	private HashMap<String, Object> solicitudVecinosNCFnc(Mensaje mensaje) throws InterruptedException {
+	private HashMap<String, Object> solicitudVecinosNCFnc(RetransmisionSolicitudNcsVecinos solicitud) throws InterruptedException {
 		/**
 		 * Evalua si algún NC posee capacidad de enlazarse a otro, a fin de comunicarlo al NC recientemente incorporado
 		 * a la red
@@ -227,7 +225,7 @@ public class ConsultorNA_NA implements Consultor {
 		output.put("callBackOnFailure", false);
 		output.put("result", true);
 
-		RetransmisionSolicitudNcsVecinos solicitud = (RetransmisionSolicitudNcsVecinos) mensaje.getCarga();
+		// RetransmisionSolicitudNcsVecinos solicitud = (RetransmisionSolicitudNcsVecinos) mensaje.getCarga();
 
 		HashMap<DireccionNodo, HashMap<String, Comparable>> centralesRegistrados = atributos.getCentrales();
 
@@ -314,10 +312,10 @@ public class ConsultorNA_NA implements Consultor {
 						this.anuncioActivosFnc(mensaje);
 						break;
 					case Codigos.NA_NA_POST_RETRANSMISION_ANUNCIO_NC:
-						this.retransmisionAnuncioNCFnc(mensaje);
+						this.retransmisionAnuncioNCFnc((RetransmisionAnuncioNc) mensaje);
 						break;
 					case Codigos.NA_NA_POST_SOLICITUD_VECINOS_NC:
-						this.solicitudVecinosNCFnc(mensaje);
+						this.solicitudVecinosNCFnc((RetransmisionSolicitudNcsVecinos) mensaje.getCarga());
 						break;
 					case Codigos.NA_NA_POST_RETRANSMISION_NH_SOLICITUD_NC:
 						this.retransmisionSolicitudNCsNHFnc(mensaje);

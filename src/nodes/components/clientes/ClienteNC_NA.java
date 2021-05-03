@@ -70,6 +70,7 @@ public class ClienteNC_NA extends Cliente {
 					// el wkan no tiene capacidad para aceptarme pero retransmitió la consulta.
 					System.out.printf(" [ERROR]\n");
 					System.out.println("Iniciando espera de aceptación");
+					((AtributosCentral) atributos).marcarIntentoConexionWKAN(false);
 				}
 
 				// Cualquiera haya sido la respuesta, termina el bucle
@@ -112,6 +113,7 @@ public class ClienteNC_NA extends Cliente {
 			Integer espera = ((AtributosCentral) atributos).getTimeoutEsperaAnuncioWKAN();  // segundos
 			Timestamp ultimoIntento = ((AtributosCentral) atributos).getUltimoIntentoConexionWKAN();
 
+			// TODO: acá
 			if(ultimoIntento.compareTo(new Timestamp(System.currentTimeMillis() - espera * 1000)) <= 0) {
 				try {
 					atributos.encolar("acceso", new Tarea(00,"ANUNCIO_WKAN", wkan));

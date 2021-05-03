@@ -71,7 +71,7 @@ public class ClienteNA_NC extends Cliente {
 			((AtributosAcceso) atributos).desencolarCentral(nodo);
 			
 			System.out.print("\nConsumidor " + this.idConsumidor + ": ");
-			System.out.printf("falló aununcio aceptación a NC %s. Descartado\n", nodo.ip.getHostName());
+			System.out.printf("falló aununcio aceptación a NC %s. Descartado\n", nodo.getUnaDireccion("acceso"));
 		} else {
 			// Código "normal" que se ejecuta cuando sí se conecta al NC
 			Mensaje saludo = new Mensaje(
@@ -83,7 +83,7 @@ public class ClienteNA_NC extends Cliente {
 			this.conexionConNodo.enviarSinRta(saludo);
 
 			System.out.printf("Consumidor %s: ", this.idConsumidor);
-			System.out.printf("anunciada aceptación a NC %s\n", nodo.ip.getHostName());
+			System.out.printf("anunciada aceptación a NC %s\n", nodo.getUnaDireccion("acceso"));
 		}
 		
 		return output;
@@ -223,11 +223,12 @@ public class ClienteNA_NC extends Cliente {
 		switch(tarea.getName()){
 			case "ANUNCIO-ACEPTADO":
 				// Le indica a un NC que fue aceptado en la red, siendo éste el WKAN que lo administrará
-				ipNcDestino = ((DireccionNodo) tarea.getPayload()).ip.getHostName();
-				puertoNcDestino = ((DireccionNodo) tarea.getPayload()).puerto_nc;
+				DireccionNodo nodo = (DireccionNodo) tarea.getPayload();
+				ipNcDestino = nodo.ip.getHostAddress();
+				puertoNcDestino = nodo.puerto_na;
 				method = this::anuncioAceptadoFnc;
 				diccionario = new HashMap<String, Object>();
-				diccionario.put("direccionNC", tarea.getPayload());
+				diccionario.put("direccionNC", nodo);
 				break;
 			case "CONECTAR-NCS":
 				// Se informará la dirección de un NC (manejado por este nodo) al NC recientemente incorporado a la red

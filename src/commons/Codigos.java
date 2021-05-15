@@ -13,6 +13,7 @@ public class Codigos {
 	public static final int NA_NA_POST_RETRANSMISION_ANUNCIO_NC = 42;
 	public static final int NA_NA_POST_SOLICITUD_VECINOS_NC = 43;
 	public static final int NA_NA_POST_RETRANSMISION_NH_SOLICITUD_NC = 44;
+	public static final int NA_NA_POST_RETRANSMISION_SOLICITUD_VECINOS_NC = 45;
 	
 	// Usados entre NCs y WKANs
 	public static final int NC_NA_POST_ANUNCIO = 60;

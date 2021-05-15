@@ -120,9 +120,6 @@ public class ClienteNA_NC extends Cliente {
 
 		this.conexionConNodo.enviarSinRta(respuesta);
 
-		// Registra el timestamp de la notificación
-		((AtributosAcceso) atributos).setInformeNCVecino(nodoNuevo);
-
 		System.out.printf("[Cli %s]\t", this.idConsumidor);
 		System.out.printf("anunciado NC vecino (%s) a ", nodoVecino.ip.getHostName());
 		System.out.printf("%s\n", nodoNuevo.ip.getHostName());
@@ -233,19 +230,19 @@ public class ClienteNA_NC extends Cliente {
 			case "CONECTAR-NCS":
 				// Se informará la dirección de un NC (manejado por este nodo) al NC recientemente incorporado a la red
 				
-				// payload = Tupla de strings. El primero es la dirección del NC que será vecino del solicitante.
-				//           El segundo es la dirección del NC que solicita los vecinos
+				// payload = Tupla de DireccionNodo. El primero es la dirección del NC que solicita los vecinos, el
+				// segundo es la dirección del vecino
 
 				diccionario = new HashMap<String, Object>();
 
 				// NC nuevo en la red (quien solicita vecinos)
-				direccion = ((Tupla2<DireccionNodo, DireccionNodo>) tarea.getPayload()).getSegundo();
+				direccion = ((Tupla2<DireccionNodo, DireccionNodo>) tarea.getPayload()).getPrimero();
 				ipNcDestino = direccion.ip.getHostName();
 				puertoNcDestino = direccion.puerto_na;
 				diccionario.put("direccionNcNuevo", direccion);
 
 				// NC existente que será vecino del nuevo
-				direccion = ((Tupla2<DireccionNodo, DireccionNodo>) tarea.getPayload()).getPrimero();
+				direccion = ((Tupla2<DireccionNodo, DireccionNodo>) tarea.getPayload()).getSegundo();
 				diccionario.put("direccionNcVecino", direccion);
 
 				method = this::conectarNcsFnc;

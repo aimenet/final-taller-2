@@ -5,6 +5,7 @@ import commons.DireccionNodo;
 import commons.structs.wkan.NCIndexado;
 
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -100,6 +101,13 @@ public class AtributosAcceso extends Atributos {
 		}
 	}
 
+	public void decrementarKeepAliveNodo(DireccionNodo nodo) {
+		Integer status = this.getStatusNodo(nodo);
+		status = status <= 0 ? 0 : status - 1;
+
+		this.setKeepaliveNodo(nodo, status);
+	}
+
 	public ArrayList<DireccionNodo> getWkansActivos() {
 		/*
 		* Para cada WKAN conocido por este Nodo, se guarda un indicador para determinar si está activo o con qué
@@ -156,13 +164,13 @@ public class AtributosAcceso extends Atributos {
 			// TODO: fix temporal hasta que reemplace el Hashmap<String, Comparable> de centrales por NCIndexado
 			output = new NCIndexado(
 					(DireccionNodo) nodo.get("direccion"),
-					(Integer) nodo.get("hojasMax"),
-					(Integer) nodo.get("Integer hojasActivas"),
-					(Integer) nodo.get("centralesMax"),
-					(Integer) nodo.get("centralesActivos"),
+					(Integer) nodo.get("hojas_max"),
+					(Integer) nodo.get("hojas_activas"),
+					(Integer) nodo.get("centrales_max"),
+					(Integer) nodo.get("centrales_activos"),
 					(Boolean) nodo.get("alive"),
 					(Timestamp) nodo.get("timestamp"),
-					(Timestamp) nodo.get("ultimoNncInformado")
+					(Timestamp) nodo.get("ultimo_nc_informado")
 			);
 
 		return output;
@@ -200,6 +208,21 @@ public class AtributosAcceso extends Atributos {
 		centrales.put(nodoInformado, datosNodo);
 	}
 
+	public Boolean puedoInformarleVecino(DireccionNodo solicitante) {
+		Boolean output = false;
+
+		Timestamp start = this.getCentral(solicitante).ultimoNncInformado;
+
+		if (start != null) {
+			Timestamp end = new Timestamp(System.currentTimeMillis());
+
+			long timeElapsed = Duration.between(start.toInstant(),end.toInstant()).toSeconds();
+
+			output = timeElapsed >= this.esperaEntreInformeDeVecinos;
+		}
+
+		return output;
+	}
 
 	// Getters
 	public Integer getStatusNodo(DireccionNodo nodo) {

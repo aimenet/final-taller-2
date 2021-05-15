@@ -53,7 +53,7 @@ public class ClienteNC_NC extends Cliente {
 
 		DireccionNodo vecino = (DireccionNodo) params.get("direccionNC");
 
-				// Si el código no es OK (200), independientemente de por qué no se ha aceptado la "vinculación" no hago nada.
+		// Si el código no es OK (200), independientemente de por qué no se ha aceptado la "vinculación" no hago nada.
 		System.out.printf("[Cli %s]\t", this.id);
 		System.out.printf("registrado nuevo NC vecino: %s ", vecino.ip.getHostAddress());
 
@@ -117,28 +117,14 @@ public class ClienteNC_NC extends Cliente {
 	protected HashMap<String, Comparable> procesarTarea(Tarea tarea) throws InterruptedException {
 		Function<HashMap<String, Object>, HashMap<String, Object>> method;
 		HashMap<String,Object> diccionario;
-		Integer contador=0; 
+		Integer contador=0;
 		Integer intentos=3; 
 		Integer puertoNcDestino;
-		Object generico;
-		String auxStr;
 		String ipNcDestino;
 		
-		// Inicializaciones de cortesía
+		// Inicializaciones
 		method = null;
 		diccionario = null;
-		
-		// TODO: recordá que existe esto!
-		// Si hago esto, el uso del CPU sube levemente pero me permite que trabajen todos los threads consumidores,
-		// sino, pasa lo que detallé al final del archivo -[2019-10-19]-
-		while(this.atributos.colaVacia("centrales")) {
-			Random rand = new Random();
-			Thread.sleep(rand.nextInt(3000));
-    	}
-		
-		System.out.printf("Consumidor %s: esperando\n", this.id);
-		tarea = atributos.desencolar("centrales"); // thread-safe
-		
 		ipNcDestino = null;
 		puertoNcDestino = null;
 		

@@ -135,8 +135,7 @@ public class ConsultorNC_NA implements Consultor {
 		ArrayList<DireccionNodo> listado = mensaje.getVecinos();
 		Integer cantidadIndexados = 0;
 
-		System.out.printf("[Con WKAN] ");
-		System.out.printf("Recibido listado de %d NCs vecinos", listado.size());
+		System.out.printf("[Con WKAN] Recibido listado de %d NCs vecinos", listado.size());
 
 		if (listado.size() > 0) {
 			//ArrayList<DireccionNodo> indexados = ((AtributosCentral) atributos).indexarCentrales(listado);
@@ -147,6 +146,7 @@ public class ConsultorNC_NA implements Consultor {
 
 				try {
 					atributos.encolar("centrales", tarea);
+					System.out.printf("[Con WKAN] Encolada tarea TSK_NC_ANUNCIO_VECINO\n");
 				} catch (InterruptedException e) {
 					// TODO 2021-04-25: hacer algo
 					e.printStackTrace();

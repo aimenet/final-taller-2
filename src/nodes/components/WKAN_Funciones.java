@@ -1,11 +1,12 @@
 package nodes.components;
 
+import java.sql.Timestamp;
+import java.time.Duration;
 import java.util.*;
 
-import commons.Codigos;
-import commons.Tarea;
-import commons.DireccionNodo;
+import commons.*;
 import commons.mensajes.wkan_wkan.RetransmisionAnuncioNc;
+import commons.structs.wkan.NCIndexado;
 import nodes.components.atributos.AtributosAcceso;
 
 /** 
@@ -20,7 +21,15 @@ public class WKAN_Funciones {
 	// Atributos
 	// -------------------------------------------------------------------------------------------------------------
 	private AtributosAcceso atributos = new AtributosAcceso();
-	
+
+	// Respuestas predefinidas de métodos
+	public enum atenderSolicutdVecinosNCOutput {
+		OK_CON_VECINO,
+		OK_SIN_VECINO,
+		KO_NODO_DESCONOCIDO,
+		KO_ERROR,
+	}
+
 	
 	// Métodos internos
 	// -----------------------------------------------------------------------------------------------------------------
@@ -100,6 +109,78 @@ public class WKAN_Funciones {
 		);
 
 		return resultado;
+	}
+
+	public DireccionNodo getWKANParaRetransmisiónSolicitudVecinosNCOutput(ArrayList<DireccionNodo> excluidos) {
+		/**
+		 * Método utilizado para elegir un WKAN al que enviar una retransmisión de Solicitud de Vecinos para un NC.
+		 *
+		 * Pasos:
+		 * 	1) Obtiene los WKAN conocidos hasta el momento
+		 * 	2) Descarta los WKANs ya consultados
+		 * 	3) Escoge aleatoriamente uno
+		 *
+		 * La elección es aleatorioa para:
+		 * 	a) No saturar la red con tantos mensajes
+		 * 	b) Ampliar la cobertura de la red
+		 *
+		 * */
+		DireccionNodo elegido = null;
+
+		// Obtención de WKANs conocidos y descarte de aquellos ya consultados
+		ArrayList<DireccionNodo> noConsultados = ((AtributosAcceso) atributos).getWkansActivos();
+		noConsultados.removeAll(excluidos);
+
+		if (noConsultados.size() > 0) {
+			// Elección aleatoria del WKAN al que retransmitir
+			Random generador = new Random();
+			Integer indice = generador.nextInt(noConsultados.size());
+			elegido = noConsultados.get(indice);
+		}
+
+		return elegido;
+	}
+
+	public atenderSolicutdVecinosNCOutput atenderSolicutdVecinosNC(DireccionNodo nodo) {
+		/*
+		* Se recibió un pedido de NCs vecinos.
+		* Se busca entre todos los NCs administrados por el nodo si alguno puede ser informado, en cuyo caso se encola
+		* la tarea de conectar ambos nodos.
+		*
+		* Algunas consideraciones:
+		*     1) Solo se escogerá 1 NC para comunicar, independientemente de la cantidad solicitada. Esto puede ser una
+		*        limitante en redes grandes.
+		*     2) En la solicitud recibida se podría especificar los NCs conocidos hasta el momento, de manera de no
+		*        sugerir uno al cual el NC solicitante ya se encuentra conectado
+		*
+		* */
+		Boolean errorFlag = false;
+		Boolean informar = false;
+		DireccionNodo vecino = null;
+
+		vecino = atributos.getRandomNCDistinto(nodo);
+
+		if (vecino != null) {
+			Tupla2<DireccionNodo, DireccionNodo> par = new Tupla2<DireccionNodo, DireccionNodo>(nodo, vecino);
+
+			Tarea tarea = new Tarea(00, Constantes.TSK_NA_CONECTAR_NCS, par);
+
+			try {
+				atributos.encolar("centrales", tarea);
+			} catch (InterruptedException e) {
+				// TODO: qué hago?
+				errorFlag = true;
+				e.printStackTrace();
+			}
+		}
+
+		if (vecino != null && !errorFlag) {
+			return atenderSolicutdVecinosNCOutput.OK_CON_VECINO;
+		} else if (vecino == null && !errorFlag) {
+			return atenderSolicutdVecinosNCOutput.OK_SIN_VECINO;
+		} else {
+			return atenderSolicutdVecinosNCOutput.KO_ERROR;
+		}
 	}
 
 	public List<DireccionNodo> getNCsConCapacidadNH(Integer cantidad, Set<DireccionNodo> excepciones) {

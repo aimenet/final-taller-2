@@ -112,16 +112,19 @@ public class NodoCentral {
 		}
 				
 		// Clientes
-		// 1 para conectarse al WKAN que sirve de pto de entrada a la red
-		// 3 (def. por el archivo de configuración) para interactuar con los NCs a los que se conectará
-		while (this.clients.size() < Integer.parseInt(this.config.getProperty("centrales")))
+		// 1 por cada NC al que podría conectarse, forzando a que al menos haya 2 Clientes
+		Integer clientes_nc_nc = Integer.parseInt(this.config.getProperty("centrales"));
+		clientes_nc_nc = clientes_nc_nc > 1 ? clientes_nc_nc : 2;
+
+		while (this.clients.size() < clientes_nc_nc)
 			this.clients.put(
 					"NC-" + Integer.toString(this.clients.size()),
 					new ClienteNC_NC(this.clients.size(), Constantes.COLA_NC)
 			);
 
+		// 1 para conectarse al WKAN que sirve de pto de entrada a la red
 		this.clients.put(
-				"NC-" + Integer.toString(this.clients.size()),
+				"NA-" + Integer.toString(this.clients.size()),
 				new ClienteNC_NA(this.clients.size(), Constantes.COLA_NA)
 		);
 		
@@ -173,19 +176,19 @@ public class NodoCentral {
 		// CRONJOB
 		while(!terminar) {
 			// Tarea que determina si es necesario enviar anuncio a WKAN en caso de que aún no se ingresó a la red
-			try {
+			/*try {
 				Thread.sleep(10000);
 				atributos.encolar(Constantes.COLA_NA, new Tarea(00, "CHECK_ANUNCIO", null));
 				System.out.println("[Core] Disparada tarea periódica: CHECK ANUNCIO para determinar ingreso a la red");
 			} catch (InterruptedException e) {
 				e.printStackTrace();
-			}
+			}*/
 
 			// Hasta acá esperé: 10 segundos ---------------------------------------------------------------------------
 
 			// Solicitud de NCs vecinos en caso de no haberse alcanzado el número necesario
 			try {
-				Thread.sleep(10000);
+				Thread.sleep(30000);
 
 				atributos.encolar(
 						Constantes.COLA_NA,
@@ -205,13 +208,13 @@ public class NodoCentral {
 			// respondan
 
 			// Dispara tarea de envío de keepalive a WKAN
-			try {
+			/*try {
 				Thread.sleep(TimeUnit.MILLISECONDS.convert(atributos.keepaliveWKAN, TimeUnit.SECONDS));
 				atributos.encolar(Constantes.COLA_NA, new Tarea(00, "SEND_KEEPALIVE_WKAN", null));
 				System.out.println("[Core] Disparada tarea periódica: keepalive WKAN");
 			} catch (InterruptedException e) {
 				e.printStackTrace();
-			}
+			}*/
 
 			// Hasta acá esperé: 30 segundos ---------------------------------------------------------------------------
 

@@ -5,16 +5,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map.Entry;
+import java.util.Random;
 
-import commons.DireccionNodo;
-import commons.Codigos;
-import commons.ConexionTcp;
+import commons.*;
 import commons.mensajes.Mensaje;
-import commons.Tarea;
-import commons.Tupla2;
 import commons.mensajes.wkan_nc.SolicitudNcsVecinos;
 import commons.mensajes.wkan_wkan.RetransmisionAnuncioNc;
 import commons.mensajes.wkan_wkan.RetransmisionSolicitudNcsVecinos;
+import nodes.components.WKAN_Funciones;
 import nodes.components.atributos.AtributosAcceso;
 
 /**
@@ -386,6 +384,101 @@ public class ClienteNA_NA extends Cliente {
 		return output;
 	}
 
+	private HashMap<String, Object> retransmitirSolicitudVecinosNCFncDeprecated(RetransmisionSolicitudNcsVecinos solicitud) {
+		/**
+		 * Un NC ha solicitado otros NCs vecinos y debe enviarse la consulta a otro WKAN a fin de ampliar la cobertura
+		 * de la red.
+		 *
+		 * La elección es aleatorioa para:
+		 *     1) no saturar la red con tantos mensajes
+		 *     2) ampliar la cobertura de la red
+		 *
+		 * Para evitar problemas se setea un TTL al mensaje a fin de que alcanzado el mismo se informe al NC que nadie
+		 * puede hacerse cargo de él.
+		 *
+		 */
+
+		HashMap<String, Object> output = new HashMap<String, Object>();
+
+		// Estos son comunes a todas las funciones
+		output.put("callBackOnSuccess", false);
+		output.put("callBackOnFailure", false);
+		output.put("result", true);
+
+		// Descarta los WKANs ya consultados
+		ArrayList<DireccionNodo> noConsultados = ((AtributosAcceso) atributos).getWkansActivos();
+		noConsultados.removeAll(solicitud.getWkansVisitados());
+
+		if (noConsultados.size() <= 0) {
+			System.out.printf("no se encontró WKAN al que enviar solicitud de vecinos\n");
+			return output;
+		}
+
+		// Escoge aleatoriamente un WKAN al que retransmitir
+		Random generador = new Random();
+		Integer indice = generador.nextInt(noConsultados.size());
+		DireccionNodo wkanDestino = noConsultados.get(indice);
+
+		if (wkanDestino == null) {
+			System.out.printf("No se encontraron WKANs para retransmitir anuncio del NC");
+			System.out.printf("%s\n", solicitud.getNodoCentral().ip.getHostName());
+			return output;
+		}
+
+		String ipDestino = wkanDestino.ip.getHostName();
+		Integer puertoDestino = wkanDestino.puerto_na;
+
+		System.out.printf(
+				"Consumidor %s: retransmitiendo solicitud de NCs vecinos a %s",
+				this.id, wkanDestino.ip.getHostName()
+		);
+
+		if (this.establecerConexion(wkanDestino.ip.getHostName(), wkanDestino.puerto_na)) {
+			this.conexionConNodo.enviarSinRta(solicitud);
+			System.out.printf(" [COMPLETADO]\n");
+		} else {
+			((AtributosAcceso) this.atributos).decrementarKeepAliveNodo(wkanDestino);
+			System.out.printf(" [FALLIDO]\n");
+		}
+
+		return output;
+	}
+
+	private HashMap<String, Object> retransmitirSolicitudVecinosNCFnc(RetransmisionSolicitudNcsVecinos solicitud) {
+		/**
+		 * Un NC ha solicitado otros NCs vecinos y debe enviarse la consulta a otro WKAN a fin de ampliar la cobertura
+		 * de la red.
+		 *
+		 */
+
+		HashMap<String, Object> output = new HashMap<String, Object>();
+
+		// Estos son comunes a todas las funciones
+		output.put("callBackOnSuccess", false);
+		output.put("callBackOnFailure", false);
+		output.put("result", true);
+
+		WKAN_Funciones fxs = new WKAN_Funciones();
+		DireccionNodo destinatario = fxs.getWKANParaRetransmisiónSolicitudVecinosNCOutput(
+				solicitud.getWkansVisitados()
+		);
+
+		if (destinatario == null) {
+			System.out.printf("no se encontró WKAN al que enviar solicitud de vecinos\n");
+			return output;
+		}
+
+		if (this.establecerConexion(destinatario.ip.getHostName(), destinatario.puerto_na)) {
+			this.conexionConNodo.enviarSinRta(solicitud);
+			System.out.printf(" [COMPLETADO]\n");
+		} else {
+			((AtributosAcceso) this.atributos).decrementarKeepAliveNodo(destinatario);
+			System.out.printf(" [FALLIDO]\n");
+		}
+
+		return output;
+	}
+
 	private HashMap<String, Object> solicitarNCsVecinos(HashMap<String, Object> params) {
 		/**
 		 * Se aceptó un NC y ahora debe comenzar la transmisión del mensaje entre WKANs para solicitar NCs a los que
@@ -405,7 +498,7 @@ public class ClienteNA_NA extends Cliente {
 		 *
 		 */
 
-		// TODO 2021-04-25: esta función creo que no se usa más
+		// TODO 2021-04-25: esta función no se usa más
 
 		HashMap<String, Object> output = new HashMap<String, Object>();
 
@@ -413,7 +506,6 @@ public class ClienteNA_NA extends Cliente {
 		output.put("callBackOnSuccess", false);
 		output.put("callBackOnFailure", false);
 		output.put("result", true);
-
 
 		DireccionNodo ncDestino = (DireccionNodo) params.get("ncDestino");
 		DireccionNodo wkanDestino = null;
@@ -521,9 +613,13 @@ public class ClienteNA_NA extends Cliente {
 				break;
 			case "RETRANSMITIR_SOLICITUD_NCS_NH":
 				this.retransmitirSolicitudNcsNh((HashMap<String, Object>) tarea.getPayload());
-
+				break;
+			case Constantes.TSK_NA_RETRANSMITIR_SOLICITUD_VECINOS_NC:
+				// TODO 2021-05-03: probar
+				retransmitirSolicitudVecinosNCFnc((RetransmisionSolicitudNcsVecinos) tarea.getPayload());
 				break;
 			}
+
 		return salida;
 	}
 

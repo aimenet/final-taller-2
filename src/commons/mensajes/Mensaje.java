@@ -79,7 +79,7 @@ public class Mensaje implements Serializable {
 
 	public UUID getIdEmisor() {return this.idEmisor;}
 
-	public DireccionNodo getNCEmisor() {return ncEmisor;}
+	public DireccionNodo getNCEmisor() {return ncEmisor;} // TODO: evaluar si se usa, si no, borrarla
 
 	public DireccionNodo getOrigen() {return origen;}
 

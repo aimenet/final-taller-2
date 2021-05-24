@@ -176,19 +176,19 @@ public class NodoCentral {
 		// CRONJOB
 		while(!terminar) {
 			// Tarea que determina si es necesario enviar anuncio a WKAN en caso de que aún no se ingresó a la red
-			/*try {
+			try {
 				Thread.sleep(10000);
 				atributos.encolar(Constantes.COLA_NA, new Tarea(00, "CHECK_ANUNCIO", null));
 				System.out.println("[Core] Disparada tarea periódica: CHECK ANUNCIO para determinar ingreso a la red");
 			} catch (InterruptedException e) {
 				e.printStackTrace();
-			}*/
+			}
 
 			// Hasta acá esperé: 10 segundos ---------------------------------------------------------------------------
 
 			// Solicitud de NCs vecinos en caso de no haberse alcanzado el número necesario
 			try {
-				Thread.sleep(30000);
+				Thread.sleep(10000);
 
 				atributos.encolar(
 						Constantes.COLA_NA,
@@ -204,19 +204,19 @@ public class NodoCentral {
 
 			// Hasta acá esperé: 20 segundos ---------------------------------------------------------------------------
 
-			// Podría hacer una tarea que le envíe un ping o un algo así a los NCs vecinos y elimine a los que no
-			// respondan
-
 			// Dispara tarea de envío de keepalive a WKAN
-			/*try {
+			try {
 				Thread.sleep(TimeUnit.MILLISECONDS.convert(atributos.keepaliveWKAN, TimeUnit.SECONDS));
 				atributos.encolar(Constantes.COLA_NA, new Tarea(00, "SEND_KEEPALIVE_WKAN", null));
 				System.out.println("[Core] Disparada tarea periódica: keepalive WKAN");
 			} catch (InterruptedException e) {
 				e.printStackTrace();
-			}*/
+			}
 
 			// Hasta acá esperé: 30 segundos ---------------------------------------------------------------------------
+
+			// Podría hacer una tarea que le envíe un ping o un algo así a los NCs vecinos y elimine a los que no
+			// respondan
 
 			// TODO 2020-11-23: revisar y revivir threads caídos
 		}

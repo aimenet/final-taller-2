@@ -262,7 +262,7 @@ public class AtributosHoja extends Atributos {
 
 	@Override
 	public ArrayList<DireccionNodo> getNcs() {
-		return new ArrayList<DireccionNodo>(this.direccionesNCs);
+		return new ArrayList<DireccionNodo>(this.centrales.keySet());
 	}
 
 	@Override

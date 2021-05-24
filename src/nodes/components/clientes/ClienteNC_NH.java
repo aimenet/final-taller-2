@@ -75,11 +75,13 @@ public class ClienteNC_NH extends Cliente {
 			case "INFORMAR-DIRECCION-A-NH":
 				// Comunica dirección y disponibilidad de aceptación a un NH
 
-				ipNcDestino = ((String) tarea.getPayload()).split(":")[0];
-				puertoNcDestino = Integer.parseInt(((String) tarea.getPayload()).split(":")[1]);
+				DireccionNodo hoja = (DireccionNodo) tarea.getPayload();
+
+				ipNcDestino = hoja.ip.getHostAddress();
+				puertoNcDestino = hoja.puerto_nc;
 				method = this::anuncioDireccionANHFnc;
 				diccionario = new HashMap<String, Object>();
-				diccionario.put("direccionNH", tarea.getPayload());
+				diccionario.put("direccionNH", hoja);
 				break;
 		}
 

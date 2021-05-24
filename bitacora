@@ -253,6 +253,25 @@ Para mañana: revisar el funcionamiento general de WKANs y NCs. Si no hay cosas 
              comentadas (en los Nodos ppalmente) y revisar los NHs (así tengo un mejor panorama sobre cuál debería ser
              el objetivo de la siguiente semana).
 
+
+2021-05-24
+* Probar red con todos los Nodos involucrados (distintas configuraciones iniciales)
+* Constatar que los NHs están andando bien
+* Leer la propuesta original para decidir con qué seguir
+
+[X] Revisar si el NH debería responder los NCs al consultar por "mantenimiento"
+[X] Prueba 3x3x3 (3 WKANs, 3 NCs y 3 NHs) en distintas configuraciones
+[ ] Probar retransmisión de solicitud de NCs
+[ ] Crear Mensaje para retransmisión de solicitud de NCs
+[ ] En ClienteNA_NA, el método que retransmite una solicitud de NCs de una Hoja está mal, tengo que desdoblarlo
+    como había hecho con el pedido de vecinos para un NC (desdoblar el proceso completo de solicitud de NCs para
+    una Hoja)
+[ ] Revisar porque me están llegando 3 rtas de imágenes similares cuando solo 2 NH tendrían que responder
+    -> en el peor de los casos no es tan grave porque las respuestas se "pisan" así que siempre voy a tener la cantidad
+       justa, pero esto genera overhead en la red
+
+
+
 ------------------------------------------------------------------------------------------------------------------------
 ---------- ROADMAP                                                                                            ----------
 ------------------------------------------------------------------------------------------------------------------------

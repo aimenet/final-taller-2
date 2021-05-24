@@ -317,7 +317,7 @@ public class ClienteNA_NA extends Cliente {
 		HashMap<String, Object> output = new HashMap<String, Object>();
 		HashMap<String, Object> payload = new HashMap<String, Object>();
 		Integer contador, saltos;
-		LinkedList<String> wkanConsultados;
+		LinkedList<DireccionNodo> wkanConsultados;
 
 
 		// Estos son comunes a todas las funciones
@@ -327,19 +327,18 @@ public class ClienteNA_NA extends Cliente {
 
 		// Si bien params y payload compartirán gran parte de su contenido, prefiero utilizar una variable nueva
 		// con lo estrictamente necesario
-		payload.put("direccionNH_NA", params.get("direccionNH_NA"));
-		payload.put("direccionNH_NC", params.get("direccionNH_NC"));
+		payload.put("direccionNH", params.get("direccionNH"));
 		payload.put("pendientes", params.get("pendientes"));
 
 		// Este WKAN puede ser el primero en retransmitir o estar "retransmitiendo una retransmisión"
 		if (payload.containsKey("consultados")) {
-			wkanConsultados = (LinkedList<String>) payload.get("consultados");
+			wkanConsultados = (LinkedList<DireccionNodo>) payload.get("consultados");
 			saltos = (Integer) payload.get("saltos");
 		} else {
-			wkanConsultados = new LinkedList<String>();
+			wkanConsultados = new LinkedList<DireccionNodo>();
 			saltos = 9 + 1; // TODO: hardcodeo -> en realidad es 9 pero como es el primero y le resto uno después, se lo agrego acá (un asco)
 		}
-		wkanConsultados.add(atributos.getDireccion().ip.getHostName());
+		wkanConsultados.add(atributos.getDireccion());
 		payload.put("consultados", wkanConsultados);
 		payload.put("saltos", saltos - 1);
 
@@ -359,7 +358,7 @@ public class ClienteNA_NA extends Cliente {
 		if (wkanDestino != null) {
 			System.out.printf("enviando solicitud de NCs para NH a %s", wkanDestino);
 
-			if (this.establecerConexion(wkanDestino.ip.getHostName(), wkanDestino.puerto_na)) {
+			if (this.establecerConexion(wkanDestino.ip.getHostAddress(), wkanDestino.puerto_na)) {
 				this.conexionConNodo.enviarSinRta(
 						new Mensaje(
 								this.atributos.getDireccion(),

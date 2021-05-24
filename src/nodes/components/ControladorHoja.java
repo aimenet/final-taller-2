@@ -483,7 +483,7 @@ public class ControladorHoja implements Runnable {
 		System.out.println("------------------------------------------\n");
 		indice = 0;
 		for(DireccionNodo hoja : unaRta.keySet()){
-			System.out.print(indice + ") " + hoja + ": ");
+			System.out.print(indice + ") " + hoja.ip.getHostAddress() + ": ");
 			System.out.println( unaRta.get(hoja).length + " imágenes" );
 			indice += 1;
 		}

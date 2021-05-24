@@ -192,7 +192,7 @@ public class ClienteNA_NC extends Cliente {
 				)
 		);
 
-		System.out.print("[Cli  " + this.idConsumidor + "] Informado a NC " + nodoCentral.ip.getHostName());
+		System.out.print("[Cli  " + this.idConsumidor + "] Informado a NC " + nodoCentral.ip.getHostAddress());
 		System.out.println(" que debe aceptar al NH " + nodoHoja.ip.getHostName());
 
 		return output;

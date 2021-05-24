@@ -153,8 +153,18 @@ public class ConsultorNA_NA implements Consultor {
 
 		// Obtrención de NCs que pueden recibir a la H: si no existen más WKANs en la red entonces buscará entre sus NCs
 		// la cantidad solicitada, sino escogerá sólo 1 (y retransmitirá la consulta)
-		Integer requeridos = ((AtributosAcceso) atributos).getNodos().size() > 0 ? 1 : (Integer) params.get("pendientes");
-		Boolean forward = ((AtributosAcceso) atributos).getNodos().size() > 0;
+		ArrayList<DireccionNodo> disponibles = new ArrayList<DireccionNodo>(
+				((AtributosAcceso) atributos).getNodos().keySet()
+		);
+
+		ArrayList<DireccionNodo> consultados = new ArrayList<DireccionNodo>(
+				(LinkedList<DireccionNodo>) params.get("consultados")
+		);
+
+		disponibles.removeAll(consultados);
+
+		Integer requeridos = disponibles.size() > 0 ? 1 : (Integer) params.get("pendientes");
+		Boolean forward = disponibles.size() > 0;
 
 		// "Trae" el doble de lo requerido para aumentar las probabilidades de encontar un NC que no tenga ya al NH
 		List<DireccionNodo> candidatos = funciones.getNCsConCapacidadNH(requeridos * 2, new HashSet<DireccionNodo>());
@@ -199,7 +209,7 @@ public class ConsultorNA_NA implements Consultor {
 			HashMap<String, Object> payload = new HashMap<String, Object>();
 
 			payload.put("direccionNC", central);
-			payload.put("direccionNH_NC", (DireccionNodo) params.get("direccionNH"));
+			payload.put("direccionNH", (DireccionNodo) params.get("direccionNH"));
 
 			atributos.encolar("centrales", new Tarea(00, "ACEPTAR-NH", payload));
 		}

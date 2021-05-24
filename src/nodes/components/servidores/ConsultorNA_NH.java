@@ -43,7 +43,7 @@ public class ConsultorNA_NH implements Consultor {
 		output.put("callBackOnFailure", false);
 		output.put("result", true);
 
-		System.out.printf("[Con NH] Solicitud de %s NCs por parte de NH en %s ", solicitados, nodoHoja.ip.getHostName());
+		System.out.printf("[Con NH] Solicitud de %s NCs por parte de NH %s ", solicitados, nodoHoja.ip.getHostName());
 
 		// Obtrención de NCs que pueden recibir a la H: si no existen más WKANs en la red entonces buscará entre sus
 		// NCs la cantidad solicitada, sino escogerá sólo 1 (y retransmitirá la consulta)
@@ -64,6 +64,8 @@ public class ConsultorNA_NH implements Consultor {
 				)
 		);
 
+		// Si elegidos.size <= 0 no debería hacer nada, pero seguro la hoja está esperando una rta
+
 		try {
 			buffSalida.writeObject(new Mensaje(atributos.getDireccion(), Codigos.OK, elegidos));
 		} catch (IOException e) {
@@ -75,13 +77,14 @@ public class ConsultorNA_NH implements Consultor {
 		}
 
 		System.out.println("[OK]");
-		System.out.printf("[Con NH] Informados %s NCs a Hoja %s\n", elegidos.size(), nodoHoja.ip.getHostName());
+		System.out.printf("[Con NH] Informados %s NCs a Hoja %s\n", elegidos.size(), nodoHoja.ip.getHostAddress());
 
 		// Si no se cubrió la cantidad requerida de NCs encola la tarea para retransmitir la solicitud a otro WKAN
-		if (solicitados - cantidad > 0) {
+		Integer faltantes = solicitados - elegidos.size();
+		if ( faltantes > 0) {
 			if (((AtributosAcceso) atributos).getNodos().size() > 0) {
 				HashMap<String,Object> payload = new HashMap<String,Object>();
-				payload.put("pendientes", elegidos.size() - solicitados);
+				payload.put("pendientes", faltantes);
 				payload.put("direccionNH", nodoHoja);
 				payload.put("excepciones", excepciones);
 

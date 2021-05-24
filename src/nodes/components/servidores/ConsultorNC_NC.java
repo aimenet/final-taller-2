@@ -10,6 +10,7 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
 import commons.*;
+import commons.mensajes.Mensaje;
 import commons.structs.nc.NHIndexada;
 import nodes.components.atributos.AtributosCentral;
 
@@ -106,12 +107,13 @@ public class ConsultorNC_NC implements Consultor {
 		// Si el TTL lo permite retransmite el mensaje a los NC a los que está conectado
 		if(msj.getTTL() > 0){
 			cantHilos =  atributos.getCentrales().size();
+			ArrayList<DireccionNodo> centrales = atributos.getNcs();
 			DireccionNodo direccionNodoActual = atributos.getDireccion();
 			CountDownLatch latchCentrales = new CountDownLatch(cantHilos);
 
 			for(int i=0; i<cantHilos; i++){
 				// TODO 2020-11-06: debería ser random el NC elegido, para balancear carga
-				DireccionNodo destino = atributos.getCentral(i);
+				DireccionNodo destino = centrales.get(i);
 				
 				System.out.println(
 						String.format(

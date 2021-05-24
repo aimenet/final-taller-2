@@ -3,16 +3,13 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
-import commons.Codigos;
-import commons.Mensaje;
-import commons.Tarea;
-import commons.Tupla2;
-import commons.DireccionNodo;
+import commons.*;
+import commons.mensajes.Mensaje;
+import commons.mensajes.wkan_nc.SolicitudNcsVecinos;
+import commons.mensajes.wkan_wkan.RetransmisionAnuncioNc;
+import commons.mensajes.wkan_wkan.RetransmisionSolicitudNcsVecinos;
 import nodes.components.clientes.ClienteNA_NC;
 import nodes.components.WKAN_Funciones;
 import nodes.components.atributos.AtributosAcceso;
@@ -29,19 +26,13 @@ public class ConsultorNA_NA implements Consultor {
 	/* --------- */
 	/* Atributos */
 	/* --------- */
-	// De cada instancia
 	private AtributosAcceso atributos = new AtributosAcceso();
 	private ObjectInputStream buffEntrada;
 	private ObjectOutputStream buffSalida;
 	private Socket sock;
 	private WKAN_Funciones funciones = new WKAN_Funciones();
-	
-	// De la clase
-	
-	
-	/* -------- */
-	/* Métodos  */
-	/* -------- */
+
+
 	// Métodos que se usan para atender los distintos tipos de órdenes recibidas en una Tarea
 	// ---------------------------------------------------------------------------------------------------
 	private HashMap<String, Object> anuncioFnc(Mensaje mensaje) throws IOException {
@@ -99,13 +90,10 @@ public class ConsultorNA_NA implements Consultor {
 		return output;
 	}
 
-	private HashMap<String, Object> retransmisionAnuncioNCFnc(Mensaje mensaje) throws InterruptedException {
+	private HashMap<String, Object> retransmisionAnuncioNCFnc(RetransmisionAnuncioNc retransmision) {
 		/*
 		* Anuncio (retransmitido por un WKAN sin capacidad de atenderlo) de un NC
 		*
-		* Payload del mensaje: {
-		*	"nc_pendiente": DireccionNodo,
-		* }
 		* */
 
 		// Estos son comunes a todas las funciones
@@ -114,15 +102,21 @@ public class ConsultorNA_NA implements Consultor {
 		output.put("callBackOnFailure", false);
 		output.put("result", true);
 
-		DireccionNodo nodo = (DireccionNodo) ((HashMap<String, Object>) mensaje.getCarga()).get("nc_pendiente");
-
-		Integer codigo = funciones.atenderAnuncioNC(nodo, false);
+		DireccionNodo nodo = retransmision.getNodoCentral();
+		Integer codigo = funciones.atenderAnuncioNC(retransmision);
 
 		if (codigo == Codigos.OK) {
 			// Tarea donde se le informará al NC que este Nodo lo aceptará
 			System.out.printf("Aceptado NC %s. Comunicando\n", nodo.getUnaDireccion("acceso"));
 
-			atributos.encolar("centrales", new Tarea(00, "ANUNCIO-ACEPTADO", nodo));
+			try {
+				atributos.encolar(
+						"centrales", new Tarea(00, "ANUNCIO-ACEPTADO", nodo)
+				);
+			} catch (InterruptedException e) {
+				// TODO: ver cómo lo soluciono
+				e.printStackTrace();
+			}
 		} else if (codigo == Codigos.ACCEPTED) {
 			System.out.printf("Capacidad max NC alcanzada, rechazado NC %s\n", nodo.getUnaDireccion("acceso"));
 		}
@@ -213,14 +207,91 @@ public class ConsultorNA_NA implements Consultor {
 		return output;
 	}
 
-	private HashMap<String, Object> solicitudVecinosNCFnc(Mensaje mensaje) throws InterruptedException {
+	private HashMap<String, Object> retransmisionSolicitudVecinosNCFnc(RetransmisionSolicitudNcsVecinos solicitud) {
+		/**
+		 * Un WKAN ha retransmitido una solicitud de NCs vecinos, emitida por un NC.
+		 *
+		 * Evalúa la disponibilidad de NCs para conectarlos y retransmite nuevamente si corresponde.
+		 *
+		 */
+
+		// 2021-05-11
+		// Es prácticamente igua a lo que hace  ConsultorNA_NC.solicitudVecinos, la unica diferencia es que este recibe
+		// una solicitud de retransmision de otro WKAN mientras que aquel no (es quien genera la primera).
+		// La logica esta contenida en WKAN_Funciones y en el ClienteNA_NA por lo que aca me puedo dar el lujo de hacer
+		// un copy-paste de ConsultorNA_NC.solicitudVecinos
+
+		// Estos son comunes a todas las funciones
+		HashMap<String, Object> output = new HashMap<String, Object>();
+		output.put("callBackOnSuccess", false);
+		output.put("callBackOnFailure", false);
+		output.put("result", true);
+
+		// 1ra parte: checkeo de NC disponible para conectar
+		System.out.printf(
+				"[Con NA] Recibido pedido de %d NCs vecinos para %s",
+				solicitud.getFaltantes(),
+				solicitud.getNodoCentral().ip.getHostName()
+		);
+
+		WKAN_Funciones.atenderSolicutdVecinosNCOutput status;
+		status = funciones.atenderSolicutdVecinosNC(solicitud.getNodoCentral());
+
+		if (status.equals(WKAN_Funciones.atenderSolicutdVecinosNCOutput.KO_NODO_DESCONOCIDO)) {
+			// Si el NC es desconocido debe estar siendo administrado por otro WKAN
+			System.out.printf(" [ERROR] (NC desconocido)");
+			output.put("result", false);
+			return output;
+		} else if (status.equals(WKAN_Funciones.atenderSolicutdVecinosNCOutput.KO_ERROR)) {
+			System.out.printf(" [ERROR] (tarea de conexión con vecino no encolada)");
+		} else if (status.equals(WKAN_Funciones.atenderSolicutdVecinosNCOutput.OK_SIN_VECINO)) {
+			System.out.printf(" (No hay NCs para sugerir)");
+		}
+
+		// 2da parte: retransmisión
+		ArrayList<DireccionNodo> visitados = solicitud.getWkansVisitados();
+		visitados.add(this.atributos.getDireccion());
+
+		Integer saltos = solicitud.getSaltos() - 1;
+		Integer faltantes = solicitud.getFaltantes();;
+		if (status.equals(WKAN_Funciones.atenderSolicutdVecinosNCOutput.OK_CON_VECINO))
+			faltantes -= 1;
+
+		if (faltantes <= 0 || saltos <= 0)
+			return output;
+
+		RetransmisionSolicitudNcsVecinos solicitud_retransmitir = new RetransmisionSolicitudNcsVecinos(
+				this.atributos.getDireccion(),
+				Codigos.NA_NA_POST_RETRANSMISION_SOLICITUD_VECINOS_NC,
+				solicitud.getNodoCentral(),
+				saltos,
+				faltantes,
+				visitados
+		);
+
+		Tarea tarea = new Tarea(00, Constantes.TSK_NA_RETRANSMITIR_SOLICITUD_VECINOS_NC, solicitud_retransmitir);
+
+		try {
+			atributos.encolar("salida", tarea);
+			// System.out.println(" [OK]");
+			System.out.println("[Con NA] Encolada retransmisión pedido NCs vecinos");
+		} catch (InterruptedException e) {
+			// No hago nada, el NC volverá a solicitar vecinos de ser necesario. Sí debería controlar por qué no se
+			// puede enconlar
+			System.out.printf(" [ERROR] (imposible retransmitir a WKANs)");
+			e.printStackTrace();
+			output.put("result", false);
+		}
+
+		return output;
+	}
+
+	private HashMap<String, Object> solicitudVecinosNCFnc(RetransmisionSolicitudNcsVecinos solicitud) throws InterruptedException {
 		/**
 		 * Evalua si algún NC posee capacidad de enlazarse a otro, a fin de comunicarlo al NC recientemente incorporado
 		 * a la red
 		 *
-		 * Payload del mensaje: {
-		 *     "ncDestino": DireccionNodo,
-		 * }
+		 * Payload del mensaje: RetransmisionSolicitudNcsVecinos
 		 *
 		 */
 
@@ -230,16 +301,14 @@ public class ConsultorNA_NA implements Consultor {
 		output.put("callBackOnFailure", false);
 		output.put("result", true);
 
-		HashMap<String, Object> diccionario = (HashMap<String, Object>) mensaje.getCarga();
+		// RetransmisionSolicitudNcsVecinos solicitud = (RetransmisionSolicitudNcsVecinos) mensaje.getCarga();
+
 		HashMap<DireccionNodo, HashMap<String, Comparable>> centralesRegistrados = atributos.getCentrales();
 
-		// Registra en el diccionario enviado durante la solicitud que éste nodo ya ha sido consultado
-		diccionario.put("saltos", (Integer) diccionario.get("saltos") - 1);
-
-		LinkedList<DireccionNodo> confirmados = (LinkedList<DireccionNodo>) diccionario.get("consultados");
+		Integer faltantes = solicitud.getFaltantes();
+		Integer saltos = solicitud.getSaltos() - 1;
+		ArrayList<DireccionNodo> confirmados = solicitud.getWkansVisitados();
 		confirmados.add(atributos.getDireccion());
-
-		diccionario.put("consultados", confirmados);
 
 		for (DireccionNodo key : centralesRegistrados. keySet()) {
 			Integer activos = (int) centralesRegistrados.get(key).get("centrales_activos");
@@ -252,24 +321,29 @@ public class ConsultorNA_NA implements Consultor {
 							new Tarea(
 									00,
 									"CONECTAR-NCS",
-									new Tupla2<DireccionNodo, DireccionNodo> (key, (DireccionNodo) diccionario.get("ncDestino"))
+									new Tupla2<DireccionNodo, DireccionNodo> (key, (DireccionNodo) solicitud.getNodoCentral())
 							)
 					);
 
 					// Se marca el anuncio del NC vecino.
-					diccionario.put("ncsRestantes", (Integer) diccionario.get("ncsRestantes")-1);
+					faltantes -= 1;
 
-					// Marca especial en el diccionario para conocer que se originó acá
-					diccionario.put("preparado", true);
 					break;
 				}
 		}
 
 		// Si restan NCs por conectar se retransmite nuevamente el mensaje
-		if ((Integer) diccionario.get("ncsRestantes") > 0 && (Integer) diccionario.get("saltos") > 0) {
-			// marco para que se reutilice este diccionario en lugar de crear uno nuevo
-			diccionario.put("preparado", true);
-			atributos.encolar("salida", new Tarea(00, "SOLICITAR_NCS_VECINOS", diccionario));
+		if (faltantes > 0 && saltos > 0) {
+			RetransmisionSolicitudNcsVecinos solicitud_retransmitir = new RetransmisionSolicitudNcsVecinos(
+					this.atributos.getDireccion(),
+					Codigos.NA_NA_POST_RETRANSMISION_ANUNCIO_NC,
+					solicitud.getNodoCentral(),
+					saltos,
+					faltantes,
+					confirmados
+			);
+
+			atributos.encolar("salida", new Tarea(00, "SOLICITAR_NCS_VECINOS", solicitud_retransmitir));
 		}
 
 		System.out.println("Procesada solicitud de vecinos para NC [OK]");
@@ -314,13 +388,16 @@ public class ConsultorNA_NA implements Consultor {
 						this.anuncioActivosFnc(mensaje);
 						break;
 					case Codigos.NA_NA_POST_RETRANSMISION_ANUNCIO_NC:
-						this.retransmisionAnuncioNCFnc(mensaje);
+						this.retransmisionAnuncioNCFnc((RetransmisionAnuncioNc) mensaje);
 						break;
 					case Codigos.NA_NA_POST_SOLICITUD_VECINOS_NC:
-						this.solicitudVecinosNCFnc(mensaje);
+						this.solicitudVecinosNCFnc((RetransmisionSolicitudNcsVecinos) mensaje.getCarga());
 						break;
 					case Codigos.NA_NA_POST_RETRANSMISION_NH_SOLICITUD_NC:
 						this.retransmisionSolicitudNCsNHFnc(mensaje);
+						break;
+					case Codigos.NA_NA_POST_RETRANSMISION_SOLICITUD_VECINOS_NC:
+						this.retransmisionSolicitudVecinosNCFnc((RetransmisionSolicitudNcsVecinos) mensaje);
 						break;
 					default:
 						System.out.printf("\tAnuncio de nodo %s: %s\n", sockToString(), mensaje.getCarga());

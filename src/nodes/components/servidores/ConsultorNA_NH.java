@@ -7,7 +7,7 @@ import java.net.Socket;
 import java.util.*;
 
 import commons.Codigos;
-import commons.Mensaje;
+import commons.mensajes.Mensaje;
 import commons.Tarea;
 import commons.DireccionNodo;
 import nodes.components.WKAN_Funciones;

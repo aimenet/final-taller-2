@@ -7,6 +7,8 @@ import java.net.Socket;
 import java.util.*;
 
 import commons.*;
+import commons.mensajes.Mensaje;
+import commons.mensajes.wkan_nc.InformeNcsVecinos;
 import commons.structs.nc.NHIndexada;
 import nodes.components.clientes.ClienteNC_NH;
 import nodes.components.WKAN_Funciones;
@@ -129,6 +131,40 @@ public class ConsultorNC_NA implements Consultor {
 			System.out.printf("[ERROR]\n");
 	}
 
+	private void recibirListadoVecinos(InformeNcsVecinos mensaje) {
+		ArrayList<DireccionNodo> listado = mensaje.getVecinos();
+		Integer cantidadIndexados = 0;
+
+		System.out.printf("[Con WKAN] Recibido listado de %d NCs vecinos", listado.size());
+
+		if (listado.size() > 0) {
+			//ArrayList<DireccionNodo> indexados = ((AtributosCentral) atributos).indexarCentrales(listado);
+			//cantidadIndexados = indexados.size();
+
+			for (DireccionNodo indexado : listado) {
+				Tarea tarea = new Tarea(00, Constantes.TSK_NC_ANUNCIO_VECINO, indexado);
+
+				try {
+					atributos.encolar("centrales", tarea);
+					System.out.printf("[Con WKAN] Encolada tarea TSK_NC_ANUNCIO_VECINO\n");
+				} catch (InterruptedException e) {
+					// TODO 2021-04-25: hacer algo
+					e.printStackTrace();
+				}
+			}
+		}
+
+		System.out.println(" [OK]");
+
+		//System.out.printf("\tIndexados  %d NCs.", cantidadIndexados);
+
+		//System.out.printf(
+		//		"\tEstado actual: %d de %d NCs\n",
+		//		atributos.getNcs().size(),
+		//		atributos.getMaxCentralesVecinos()
+		//);
+	}
+
 
 	@Override
 	public void atender() {
@@ -165,6 +201,10 @@ public class ConsultorNC_NA implements Consultor {
 					case Codigos.NA_NC_POST_ACEPTAR_NH:
 						// WKAN informa NH ante el que anununciarse
 						this.aceptarNHFnc(mensaje.getEmisor(), (DireccionNodo) mensaje.getCarga());
+						break;
+					case Codigos.NA_NC_POST_VECINOS:
+						// WKAN informa posibles NCs vecinos
+						this.recibirListadoVecinos((InformeNcsVecinos) mensaje);
 						break;
 					case Codigos.CONNECTION_END:
 						terminar = true;

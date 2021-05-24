@@ -15,7 +15,7 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 import commons.CredImagen;
-import commons.Mensaje;
+import commons.mensajes.Mensaje;
 
 /**
  * Clase que engloba todos los atributos de un Nodo Central e implementa los métodos necesarios para
@@ -60,8 +60,8 @@ public class AtributosCentral extends Atributos {
 	
 	// Nodos Centrales
 	private static final Object lockIndiceCentrales = new Object();
-	// TODO 2020-11-06: por qué es una lista enlazada y no un hash?
-	private static volatile ArrayList<DireccionNodo> indiceCentrales = new ArrayList<DireccionNodo>();
+	// Por ahora necesito solamente las keys, el value es anecdótico
+	private static volatile HashMap<DireccionNodo, Boolean> indiceCentrales = new HashMap<DireccionNodo, Boolean>();
 	private static volatile Integer maxCentralesVecinos;
 	
 	// Últimas consultas recibidas para evitar duplicar respuestas. En la primer fila de la matriz se guardan
@@ -94,11 +94,11 @@ public class AtributosCentral extends Atributos {
 
 	public HashMap<UUID,NHIndexada> getHojas() {return this.indiceHojas;}
 
-	public DireccionNodo getCentral(Integer index){
-		return indiceCentrales.get(index);
-	}
+	//public DireccionNodo getCentral(Integer index){
+	//	return indiceCentrales.get(index);
+	//}
 	
-	public ArrayList<DireccionNodo> getCentrales(){
+	public HashMap<DireccionNodo, Boolean> getCentrales(){
 		return indiceCentrales;
 	}
 	
@@ -156,16 +156,13 @@ public class AtributosCentral extends Atributos {
 	public Set<UUID> getClavesIndiceHojas(){
 		return indiceHojas.keySet();
 	}
-	
-	public void indexarCentral(DireccionNodo direccion){
-		indiceCentrales.add(direccion);
-	}
 
 
 	// Getters y Setters
 	// -----------------------------------------------------------------------------------
 	public Integer getNHCapacity() {return AtributosCentral.NHCapacity;}  // Si pongo sólo NHCapacity es = que como está ahora 
-	
+
+
 	public void setPuertoServidorCentrales(Integer puerto){
 		this.puertoServidorCentrales = puerto; 
 	}
@@ -205,8 +202,55 @@ public class AtributosCentral extends Atributos {
 	
 	// Métodos relacionados a Nodos Centrales
 	// -----------------------------------------------------------------------------------
-	public void setMaxCentralesVecinos(Integer cantidad) {maxCentralesVecinos = cantidad;}
-	public Integer getMaxCentralesVecinos() {return maxCentralesVecinos;}
+	public Integer getMaxCentralesVecinos() {
+		Integer cantidad = 0;
+
+		if ((maxCentralesVecinos != null) && (maxCentralesVecinos > 0))
+				cantidad = maxCentralesVecinos;
+
+		return cantidad;
+	}
+
+	public Integer getNcsVecinosFaltantes() {
+		Integer actuales = indiceCentrales.size();
+		Integer necesarios = maxCentralesVecinos;
+
+		Integer cantidad = necesarios - actuales;
+
+		return cantidad >= 0 ? cantidad : 0;
+	}
+
+	public void indexarCentral(DireccionNodo direccion){
+		indiceCentrales.put(direccion, true);
+	}
+
+	public ArrayList<DireccionNodo> indexarCentrales(ArrayList<DireccionNodo> direcciones){
+		Integer necesarios = maxCentralesVecinos - indiceCentrales.size();
+		Integer disponibles = direcciones.size();
+
+		if ((necesarios <= 0) || (disponibles <= 0))
+			return new ArrayList<DireccionNodo>();
+
+		ArrayList<DireccionNodo> aInsertar;
+		Integer cantidad;
+
+		if (disponibles > necesarios)
+			cantidad = necesarios;
+		else
+			cantidad = disponibles;
+
+		aInsertar = new ArrayList<DireccionNodo>(direcciones.subList(0, cantidad));
+
+		// Tiene que haber una manera más eficiente de hacerlo
+		for (DireccionNodo direccion : aInsertar)
+			indiceCentrales.put(direccion, true);
+
+		return aInsertar;
+	}
+
+	public void setMaxCentralesVecinos(Integer cantidad) {
+		maxCentralesVecinos = cantidad;
+	}
 
 
 	// Métodos relacionados a Nodos Hojas
@@ -225,7 +269,6 @@ public class AtributosCentral extends Atributos {
 
 		return existe;
 	}
-
 
 
 	/**Evalúa si una consulta ya fue recibida previamente. Si existe y expiró actualiza el horario, en caso contrario la encola.
@@ -339,8 +382,8 @@ public class AtributosCentral extends Atributos {
 		
 		return existio;
 	}
-	
-	
+
+
 	
 	/** Registra una HOJA en el archivo correspondiente (para llevar un registro "histórico" en caso de reconexión 
 	 * @throws ParseException 
@@ -406,7 +449,7 @@ public class AtributosCentral extends Atributos {
 
 	@Override
 	public ArrayList<DireccionNodo> getNcs() {
-		return this.indiceCentrales;
+		return new ArrayList<DireccionNodo>(this.indiceCentrales.keySet());
 	}
 
 	@Override

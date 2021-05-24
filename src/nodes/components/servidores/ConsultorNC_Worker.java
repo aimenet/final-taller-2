@@ -4,7 +4,7 @@ import commons.ConexionTcp;
 import commons.CredImagen;
 import commons.DireccionNodo;
 import commons.HashConcurrente;
-import commons.Mensaje;
+import commons.mensajes.Mensaje;
 
 import java.io.IOException;
 import java.util.ArrayList;

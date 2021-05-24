@@ -5,6 +5,7 @@ import java.util.Random;
 import java.util.function.Function;
 
 import commons.*;
+import commons.mensajes.Mensaje;
 import nodes.components.atributos.AtributosCentral;
 
 
@@ -37,7 +38,6 @@ public class ClienteNC_NC extends Cliente {
 		 *     "direccionNC": DireccionNodo
 		 * }
 		 * */
-
 		HashMap<String, Object> output = new HashMap<String, Object>();
 		Mensaje enviado, recibido;
 
@@ -51,24 +51,28 @@ public class ClienteNC_NC extends Cliente {
 		enviado = new Mensaje(this.atributos.getDireccion(), Codigos.NC_NC_POST_SALUDO, null);
 		recibido = (Mensaje) this.conexionConNodo.enviarConRta(enviado);
 
-		// Si el código no es OK (200), independientemente de por qué no se ha aceptado la "vinculación"
-		// no hago nada.
-		// TODO: hacer tarea periódica que controle si falta enlazarse a NCs y dispare tarea de pedidos de vecinos
-		// (hacer que esa tarea pida de a 1, así es más fácil)
+		DireccionNodo vecino = (DireccionNodo) params.get("direccionNC");
+
+		// Si el código no es OK (200), independientemente de por qué no se ha aceptado la "vinculación" no hago nada.
 		System.out.printf("[Cli %s]\t", this.id);
-		System.out.printf("registrado nuevo NC vecino: %s ", (String) params.get("direccionNC"));
+		System.out.printf("registrado nuevo NC vecino: %s ", vecino.ip.getHostAddress());
 
 		if (recibido.getCodigo() == Codigos.OK) {
 			if (((AtributosCentral) atributos).getCentrales().size() < ((AtributosCentral) atributos).getMaxCentralesVecinos()) {
-				((AtributosCentral) atributos).indexarCentral((DireccionNodo) params.get("direccionNC"));
+				((AtributosCentral) atributos).indexarCentral(vecino);
 				System.out.printf("[OK]\n");
 			} else {
 				System.out.printf("[OK pero sin capacidad]\n");
 			}
 		} else {
-			System.out.printf("[ERROR]\n");
-			System.out.println("No me aceptaron, acordate de hacer tarea periódica que pida un vecino nuevo");
+			System.out.println("[ERROR] (No aceptado)\n");
 		}
+
+		System.out.printf(
+				"\tEstado actual: %d de %d NCs\n",
+				atributos.getNcs().size(),
+				((AtributosCentral) atributos).getMaxCentralesVecinos()
+		);
 
 		return output;
 	}
@@ -113,35 +117,23 @@ public class ClienteNC_NC extends Cliente {
 	protected HashMap<String, Comparable> procesarTarea(Tarea tarea) throws InterruptedException {
 		Function<HashMap<String, Object>, HashMap<String, Object>> method;
 		HashMap<String,Object> diccionario;
-		Integer contador=0; 
+		Integer contador=0;
 		Integer intentos=3; 
 		Integer puertoNcDestino;
-		Object generico;
-		String auxStr;
 		String ipNcDestino;
 		
-		// Inicializaciones de cortesía
+		// Inicializaciones
 		method = null;
 		diccionario = null;
-		
-		// Si hago esto, el uso del CPU sube levemente pero me permite que trabajen todos los threads consumidores,
-		// sino, pasa lo que detallé al final del archivo -[2019-10-19]-
-		while(this.atributos.colaVacia("centrales")) {
-			Random rand = new Random();
-			Thread.sleep(rand.nextInt(3000));
-    	}
-		
-		System.out.printf("Consumidor %s: esperando\n", this.id);
-		tarea = atributos.desencolar("centrales"); // thread-safe
-		
 		ipNcDestino = null;
 		puertoNcDestino = null;
 		
 		switch(tarea.getName()){
-			case "ANUNCIO-VECINO":
+			case Constantes.TSK_NC_ANUNCIO_VECINO:
 				// Le indica a un NC que puede usar a éste NC como uno de sus vecinos
-				ipNcDestino = ((String) tarea.getPayload()).split(":")[0];
-				puertoNcDestino = Integer.parseInt(((String) tarea.getPayload()).split(":")[1]);
+				DireccionNodo destino = (DireccionNodo) tarea.getPayload();
+				ipNcDestino = destino.ip.getHostAddress();
+				puertoNcDestino = destino.puerto_nc;
 				method = this::anuncioVecinoFnc;
 				diccionario = new HashMap<String, Object>();
 				diccionario.put("direccionNC", tarea.getPayload());

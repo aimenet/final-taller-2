@@ -1,6 +1,7 @@
 package nodes.components.clientes;
 
 import commons.*;
+import commons.mensajes.Mensaje;
 import nodes.components.atributos.AtributosAcceso;
 
 import java.util.HashMap;

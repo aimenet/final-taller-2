@@ -4,6 +4,8 @@ import java.sql.Timestamp;
 import java.util.HashMap;
 
 import commons.*;
+import commons.mensajes.Mensaje;
+import commons.mensajes.wkan_nc.SolicitudNcsVecinos;
 import nodes.components.atributos.AtributosCentral;
 
 /**
@@ -22,7 +24,14 @@ public class ClienteNC_NA extends Cliente {
 	// -----------------------------------------------------------------------------------------------------------------
 
 
-	// Métodos
+	// Métodos auxiliares
+	// -----------------------------------------------------------------------------------------------------------------
+	private void logUnaLinea(String mensaje) {
+		System.out.printf("[Cli WKAN %s] ", this.id);
+		System.out.printf("%s\n", mensaje);
+	}
+
+	// Métodos de procesamiento de tareas
 	// -----------------------------------------------------------------------------------------------------------------
 	public ClienteNC_NA(int idConsumidor, String cola) {
 		super(idConsumidor, cola);
@@ -61,6 +70,7 @@ public class ClienteNC_NA extends Cliente {
 					// el wkan no tiene capacidad para aceptarme pero retransmitió la consulta.
 					System.out.printf(" [ERROR]\n");
 					System.out.println("Iniciando espera de aceptación");
+					((AtributosCentral) atributos).marcarIntentoConexionWKAN(false);
 				}
 
 				// Cualquiera haya sido la respuesta, termina el bucle
@@ -103,6 +113,7 @@ public class ClienteNC_NA extends Cliente {
 			Integer espera = ((AtributosCentral) atributos).getTimeoutEsperaAnuncioWKAN();  // segundos
 			Timestamp ultimoIntento = ((AtributosCentral) atributos).getUltimoIntentoConexionWKAN();
 
+			// TODO: acá
 			if(ultimoIntento.compareTo(new Timestamp(System.currentTimeMillis() - espera * 1000)) <= 0) {
 				try {
 					atributos.encolar("acceso", new Tarea(00,"ANUNCIO_WKAN", wkan));
@@ -115,6 +126,31 @@ public class ClienteNC_NA extends Cliente {
 
 		output = true;
 		return output;
+	}
+
+
+	private Boolean checkVecinosFaltantes() {
+		Integer faltantes = ((AtributosCentral) this.atributos).getNcsVecinosFaltantes();
+		DireccionNodo wkanAsignado = ((AtributosCentral) this.atributos).getWKANAsignado();
+
+		if (faltantes > 0) {
+			SolicitudNcsVecinos solicitud = new SolicitudNcsVecinos(
+					atributos.getDireccion(),
+					Codigos.NC_NA_GET_SOLICITUD_VECINOS,
+					faltantes
+			);
+
+			if (this.establecerConexion(wkanAsignado.ip.getHostAddress(), wkanAsignado.puerto_nc)) {
+				this.conexionConNodo.enviarSinRta(solicitud);
+			} else {
+				logUnaLinea("Solicitud de NCs vecinos a WKAN: imposible establecer conexión");
+				return false;
+			}
+
+			logUnaLinea(String.format("Solicitados %s NCs vecinos a WKAN", faltantes));
+		}
+
+		return true;
 	}
 
 
@@ -172,6 +208,11 @@ public class ClienteNC_NA extends Cliente {
 				
 				this.keepAliveFnc();
 
+				break;
+			case Constantes.TSK_NC_CHECK_VECINOS:
+				// Controla la cantidad de NCs vecinos conocidos hasta el momento y en caso de ser necesario solicita
+				// más al WKAN
+				this.checkVecinosFaltantes();
 				break;
 		}
 		

@@ -1,15 +1,21 @@
 package nodes.components.servidores;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.sql.Timestamp;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
 
-import commons.Codigos;
-import commons.Mensaje;
-import commons.DireccionNodo;
+import commons.*;
+import commons.mensajes.Mensaje;
+import commons.mensajes.wkan_nc.InformeNcsVecinos;
+import commons.mensajes.wkan_nc.SolicitudNcsVecinos;
+import commons.mensajes.wkan_wkan.RetransmisionSolicitudNcsVecinos;
+import commons.structs.wkan.NCIndexado;
 import nodes.components.WKAN_Funciones;
 import nodes.components.atributos.AtributosAcceso;
 
@@ -39,12 +45,7 @@ public class ConsultorNA_NC implements Consultor {
 		System.out.printf("Recibido anuncio de NC en %s\n", anunciante.ip.getHostName());
 
 		Integer codigo = null;
-		try {
-			codigo = funciones.atenderAnuncioNC(anunciante, true);
-		} catch (InterruptedException e) {
-			// A fines prácticos, está bien la retransmisión en tanto el código ACCEPTED no se use para otra cosa
-			codigo = Codigos.ACCEPTED;
-		}
+		codigo = funciones.atenderAnuncioNC(anunciante, true);
 
 		try {
 			buffSalida.writeObject(new Mensaje(null, codigo, null));
@@ -57,6 +58,9 @@ public class ConsultorNA_NC implements Consultor {
 		} else if (codigo == Codigos.ACCEPTED) {
 			System.out.printf("Capacidad max NC alcanzada, ");
 			System.out.printf("retransmitiendo anuncio de NC %s\n", anunciante.ip.getHostName());
+		} else {
+			System.out.printf("Capacidad max NC alcanzada, ");
+			System.out.printf("error al retransmitir anuncio de NC %s\n", anunciante.ip.getHostName());
 		}
 
 		return output;
@@ -91,6 +95,172 @@ public class ConsultorNA_NC implements Consultor {
 		return output;
 	}
 
+	private void solicitudVecinos_deprecated(SolicitudNcsVecinos solicitud) {
+		/* Un NC solicita otros NCs vecinos a los que enlazarse.
+		*
+		*  Acá debe existir una política ya que si este WKAN responde al menos 1 NC cada vez que responde, se corre el
+		*  riesgo de que gran parte de los vecinos a los que termine enlazado el NC sean de este WKAN y por ende la red
+		*  no estaría "distribuida" (o balanceada).
+		*
+		*  Por ahora la política definida es la siguiente: si puede, le indica un NC aleatorio administrado por él y
+		*  registra el timestamp. No volverá a informarle nuevos NCs vecinos hasta que no haya pasado X tiempo desde el
+		*  último.
+		*
+		*  Y siempre retransmitirá la consulta a otros WKANs a fin de distribuír las conexiones a lo largo de toda la
+		*  red. Esto es exactamente lo mismo que se hace cuando un NC se anuncia por primera vez.
+		*
+		* */
+		Boolean errorFlag = false;
+
+		System.out.printf("[Con NC] Recibido pedido de %d ", solicitud.getFaltantes());
+		System.out.printf(" NCs vecinos para %s", solicitud.getEmisor().ip.getHostName());
+
+		NCIndexado nodo = atributos.getCentral(solicitud.getEmisor());
+
+		if ((nodo == null) || (solicitud.getFaltantes() <= 0)) {
+			// Si el NC es desconocido debe estar siendo administrado por otro WKAN
+			System.out.printf(" [ERROR] (NC desconocido)");
+			errorFlag = true;
+			return;
+		}
+
+		Boolean informar = false;
+
+		if (nodo.ultimoNncInformado == null) {
+			informar = true;
+		} else {
+			Timestamp start = nodo.ultimoNncInformado;
+			Timestamp end = new Timestamp(System.currentTimeMillis());
+
+			long timeElapsed = Duration.between(start.toInstant(),end.toInstant()).toSeconds();
+
+			if (timeElapsed >= atributos.esperaEntreInformeDeVecinos)
+				informar = true;
+		}
+
+		if (informar) {
+			DireccionNodo vecino = atributos.getRandomNCDistinto(solicitud.getEmisor());
+
+			if (vecino != null) {
+				Tupla2<DireccionNodo, DireccionNodo> par = new Tupla2<DireccionNodo, DireccionNodo>(
+						solicitud.getEmisor(), vecino
+				);
+
+				Tarea tarea = new Tarea(00, Constantes.TSK_NA_CONECTAR_NCS, par);
+
+				try {
+					atributos.encolar("centrales", tarea);
+				} catch (InterruptedException e) {
+					// TODO: qué hago?
+					System.out.printf(" [ERROR] (tarea no encolada)");
+					errorFlag = true;
+					e.printStackTrace();
+				}
+			} else {
+				System.out.printf(" (No hay NCs para sugerir)");
+			}
+
+		}
+
+		// Se retransmite a otros WKANs la solicitud a fin de distribuir por toda la red la carga de Nodos
+		RetransmisionSolicitudNcsVecinos solicitud_retransmitir = new RetransmisionSolicitudNcsVecinos(
+				this.atributos.getDireccion(),
+				Codigos.NA_NA_POST_RETRANSMISION_SOLICITUD_VECINOS_NC,
+				solicitud.getEmisor(),
+				(solicitud.getFaltantes() * 2) - 1,
+				solicitud.getFaltantes(),
+				new ArrayList<DireccionNodo>()
+		);
+
+		Tarea tarea = new Tarea(00, Constantes.TSK_NA_RETRANSMITIR_SOLICITUD_VECINOS_NC, solicitud_retransmitir);
+
+		try {
+			atributos.encolar("salida", tarea);
+		} catch (InterruptedException e) {
+			// No hago nada, el NC volverá a solicitar vecinos de ser necesario. Sí debería controlar por qué no se
+			// puede enconlar
+			System.out.printf(" [ERROR] (imposible retransmitir a WKANs)");
+			errorFlag = true;
+			e.printStackTrace();
+		}
+
+		if (!errorFlag)
+			System.out.println(" [OK]");
+	}
+
+	private void solicitudVecinos(SolicitudNcsVecinos solicitud) {
+		/* Un NC solicita otros NCs vecinos a los que enlazarse.
+		 *
+		 *  Acá debe existir una política ya que si este WKAN responde al menos 1 NC cada vez que responde, se corre el
+		 *  riesgo de que gran parte de los vecinos a los que termine enlazado el NC sean de este WKAN y por ende la red
+		 *  no estaría "distribuida" (o balanceada).
+		 *
+		 *  Por ahora la política definida es la siguiente: si puede, le indica un NC aleatorio administrado por él y
+		 *  registra el timestamp. No volverá a informarle nuevos NCs vecinos hasta que no haya pasado X tiempo desde el
+		 *  último.
+		 *
+		 *  Y siempre retransmitirá la consulta a otros WKANs a fin de distribuír las conexiones a lo largo de toda la
+		 *  red. Esto es exactamente lo mismo que se hace cuando un NC se anuncia por primera vez.
+		 *
+		 * */
+		System.out.printf("[Con NC] Recibido pedido de %d ", solicitud.getFaltantes());
+		System.out.printf(" NCs vecinos para %s", solicitud.getEmisor().ip.getHostName());
+
+		// Verifica la existencia del Nodo y el timestamp del último vecino informado
+		NCIndexado metadataNodo = this.atributos.getCentral(solicitud.getEmisor());
+		Boolean informar = false;
+
+		if (metadataNodo == null) {
+			// Si el NC es desconocido debe estar siendo administrado por otro WKAN
+			System.out.printf(" [ERROR] (NC desconocido)");
+			return;
+		}
+
+		// Evalúa si pasó el tiempo correspondiente para sugerirle un nuevo vecino
+		if (metadataNodo.ultimoNncInformado == null)
+			informar = true;
+		else
+			informar = atributos.puedoInformarleVecino(solicitud.getEmisor());
+
+		if (informar) {
+			WKAN_Funciones.atenderSolicutdVecinosNCOutput status;
+			status = funciones.atenderSolicutdVecinosNC(solicitud.getEmisor());
+
+			if (status.equals(WKAN_Funciones.atenderSolicutdVecinosNCOutput.KO_ERROR)) {
+				System.out.printf(" [ERROR] (tarea de conexión con vecino no encolada)");
+			} else if (status.equals(WKAN_Funciones.atenderSolicutdVecinosNCOutput.OK_SIN_VECINO)) {
+				System.out.printf(" (No hay NCs para sugerir)");
+			} else {
+				// TODO: probar que funque bien
+				// Registra el timestamp para no sugerirle un nuevo vecino hasta pasado cierto delay (para "dar tiempo" a
+				// que otros WKANs le indiquen vecinos)
+				atributos.setInformeNCVecino(solicitud.getEmisor());
+			}
+		}
+
+		// Se retransmite a otros WKANs la solicitud a fin de distribuir por toda la red la carga de Nodos
+		RetransmisionSolicitudNcsVecinos solicitud_retransmitir = new RetransmisionSolicitudNcsVecinos(
+				this.atributos.getDireccion(),
+				Codigos.NA_NA_POST_RETRANSMISION_SOLICITUD_VECINOS_NC,
+				solicitud.getEmisor(),
+				(solicitud.getFaltantes() * 2) - 1,
+				solicitud.getFaltantes(),
+				new ArrayList<DireccionNodo>()
+		);
+
+		Tarea tarea = new Tarea(00, Constantes.TSK_NA_RETRANSMITIR_SOLICITUD_VECINOS_NC, solicitud_retransmitir);
+
+		try {
+			atributos.encolar("salida", tarea);
+			System.out.println(" [OK]");
+		} catch (InterruptedException e) {
+			// No hago nada, el NC volverá a solicitar vecinos de ser necesario. Sí debería controlar por qué no se
+			// puede enconlar
+			System.out.printf(" [ERROR] (imposible retransmitir a WKANs)");
+			e.printStackTrace();
+		}
+	}
+
 	@Override
 	public void atender() {
 		Mensaje mensaje;
@@ -104,7 +274,7 @@ public class ConsultorNA_NC implements Consultor {
 			buffSalida = new ObjectOutputStream(sock.getOutputStream());
 			buffEntrada = new ObjectInputStream(sock.getInputStream());
 			
-			// Bucle principal de atención al cliente. Finalizará cuando este indica que cerrará la conexión
+			// Bucle principal de atención al cliente. Finalizará cuando este indique que cerrará la conexión
 			while(!terminar){
 				mensaje = (Mensaje) buffEntrada.readObject();
 				
@@ -130,6 +300,10 @@ public class ConsultorNA_NC implements Consultor {
 
 						terminar = true;
 						break;
+					case Codigos.NC_NA_GET_SOLICITUD_VECINOS:
+						this.solicitudVecinos((SolicitudNcsVecinos) mensaje);
+						terminar = true;
+						break;
 					default:
 						System.out.printf("\tRecibido mensaje en %s: %s\n", sockToString(), mensaje.getCarga());
 						break;
@@ -138,7 +312,7 @@ public class ConsultorNA_NC implements Consultor {
 			
 			sock.close();
 			System.out.printf("-> Conexión con %s finalizada\n", sockToString());
-		} catch (IOException | ClassNotFoundException e) {
+		} catch (ClassNotFoundException | IOException e) {
 			//IOException -> buffer de salida (se cae el Cliente y el Servidor espera la recepción de un mensaje).
 			//ClassNotFoundException -> buffer de entrada.
 			// TODO: hacer algo en caso de error

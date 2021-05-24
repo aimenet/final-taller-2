@@ -4,6 +4,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 
+import commons.mensajes.Mensaje;
 import commons.structs.nc.NHIndexada;
 
 import java.util.ArrayList;
@@ -94,12 +95,13 @@ public class ConsultorNC_H implements Consultor {
 		// Acá tengo que hacer la consulta a los NC -> sólo si el TTL del mensaje lo permite
 		// La respuesta del servior debe ser algo así: HashMap<String, String[]>
 		cantHilos =  atributos.getCentrales().size();
+		ArrayList<DireccionNodo> centrales = atributos.getNcs();
 		direccionNodoActual = atributos.getDireccion();
 		direccionRta = msj.recepcionRta();
 		CountDownLatch latchCentrales = new CountDownLatch(cantHilos);
 		
 		for(int i=0; i<cantHilos; i++){
-			DireccionNodo destino = atributos.getCentral(i);
+			DireccionNodo destino = centrales.get(i);
 			
 			if (destino != null){
 				ConsultorNC_Worker trabajador = new ConsultorNC_Worker(

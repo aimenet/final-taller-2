@@ -58,9 +58,9 @@ public class ConsultorH implements Consultor{
 		// Evaluación de imágenes similares
 		similares = new ArrayList<CredImagen>();
 		for(CredImagen cred : candidatas){
-			int[] imagen = variables.getImagen(cred.getNombre()).getVectorCaracteristico();
-			float distancia = referencia.comparacion(imagen);
-			if(distancia < 10000){
+			Double[] imagen = variables.getImagen(cred.getNombre()).getVectorCaracteristico();
+			double distancia = referencia.comparacion(imagen);
+			if (distancia < Constantes.DST_EUC_UMBRAL_COMPARACION){
 				similares.add(cred);
 			}
 			System.out.println(cred.getNombre() + " vs " + referencia.getNombre() + ": " + distancia);
@@ -101,13 +101,12 @@ public class ConsultorH implements Consultor{
 		rta = (Tupla2<CredImagen,HashMap<DireccionNodo, CredImagen[]>>) msj.getCarga();
 		referencia = rta.getPrimero();
 		similares = rta.getSegundo();
-		
-		// TODO: tengo que probar que las rtas se almacenen bien (27/02/2018)
-		
+
+		System.out.printf("<ConsultorH.java> Reicbí respuesta de NC %s", msj.getEmisor().ip.getHostAddress());
 		if(similares.isEmpty()){
-			System.out.println("<ConsultorH.java> Reicbí respuesta de NC pero estaba vacía");
+			System.out.printf(" pero estaba vacía\n");
 		} else {
-			System.out.println("<ConsultorH.java> Reicbí respuesta de NC. Voy a encolar");
+			System.out.printf(". Voy a encolar\n");
 			variables.almacenarRta(referencia,similares);
 			System.out.println("<ConsultorH.java> Listo el encolado");
 		}

@@ -178,7 +178,7 @@ public class ConsultorNC_NC implements Consultor {
 			Tupla2<CredImagen, HashMap<DireccionNodo, CredImagen[]>> respuesta;
 			respuesta = new Tupla2<CredImagen, HashMap<DireccionNodo, CredImagen[]>>(modelo,resultado);
 
-			conexionTmp.enviarSinRta((new Mensaje(null,11,respuesta)));
+			conexionTmp.enviarSinRta((new Mensaje(this.atributos.getDireccion(),11,respuesta)));
 			conexionTmp.cerrar();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block

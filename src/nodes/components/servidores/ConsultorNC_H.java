@@ -94,6 +94,11 @@ public class ConsultorNC_H implements Consultor {
 		
 		// Acá tengo que hacer la consulta a los NC -> sólo si el TTL del mensaje lo permite
 		// La respuesta del servior debe ser algo así: HashMap<String, String[]>
+
+		// TODO: considerar que un NH conectado a este nodo también puede estarlo al NC que recibe esta consulta,
+		//  en cuyo caso ambos NCs informarían la misma Hoja. Puedo incluír en la consulta mis NHs que ya sé que tienen
+		//  la imagen a fin de evitar duplicados (aunque no sé qué tanto sentido tiene esto en una red de gran tamaño)
+
 		cantHilos =  atributos.getCentrales().size();
 		ArrayList<DireccionNodo> centrales = atributos.getNcs();
 		direccionNodoActual = atributos.getDireccion();
@@ -158,7 +163,7 @@ public class ConsultorNC_H implements Consultor {
 			 * y el segundo un diccionario. Las claves son las direcciones de las H que poseen imágenes
 			 * similares y el value son las imágenes similares*/
 			respuesta = new Tupla2<CredImagen, HashMap<DireccionNodo, CredImagen[]>>(modelo,resultado);
-			conexionTmp.enviarSinRta((new Mensaje(null,11,respuesta)));
+			conexionTmp.enviarSinRta((new Mensaje(this.atributos.getDireccion(), 11,respuesta)));
 			conexionTmp.cerrar();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block

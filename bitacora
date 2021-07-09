@@ -259,9 +259,18 @@ Para mañana: revisar el funcionamiento general de WKANs y NCs. Si no hay cosas 
 * Constatar que los NHs están andando bien
 * Leer la propuesta original para decidir con qué seguir
 
+- Por lo que veo en la propuesta, no voy a utilizar OpenMP para paralelizar el cálculo del vector característico si no
+  que lo voy a hacer yo a bajo nivel (threads y barreras) por una cuestión académica. Ese es un detalle que debo
+  revisar. El otro es revisar que todas las características deseables de las que hablo en la propuesta se cumplan.
+
+  Teniendo eso creo que podría tener algo "presentable" así que podría concentrarme en cuestiones más "prácticas" como
+  ser dockerizar y pensar en la manera en que podrría presentar esto.
+
 [X] Revisar si el NH debería responder los NCs al consultar por "mantenimiento"
 [X] Prueba 3x3x3 (3 WKANs, 3 NCs y 3 NHs) en distintas configuraciones
-[ ] Probar retransmisión de solicitud de NCs
+[X] Probar retransmisión de solicitud de NCs
+
+----- Estas no son escenciales, emprolijarían mucho las cosas pero por ahora quedan así --------------------------------
 [ ] Crear Mensaje para retransmisión de solicitud de NCs
 [ ] En ClienteNA_NA, el método que retransmite una solicitud de NCs de una Hoja está mal, tengo que desdoblarlo
     como había hecho con el pedido de vecinos para un NC (desdoblar el proceso completo de solicitud de NCs para
@@ -271,6 +280,40 @@ Para mañana: revisar el funcionamiento general de WKANs y NCs. Si no hay cosas 
        justa, pero esto genera overhead en la red
 
 
+2021-05-25
+[ ] Probar que funcione con imágenes en escala de gris (1 solo canal)
+[X] Hacer prototipo (standalone) del cálculo paralelo
+[X] Hacer clase para array con acceso controlado para que los threads guraden el histograma sin colisiones
+
+Estuve haciendo un prototipo muy chico de cómo debería paralelizar el cálculo del vector característico así como la
+estrucra de datos que debería usar para almacenar concurrentemente el resultado. Lo hice en un proyecto aparte así que
+lo que resta es pasarlo en limpio e integrarlo al proyecto.
+
+
+2021-06-06
+[ ] Repasar proyecto independiente de cálculo paralelo de histograma
+    [X] Revisar que todos los accesos (public, protected, private) tengan sentido
+    [X] Agregar método a Histograma para pasar a int[] -> logré devolver Integer[] pero no int[]
+    [ ] Implementar en Nodo Hoja
+
+2021-07-07
+[X] Probar cálculo de distancia euclidiana y comparar con resultados de Python
+    -> Hay poca diferencia a fines prácticos (0.002 en el peor de los casos) pero es bastante desde el punto de vista
+       del cálculo. Podría cambiar el array ConcurrentFloatArray de float a double que es lo recomendado en Java.
+        -> Me va a llevar a lo sumo 1 sentada. Es cuestión de cambiar y empezar a probar. A medida que vaya explotando
+           voy corrigiendo y chau, no me gasto en pensar
+
+2021-07-08
+[X] Cambiar ConcurrentFloatArray de float a double (ConcurrentDoubleArray)
+    -> Los valores siguen difiriendo en 0.002 aprox en la mayoría de los casos. Pero dado que es recomendado double
+       sobre float me doy por conforme con el cambio.
+
+2021-07-09
+[X] Probar que tanto la comparación rápida en el NC como la comparación en el NH funcionen como corresponde
+[ ] Loop que controle el estado de los hilos en cada Nodo, reviviendo cuando sea necesario
+
+-> Un tema no menor es volcar las imágenes a disco. No sé si es necesario para lo que es el final,
+   pensarlo (quizás con poder ver las imágenes descargadas o sugeridas, con una pequeña gui alcanza)
 
 ------------------------------------------------------------------------------------------------------------------------
 ---------- ROADMAP                                                                                            ----------
@@ -285,7 +328,13 @@ Para mañana: revisar el funcionamiento general de WKANs y NCs. Si no hay cosas 
 [2021-05-10 al 2021-05-16]
     * Solicitud de vecinos de un NCs
 
+[2021-06-07 al 2021-06-13]
+    * Implementar cálculo paralelo del vector característico (grande)
+    * Implementar reducción del vector característico grande para obtener el chico
 
+[2021-06-14 al 2021-06-20]
+    * Implementar cálculo paralelo del vector característico (grande)
+    * Implementar reducción del vector característico grande para obtener el chico
 
 
 

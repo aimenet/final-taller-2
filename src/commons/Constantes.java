@@ -21,4 +21,8 @@ public class Constantes {
 
 	// Propios de WKANs
 	public static final Integer ESPERA_ENTRE_INFORME_DE_NCS_VECINOS = 60;  // segundos
+
+	// Propios de comparación de imágenes
+	public static final double DST_EUC_UMBRAL_COMPARACION = 0.3;
+	public static final double DST_EUC_UMBRAL_COMPARACION_RAPIDA = 1.0;
 }

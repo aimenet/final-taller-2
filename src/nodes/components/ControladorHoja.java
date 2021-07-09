@@ -111,8 +111,14 @@ public class ControladorHoja implements Runnable {
 			// Se genera una tarea de consulta por cada uno de los NCs conocidos
 			for (DireccionNodo direccion : variables.getCentrales().keySet()) {
 				HashMap<String, Object> taskPayload = new HashMap<String, Object>();
-				
-				taskPayload.put("credImg", new CredImagen(imagen.getNombre(), imagen.getVecCarComprimido()));
+
+				CredImagen query = new CredImagen(
+						imagen.getNombre(),
+						imagen.getVectorCaracteristico(),
+						imagen.getVecCarComprimido()
+				);
+
+				taskPayload.put("credImg", query);
 				taskPayload.put("direccionNC", direccion);
 				variables.encolar("salida", new Tarea("QUERY", taskPayload));	
 			}

@@ -1,9 +1,6 @@
 package nodes.components.servidores;
 
-import commons.ConexionTcp;
-import commons.CredImagen;
-import commons.DireccionNodo;
-import commons.HashConcurrente;
+import commons.*;
 import commons.mensajes.Mensaje;
 
 import java.io.IOException;
@@ -115,20 +112,12 @@ public class ConsultorNC_Worker implements Runnable {
         ConexionTcp conexion;
         Mensaje rta;
 
-        // Paso 1: conexión con Nodo Hoja
-        try {
-            conexion = new ConexionTcp(destino.ip.getHostAddress(), destino.puerto_nc);
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        }
-
-        // Paso 2: búsqueda de imágenes candidatas
+        // Evalúa las imágenes indexadas de la Hoja a fin de identificar si alguna coincide con la de referencia
         candidatas = new ArrayList<CredImagen>();
         for(int i=0; i < indexadas.size(); i++){
-            int[] otroVector = (indexadas.get(i)).getVecCarComprimido();
-            float distancia = referencia.comparacionRapida(otroVector);
-            if(distancia < 10000){
+            Double[] otroVector = (indexadas.get(i)).getVecCarComprimido();
+            double distancia = referencia.comparacionRapida(otroVector);
+            if(distancia < Constantes.DST_EUC_UMBRAL_COMPARACION_RAPIDA){
                 candidatas.add((indexadas.get(i)));
             }
         }
@@ -136,8 +125,14 @@ public class ConsultorNC_Worker implements Runnable {
         if(candidatas.isEmpty())
             return false;
 
-        // TODO: acá forzé el "00" porque da igual pero debería usar el ID
-        // Paso 3: envío de consulta, imagen de referencia y recepción de respuestas
+        try {
+            conexion = new ConexionTcp(destino.ip.getHostAddress(), destino.puerto_nc);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+
+        // Se envía la consulta a la Hoja
         conexion.enviarSinRta(new Mensaje(this.emisor,10,referencia));
         rta = (Mensaje) conexion.enviarConRta(new Mensaje(this.emisor,10,candidatas)); //rta: imgs similares
 
@@ -146,7 +141,7 @@ public class ConsultorNC_Worker implements Runnable {
             rta = new Mensaje(emisor,10,new ArrayList<CredImagen>());
         }
 
-        // Paso 4: almacenamiento del listado de imágenes de la Hoja similares a la de referencia
+        // almacenamiento del listado de imágenes de la Hoja similares a la de referencia
         ArrayList<CredImagen> tmp = (ArrayList<CredImagen>) rta.getCarga();
         CredImagen[] arreglo = (CredImagen[]) ( (ArrayList<CredImagen>) rta.getCarga() ).toArray(new CredImagen[0]);
         if(arreglo.length != 0)

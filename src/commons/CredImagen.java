@@ -15,8 +15,8 @@ public class CredImagen implements Serializable {
 	/* Atributos */
 	/*-----------*/
 	private String nombre;
-	private int[] vectorCaracteristico;
-	private int[] vecCarComprimido;
+	private Double[] vectorCaracteristico;
+	private Double[] vecCarComprimido;
 
 	/*---------*/
 	/* Métodos */
@@ -27,7 +27,7 @@ public class CredImagen implements Serializable {
 	 * @param vectorCaracteristico
 	 * @param vecCarComprimido
 	 */
-	public CredImagen(String nombre, int[] vectorCaracteristico, int[] vecCarComprimido){
+	public CredImagen(String nombre, Double[] vectorCaracteristico, Double[] vecCarComprimido){
 		this.nombre = nombre;
 		this.vectorCaracteristico = vectorCaracteristico;
 		this.vecCarComprimido = vecCarComprimido;
@@ -38,7 +38,7 @@ public class CredImagen implements Serializable {
 	 * @param nombre
 	 * @param vecCarComprimido
 	 */
-	public CredImagen(String nombre, int[] vecCarComprimido){
+	public CredImagen(String nombre, Double[] vecCarComprimido){
 		this.nombre = nombre;
 		this.vecCarComprimido = vecCarComprimido;
 	}
@@ -47,51 +47,26 @@ public class CredImagen implements Serializable {
 	/**
 	 * Compara el vector característico comprimido con otro recibido como parámetro.
 	 * @param otroVector
-	 * @return distancia: float
+	 * @return distancia: double
 	 */
-	public float comparacionRapida(int[] otroVector){
-		float aux, distancia;
-		
-		distancia = 1000;
-		if( vecCarComprimido != null ){
-			distancia = 0;
-			for(int i=0; i<this.vecCarComprimido.length; i++){
-				aux = Math.abs(this.vecCarComprimido[i] - otroVector[i]);
-				distancia += Math.pow(aux,2);
-			}
-		}
-			
-		return distancia;
+	public double comparacionRapida(Double[] otroVector){
+		return Calculos.euclideanDistance(this.vecCarComprimido, otroVector);
 	}
-
 
 	/**
 	 * Compara el vector característico con otro recibido como parámetro.
 	 * @param otroVector
 	 * @return distancia: float
 	 */
-	public float comparacion(int[] otroVector){
-		float aux, distancia; 
-		
-		distancia = 1000;
-		if( vectorCaracteristico != null ){
-			distancia = 0;
-			for(int i=0; i<this.vectorCaracteristico.length; i++){
-				aux = Math.abs(this.vectorCaracteristico[i] - otroVector[i]);
-				distancia += Math.pow(aux,2);
-			}
-		}
-
-		return distancia;
+	public double comparacion(Double[] otroVector){
+		return Calculos.euclideanDistance(this.vectorCaracteristico, otroVector);
 	}
 
-	
-	
-	
+
 	//Getters
 	public String getNombre() {return this.nombre;}
-	public int[] getVectorCaracteristico() {return this.vectorCaracteristico;}
-	public int[] getVecCarComprimido() {return this.vecCarComprimido;}	
+	public Double[] getVectorCaracteristico() {return this.vectorCaracteristico;}
+	public Double[] getVecCarComprimido() {return this.vecCarComprimido;}
 
 	//Setters
 
@@ -100,3 +75,10 @@ public class CredImagen implements Serializable {
 		return (this.nombre + " - VC: [...] - VCC: [...]");
 	}
 }
+
+
+// TODO: lo fejo para no olvidarme: lo que está pasando es que los histogramas (vectores característicos) guardan el
+//  valor absoluto de una imagen (la cantidad de pixeles) pero cuando se comparan imágenes el tamaño no debería importar
+//  sino que debería primar la "composición" de la misma. Para ello voy a tener que usar vectores característicos que
+//  guarden el valor relativo de pixeles en cada bin del mismo (quizás dividiendo cada bin por el total de píxeles en la
+//  imagen?)

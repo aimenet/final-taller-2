@@ -33,6 +33,10 @@ public class WorkerNA_Interno extends Cliente {
 		this.atributos = new AtributosAcceso(); // <atributos> está declarado en Cliente
 	}
 
+	private void beacon() {
+		System.out.println("Beacon signal");
+	}
+
 	private HashMap<String, Object> checkKeepalivesFnc() {
 		/**
 		 * Evalúa el estado de los NCs de acuerdo a la última conexión establecida con cada uno.
@@ -67,7 +71,6 @@ public class WorkerNA_Interno extends Cliente {
 		return output;
 	}
 
-
 	@Override
 	public HashMap<String, Comparable> procesarTarea(Tarea tarea) throws InterruptedException {
 		switch (tarea.getName()) {
@@ -75,7 +78,11 @@ public class WorkerNA_Interno extends Cliente {
 				// Evalúa el estado de los NCs de acuerdo a la última conexión establecida con cada uno
 				this.checkKeepalivesFnc();
 				break;
-			}
+			case "BEACON":
+				this.beacon();
+				break;
+		}
+
 		return null;
 	}
 }

@@ -196,7 +196,10 @@ public class NodoAccesoBienConocido {
 		}
 		
 		System.out.println("Terminé de poner en marcha el nodo de acceso");
-		
+
+		// Acá tengo 2 opciones: meto la revisión del estado de los threads dentro del loop de tareas periódicas o muevo
+		// el loop de tareas a un hilo particular y acá me limito a loopear cada X segundos revisando los threads caídos
+
 		// Loop donde se administran ciertas tareas que ejecuta periódicamente el nodo
 		// Claramente esto es quick and dirty y funca porque hay 2 tarea periódicas, sino la lógica
 		// de "Thread.sleep" es inviable

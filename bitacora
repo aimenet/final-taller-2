@@ -311,6 +311,11 @@ lo que resta es pasarlo en limpio e integrarlo al proyecto.
 2021-07-09
 [X] Probar que tanto la comparación rápida en el NC como la comparación en el NH funcionen como corresponde
 [ ] Loop que controle el estado de los hilos en cada Nodo, reviviendo cuando sea necesario
+    -> Para hacer las cosas prolijas voy a crear una clase que controle las tareas periódicas y que corra en un hilo
+       independiente. Cada Nodo cargará las tareas periódicas (tarea, cola, delay, etc)
+    -> Tengo que revisar si no puedo hacer una clase Nodo general de la que hereden todos que se encargue de esto, de
+       levantar los hilos clientes y servers, revisar el estado de los threads y revivirlos, etc (lo que hoy hace el
+       método "ponerEnMarcha"). Así cada Nodo particular debería tener un constructor (el que ya tiene hoy) y nada más.
 
 -> Un tema no menor es volcar las imágenes a disco. No sé si es necesario para lo que es el final,
    pensarlo (quizás con poder ver las imágenes descargadas o sugeridas, con una pequeña gui alcanza)

@@ -41,7 +41,7 @@ public class ClienteNA_NA extends Cliente {
 	// Métodos
 	// =======
 	public ClienteNA_NA(int idConsumidor) {
-		super(idConsumidor, "salida");
+		super(idConsumidor, "salida"); // TODO: usar constante
 		this.atributos = new AtributosAcceso(); // <atributos> está declarado en Cliente
 	}
 

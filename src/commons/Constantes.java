@@ -6,6 +6,7 @@ public class Constantes {
 	public static final int PUERTO_NC = 10102;
 	public static final int PUERTO_NH = 10103;
 	public static final int PUERTO_MANTENIMIENTO = 10104;
+	public static  final int DELAY_MILISEGUNDOS_CONTROL_THREADS = 10000;
 
 	public static final String COLA_NA = "acceso";
 	public static final String COLA_NC = "centrales";

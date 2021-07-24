@@ -565,13 +565,8 @@ public class ControladorHoja implements Runnable {
 				this.menuDescargar(teclado);
 				break;
 			case "11":
-				// TODO: <2019-03-02> Provisorio, si queda emprolijarlo
-				Random rand = new Random(); 
-				/*int consumerToInterrupt = rand.nextInt( this.variables.getColasTx().length );
-				
-				System.out.println("Interrumpiendo consumidor #" + consumerToInterrupt);
-				//this.variables.encolarTx(new Tupla2<Object, String>(null, "STOP"));
-				this.variables.encolarTxEspecifica(new Tarea("STOP"), consumerToInterrupt);*/
+				// variables.encolar(Constantes.COLA_INTERNA, new Tarea(Constantes.TSK_NH_STOP_EXCP, null));
+				variables.encolar(Constantes.COLA_SALIDA, new Tarea(Constantes.TSK_NH_STOP_EXCP, null));
 				break;
 			case "0":
 				terminar = true;

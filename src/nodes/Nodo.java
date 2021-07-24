@@ -33,13 +33,13 @@ public class Nodo {
 
 
     public Nodo(Atributos atributos) {
-        tareasIniciales = new ArrayList<OrdenEncolado>();
-        tareasPeriodicas = new ArrayList<OrdenEncoladoPeriodico>();
+        tareasIniciales = new ArrayList<>();
+        tareasPeriodicas = new ArrayList<>();
         this.atributos = atributos;
-        clients = new ArrayList<CoreThread>();
-        periodics = new ArrayList<CoreThread>();
-        servers = new ArrayList<CoreThread>();
-        specials = new ArrayList<CoreThread>();
+        clients = new ArrayList<>();
+        periodics = new ArrayList<>();
+        servers = new ArrayList<>();
+        specials = new ArrayList<>();
     }
 
     protected void addClientCoreThread(CoreThread coreThread) {

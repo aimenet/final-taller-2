@@ -26,27 +26,114 @@ import java.util.concurrent.TimeUnit;
 import commons.Constantes;
 import commons.DireccionNodo;
 import commons.Tarea;
+import nodes.components.atributos.AtributosAcceso;
 import nodes.components.atributos.AtributosCentral;
+import nodes.components.clientes.ClienteNA_NA;
 import nodes.components.clientes.ClienteNC_NA;
 import nodes.components.clientes.ClienteNC_NC;
-import nodes.components.servidores.ConsultorMantenimientoNC;
-import nodes.components.servidores.ConsultorNC_H;
-import nodes.components.servidores.ConsultorNC_NA;
-import nodes.components.servidores.ConsultorNC_NC;
-import nodes.components.servidores.Servidor;
+import nodes.components.corethreads.ClientCoreThread;
+import nodes.components.corethreads.NCClientCoreThread;
+import nodes.components.corethreads.ServerCoreThread;
+import nodes.components.servidores.*;
 
 
-public class NodoCentral {
-	private AtributosCentral atributos;
+public class NodoCentral extends Nodo {
 	private Properties config;
-	
-	private ArrayList<Thread> clientThreads;
-	private ArrayList<Thread> serverThreads;
-	private HashMap<String, Runnable> clients;
-	private HashMap<String,Servidor> servers;
-	
-	
+
+
+	private void setClients() {
+		Integer clientes_nc_nc = Integer.parseInt(this.config.getProperty("centrales"));
+		clientes_nc_nc = clientes_nc_nc > 1 ? clientes_nc_nc : 2;
+
+		int i = 0;
+		while (i < clientes_nc_nc){
+			String name = "NC-" + i;
+			this.addClientCoreThread(
+					new NCClientCoreThread(name, i, Constantes.COLA_NC, ClienteNC_NC.class)
+			);
+
+			i += 1;
+		}
+
+		this.addClientCoreThread(
+				new NCClientCoreThread("NA-" + i, i, Constantes.COLA_NA, ClienteNC_NA.class)
+		);
+	}
+
+	private void setServers() {
+		this.addServerCoreThread(
+			new ServerCoreThread(
+				"hojas",
+				atributos.getDireccion().ip.getHostAddress(),
+				atributos.getDireccion().puerto_nh,
+				config.getProperty("nombre")+": Hojas",
+				ConsultorNC_H.class
+			)
+		);
+
+		this.addServerCoreThread(
+			new ServerCoreThread(
+				"centrales",
+				atributos.getDireccion().ip.getHostAddress(),
+				atributos.getDireccion().puerto_nc,
+				config.getProperty("nombre")+": Centrales",
+				ConsultorNC_NC.class
+			)
+		);
+
+		this.addServerCoreThread(
+			new ServerCoreThread(
+				"acceso",
+				atributos.getDireccion().ip.getHostAddress(),
+				atributos.getDireccion().puerto_na,
+				config.getProperty("nombre")+": Acceso",
+				ConsultorNC_NA.class
+			)
+		);
+
+		this.addServerCoreThread(
+			new ServerCoreThread(
+				"mantenimiento",
+				atributos.getDireccion().ip.getHostAddress(),
+				atributos.getDireccion().puerto_m,
+				config.getProperty("nombre")+": Mantenimiento",
+				ConsultorMantenimientoNC.class
+			)
+		);
+
+	}
+
+	private void setInitialTasks() {
+		Tarea task = new Tarea(
+				00,
+				Constantes.TSK_NC_ANUNCIO_WKAN,
+				((AtributosCentral) atributos).getWKANAsignado()
+		);
+
+		this.addInitialTask(Constantes.COLA_NA, task);
+	}
+
+	private void setPeriodicTasks() {
+		this.addPeriodicTask(
+			Constantes.COLA_NA, new Tarea(00, Constantes.TSK_NC_CHECK_ANUNCIO, null), 10
+		);
+
+		this.addPeriodicTask(
+			Constantes.COLA_NA, new Tarea(00, Constantes.TSK_NC_CHECK_VECINOS, null), 10
+		);
+
+		this.addPeriodicTask(
+			Constantes.COLA_NA,
+			new Tarea(00, Constantes.TSK_NC_SEND_KEEPALIVE_WKAN, null),
+				(int) TimeUnit.MILLISECONDS.convert(
+					((AtributosCentral) atributos).keepaliveWKAN, TimeUnit.SECONDS
+				)
+		);
+	}
+
 	public NodoCentral(String archivoConfiguracion) throws UnknownHostException {
+		super(new AtributosCentral());
+
 		try {
 			config = new Properties();
 			config.load( new FileInputStream(archivoConfiguracion) );
@@ -56,178 +143,19 @@ public class NodoCentral {
 			System.exit(1);
 		}
 		
-		// Inicializaciones
-		this.clients = new HashMap<String, Runnable>();
-		this.servers = new HashMap<String, Servidor>();
-		this.clientThreads = new ArrayList<Thread>();
-		this.serverThreads = new ArrayList<Thread>();
-		
-		// Carga de atributos del NC
-		atributos = new AtributosCentral();
-
-		// 2020-09-30 Esto puede tirar una excepción UnknownHostException. Por ahora dejo que explote, porque supongo
-		// que en un entorno real no cargaría así la IP (ni siquiera sé si cargaría la IP)
 		atributos.setDireccion(InetAddress.getByName(config.getProperty("ip")));
 
-		// Punto de acceso a la red
 		InetAddress nodoAcceso = InetAddress.getByName(config.getProperty("wkan"));
-		atributos.setWKANAsignado(new DireccionNodo(nodoAcceso));
+		((AtributosCentral) atributos).setWKANAsignado(new DireccionNodo(nodoAcceso));
+
+		((AtributosCentral) atributos).setMaxCentralesVecinos(Integer.parseInt(this.config.getProperty("centrales")));
 		
-		// Cantidad de NC a los que debe conectarse
-		atributos.setMaxCentralesVecinos(Integer.parseInt(this.config.getProperty("centrales")));
-		
-		// Inicialización de las colas donde se cargarán las "tareas" 
-		// Podría setear sólo las colas que voy a usar pero dejo las default
 		atributos.setNombreColas(new String[]{Constantes.COLA_NA, Constantes.COLA_NC, Constantes.COLA_NH});
 		atributos.setColas();
-		
-		// Servidores
-		this.servers.put("hojas", new Servidor(
-				atributos.getDireccion().ip.getHostAddress(),
-				atributos.getDireccion().puerto_nh,
-				config.getProperty("nombre")+": Hojas",
-				ConsultorNC_H.class
-		));
-		this.servers.put("centrales", new Servidor(
-				atributos.getDireccion().ip.getHostAddress(),
-				atributos.getDireccion().puerto_nc,
-				config.getProperty("nombre")+": Centrales",
-				ConsultorNC_NC.class
-		));
-		this.servers.put("acceso", new Servidor(
-				atributos.getDireccion().ip.getHostAddress(),
-				atributos.getDireccion().puerto_na,
-				config.getProperty("nombre")+": Acceso",
-		        ConsultorNC_NA.class
-		));
-		this.servers.put("mantenimiento", new Servidor(
-				atributos.getDireccion().ip.getHostAddress(),
-				atributos.getDireccion().puerto_m,
-				config.getProperty("nombre")+": Mantenimiento",
-				ConsultorMantenimientoNC.class
-		));
-		
-		for (Servidor server : servers.values()) {
-			serverThreads.add(new Thread(server));
-		}
-				
-		// Clientes
-		// 1 por cada NC al que podría conectarse, forzando a que al menos haya 2 Clientes
-		Integer clientes_nc_nc = Integer.parseInt(this.config.getProperty("centrales"));
-		clientes_nc_nc = clientes_nc_nc > 1 ? clientes_nc_nc : 2;
 
-		while (this.clients.size() < clientes_nc_nc)
-			this.clients.put(
-					"NC-" + Integer.toString(this.clients.size()),
-					new ClienteNC_NC(this.clients.size(), Constantes.COLA_NC)
-			);
-
-		// 1 para conectarse al WKAN que sirve de pto de entrada a la red
-		this.clients.put(
-				"NA-" + Integer.toString(this.clients.size()),
-				new ClienteNC_NA(this.clients.size(), Constantes.COLA_NA)
-		);
-		
-		// Hacer otro bucle para esto no creo que sea lo mejor
-		for (String cliente : this.clients.keySet())
-			this.clientThreads.add(new Thread(this.clients.get(cliente)));
-
-
-		/*Recordatorio
-		 * 
-		 * Si en el archivo de configuración pongo < nc_conectado_3= >, la propiedad leída
-		 * con < config.getProperty("nc_conectado_3") > da "" de resultado.
-		 * Si por el contrario no pongo nada la propiedad leída es null
-		 * 
-		 * Tengo que optar por una porque de lo contrario debería corroborar que la propiedad no sea
-		 * ni null ni string: si es un string no pasa nada porque se puede hacer "string vs null" pero
-		 * no puedo preguntar si un null es igual a tal string porque sería algo del tipo "null.equals('bla bla')"
-		 * lo cual tira null pointer exception.
-		 * 
-		 * Yo opto por no poner nada en el archivo de configuración pero tengo que comentarlo en el mismo
-		 * porque el código Java depende de eso. 
-		 * 
-		 * */
+		this.setServers();
+		this.setClients();
+		this.setInitialTasks();
+		this.setPeriodicTasks();
 	}
-	
-	public void ponerEnMarcha() {
-		boolean terminar = false;
-		
-		// Inicio de los hilos clientes y servidores
-		for (Thread hilo : serverThreads)
-			hilo.start();
-		
-		for (Thread hilo : clientThreads)
-			hilo.start();
-		
-		// Ingreso a la red
-		// Nótese que no está hardcodeada la IP del WKAN así que este nodo tranquilamente podría estar concetado
-		// a más de un Nodo de Acceso
-		try {
-			atributos.encolar(Constantes.COLA_NA, new Tarea(00, "ANUNCIO_WKAN", atributos.getWKANAsignado()));
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-		
-		System.out.println("Terminé de poner en marcha el Nodo Central");
-		
-		// Loop donde se administran ciertas tareas que ejecuta periódicamente el nodo
-		// Claramente esto es una porquería porque el tiempo de espera se va acumulando cuando debería funcionar como un
-		// CRONJOB
-		while(!terminar) {
-			// Tarea que determina si es necesario enviar anuncio a WKAN en caso de que aún no se ingresó a la red
-			try {
-				Thread.sleep(10000);
-				atributos.encolar(Constantes.COLA_NA, new Tarea(00, "CHECK_ANUNCIO", null));
-				System.out.println("[Core] Disparada tarea periódica: CHECK ANUNCIO para determinar ingreso a la red");
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-
-			// Hasta acá esperé: 10 segundos ---------------------------------------------------------------------------
-
-			// Solicitud de NCs vecinos en caso de no haberse alcanzado el número necesario
-			try {
-				Thread.sleep(10000);
-
-				atributos.encolar(
-						Constantes.COLA_NA,
-						new Tarea(00, Constantes.TSK_NC_CHECK_VECINOS, null)
-				);
-
-				System.out.println(
-						String.format("[Core] Disparada tarea periódica: %s", Constantes.TSK_NC_CHECK_VECINOS)
-				);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-
-			// Hasta acá esperé: 20 segundos ---------------------------------------------------------------------------
-
-			// Dispara tarea de envío de keepalive a WKAN
-			try {
-				Thread.sleep(TimeUnit.MILLISECONDS.convert(atributos.keepaliveWKAN, TimeUnit.SECONDS));
-				atributos.encolar(Constantes.COLA_NA, new Tarea(00, "SEND_KEEPALIVE_WKAN", null));
-				System.out.println("[Core] Disparada tarea periódica: keepalive WKAN");
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-
-			// Hasta acá esperé: 30 segundos ---------------------------------------------------------------------------
-
-			// Podría hacer una tarea que le envíe un ping o un algo así a los NCs vecinos y elimine a los que no
-			// respondan
-
-			// TODO 2020-11-23: revisar y revivir threads caídos
-		}
-	}
-
-} // Fin clase 
-
-
-/** 
- * [2019-11-02]
- * Tendría que hacer una clase Nodo de la que hereden todos los nodos porque la estructura básica, independientemente
- * del tipo, es la misma: tiene atributos, servidores y clientes (y tengo clases super de casi todos esos componentes)
- * */
-
+}

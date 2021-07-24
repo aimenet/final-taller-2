@@ -18,7 +18,7 @@ public class NCClientCoreThread extends ClientCoreThread {
     @Override
     protected void createNewWorker()
             throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
-        Constructor<? extends Cliente> constructor = clientClass.getDeclaredConstructor(Integer.class, String.class);
+        Constructor<? extends Cliente> constructor = clientClass.getDeclaredConstructor(int.class, String.class);
         this.worker = constructor.newInstance(this.id, this.queueName);
     }
 

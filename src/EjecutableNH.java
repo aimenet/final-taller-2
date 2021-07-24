@@ -1,10 +1,11 @@
 import nodes.NodoHoja;
 
+import java.lang.reflect.InvocationTargetException;
 import java.net.UnknownHostException;
 
 public class EjecutableNH {
 
-	public static void main(String[] args) throws InterruptedException {
+	public static void main(String[] args) throws InterruptedException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
 		String configFile;
 		
 		/* El único parámetro que recibe es el path (absoluto) del archivo de configuración */
@@ -22,7 +23,7 @@ public class EjecutableNH {
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
-		hoja.ponerEnMarcha();
+		hoja.iniciar();
 		
 		System.out.println("\nFin script.");
 	}

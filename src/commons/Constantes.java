@@ -19,6 +19,12 @@ public class Constantes {
 	public static final String TSK_NA_CONECTAR_NCS = "CONECTAR-NCS";
 	public static final String TSK_NC_ANUNCIO_VECINO = "ANUNCIO-VECINO";
 	public static final String TSK_NA_RETRANSMITIR_SOLICITUD_VECINOS_NC = "RETRANSMITIR_SOLICITUD_VECINOS_NC";
+	public static final String TSK_NC_ANUNCIO_WKAN = "ANUNCIO_WKAN";
+	public static final String TSK_NC_CHECK_ANUNCIO = "CHECK_ANUNCIO";
+	public static final String TSK_NC_SEND_KEEPALIVE_WKAN = "SEND_KEEPALIVE_WKAN";
+	public static final String TSK_NH_SOLICITUD_NCS = "SOLICITUD_NCS";
+	public static final String TSK_NH_NC_CONNECTED_CHECK = "NC_CONNECTED_CHECK";
+	public static final String TSK_NH_STOP_EXCP = "STOP";
 
 	// Propios de WKANs
 	public static final Integer ESPERA_ENTRE_INFORME_DE_NCS_VECINOS = 60;  // segundos

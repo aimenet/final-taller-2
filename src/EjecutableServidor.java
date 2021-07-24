@@ -1,10 +1,11 @@
 import nodes.NodoCentral;
 
+import java.lang.reflect.InvocationTargetException;
 import java.net.UnknownHostException;
 
 public class EjecutableServidor {
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws InterruptedException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
 		Integer puertoServidorHojas, puertoServidorCentrales;
 		String configFile;
 		
@@ -22,7 +23,7 @@ public class EjecutableServidor {
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
-		NC1.ponerEnMarcha();
+		NC1.iniciar();
 	}
 
 }

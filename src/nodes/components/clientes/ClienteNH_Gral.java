@@ -1,4 +1,6 @@
 package nodes.components.clientes;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
 import java.util.function.Function;
 
@@ -126,7 +128,7 @@ public class ClienteNH_Gral extends Cliente {
 
 		return output;
 	}
-	
+
 	private HashMap<String, Object> descargarImgFnc(HashMap<String, Object> params){
 		HashMap<String, Object> output = new HashMap<String, Object>();
 		Mensaje solicitud;
@@ -298,12 +300,6 @@ public class ClienteNH_Gral extends Cliente {
 				puertoDestino = ((DireccionNodo) diccionario.get("direccionNC")).puerto_nh;
 				method = this::queryNCFnc;
 				break;
-			case "STOP":
-				// Provisorio -> naturalmente a fines académicos
-				// Lanzo una excepción para capturarla y detener el thread
-				// throw new ManualInterruptException("Forzada detención del thread", 1);
-				throw new InterruptedException("Forzada detención del thread");
-				// break;
 		}
 		
 		contador = 0;
@@ -311,7 +307,7 @@ public class ClienteNH_Gral extends Cliente {
 		while (contador < intentos) {
 			if (this.establecerConexion(ipDestino, puertoDestino)) {
 				// Ahora llamo al método correspondiente para realizar la tarea (independientemente de cual sea)
-				diccionario = method.apply(diccionario);				
+				diccionario = method.apply(diccionario);
 				contador = intentos + 1;
 			} else {
 				contador += 1;
